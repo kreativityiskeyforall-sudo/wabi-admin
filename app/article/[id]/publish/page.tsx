@@ -4,12 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import StageBar from '@/components/StageBar';
-import { getArticle } from '@/lib/mock-data';
 
 export default function PublishPage() {
   const { id } = useParams<{ id: string }>();
-  const article = getArticle(id);
-  const isProduct = article?.type === 'product-review' || article?.type === 'roundup';
+  const isProduct = false;
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
@@ -37,7 +35,7 @@ export default function PublishPage() {
       <div className="wsbody">
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--sage)', marginBottom: 4 }}>Stage 5 — Ready to publish</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 400 }}>{article?.title ?? 'Article'}…</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 400 }}>Article…</div>
         </div>
 
         {published ? (
@@ -47,7 +45,7 @@ export default function PublishPage() {
             <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 20 }}>Cloudflare Pages is rebuilding — page will be live in ~3 minutes.</div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <Link href="/" className="btn btn-sage">← Back to queue</Link>
-              <a href={`https://wabidecor.com/${article?.category?.toLowerCase().replace(' ', '-')}/${article?.slug}`} target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
+              <a href="https://wabidecor.com" target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
             </div>
           </div>
         ) : (

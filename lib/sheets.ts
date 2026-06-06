@@ -47,6 +47,11 @@ function mapStatus(s: string): string {
   return 'queue';
 }
 
+export async function getArticleById(id: string): Promise<SheetArticle | null> {
+  const all = await getArticlesFromSheets();
+  return all.find(a => a.id === id) ?? null;
+}
+
 export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return [];
 

@@ -4,15 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import StageBar from '@/components/StageBar';
-import { getArticle, MOCK_BOARDS, PINTEREST_TEMPLATES } from '@/lib/mock-data';
+import { MOCK_BOARDS, PINTEREST_TEMPLATES } from '@/lib/mock-data';
 
 const PIN_COLORS = ['#C8B89A', '#9BAA8E', '#D9C9B0', '#B0C9B8'];
 const PIN_COLORS2 = ['#8A7A60', '#7A9580', '#A8957A', '#6A8060'];
 
 export default function PinterestPage() {
   const { id } = useParams<{ id: string }>();
-  const article = getArticle(id);
-  const isProduct = article?.type === 'product-review' || article?.type === 'roundup';
+  const isProduct = false;
 
   const selectedPins = ['hero', '4grid', 'steps'].map(tid => PINTEREST_TEMPLATES.find(t => t.id === tid)!).filter(Boolean);
 

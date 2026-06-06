@@ -4,11 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import StageBar from '@/components/StageBar';
-import { getArticle } from '@/lib/mock-data';
 
 export default function ProductBriefPage() {
   const { id } = useParams<{ id: string }>();
-  const article = getArticle(id);
+  const article = { title: 'Product Review', type: 'product-review', category: '' };
 
   const [priceNow, setPriceNow] = useState('£89');
   const [priceLow, setPriceLow] = useState('£72');

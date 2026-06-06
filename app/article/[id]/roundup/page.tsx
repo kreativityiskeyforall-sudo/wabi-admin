@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import StageBar from '@/components/StageBar';
-import { getArticle } from '@/lib/mock-data';
 import type { RoundupProduct } from '@/lib/types';
 
 const DEFAULT_PRODUCTS: RoundupProduct[] = [
@@ -15,7 +14,7 @@ const DEFAULT_PRODUCTS: RoundupProduct[] = [
 
 export default function RoundupBriefPage() {
   const { id } = useParams<{ id: string }>();
-  const article = getArticle(id);
+  const article = { title: 'Product Roundup', type: 'roundup', category: '' };
   const [products, setProducts] = useState<RoundupProduct[]>(DEFAULT_PRODUCTS);
   const [angle, setAngle] = useState('Best bookshelves with a japandi / minimalist aesthetic. Mix of budget and mid-range options. Focus on clean lines, natural materials, storage capacity. Best-pick badge for highest overall score.');
 

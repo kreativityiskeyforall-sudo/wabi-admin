@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import StageBar from '@/components/StageBar';
-import { getArticle, PINTEREST_TEMPLATES } from '@/lib/mock-data';
+import { PINTEREST_TEMPLATES } from '@/lib/mock-data';
 
 const SECTION_IMAGES = [
   '1. Replace metal handles', '2. Low slatted coffee table',
@@ -24,8 +24,7 @@ const TEMPLATE_SVGS: Record<string, string> = {
 
 export default function ImagesPage() {
   const { id } = useParams<{ id: string }>();
-  const article = getArticle(id);
-  const isProduct = article?.type === 'product-review' || article?.type === 'roundup';
+  const isProduct = false; // determined by article type from sheet
 
   const [selectedTemplates, setSelectedTemplates] = useState(new Set(['hero', '4grid', 'steps']));
   const [generated, setGenerated] = useState<Array<{ url: string; label: string }>>([]);
