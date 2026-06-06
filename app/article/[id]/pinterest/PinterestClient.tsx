@@ -44,7 +44,7 @@ export default function PinterestClient({ id, article }: { id: string; article: 
   };
 
   const categorySlug = article?.category?.toLowerCase().replace(/ /g, '-') ?? 'living-room';
-  const articleSlug = article?.slug || article?.title?.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '') ?? 'article-slug';
+  const articleSlug = (article?.slug || article?.title?.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')) ?? 'article-slug';
 
   return (
     <>
