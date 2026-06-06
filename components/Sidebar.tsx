@@ -2,27 +2,44 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MOCK_ARTICLES } from '@/lib/mock-data';
+import { useEffect, useState } from 'react';
+
+type Article = {
+  id: string;
+  title: string;
+  type: string;
+  category: string;
+  status: string;
+  publishedAt?: string;
+};
+
+function getStage(art: Article): string {
+  if (art.status === 'writing') return 'write';
+  if (art.status === 'images') return 'images';
+  if (art.status === 'pinterest') return 'pinterest';
+  if (art.status === 'outline-ready') {
+    if (art.type === 'product-review') return 'brief';
+    if (art.type === 'roundup') return 'roundup';
+    return 'outline';
+  }
+  return 'outline';
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [articles, setArticles] = useState<Article[]>([]);
 
-  const inProgress = MOCK_ARTICLES.filter(a => a.status === 'writing');
-  const needsReview = MOCK_ARTICLES.filter(a => a.status === 'outline-ready');
-  const queued = MOCK_ARTICLES.filter(a => a.status === 'queued');
-  const published = MOCK_ARTICLES.filter(a => a.status === 'published');
+  useEffect(() => {
+    fetch('/api/sheets')
+      .then(r => r.json())
+      .then(d => { if (d.articles?.length) setArticles(d.articles); })
+      .catch(() => {});
+  }, []);
 
-  const isActive = (id: string, stage: string) =>
-    pathname === `/article/${id}/${stage}`;
-
-  const getArticleStage = (id: string) => {
-    const art = MOCK_ARTICLES.find(a => a.id === id);
-    if (!art) return 'outline';
-    if (art.status === 'outline-ready') {
-      return art.type === 'product-review' ? 'brief' : art.type === 'roundup' ? 'roundup' : 'outline';
-    }
-    return 'outline';
-  };
+  const inProgress = articles.filter(a => ['writing', 'images', 'pinterest'].includes(a.status));
+  const needsReview = articles.filter(a => a.status === 'outline-ready');
+  const queued = articles.filter(a => a.status === 'queue' || a.status === 'queued');
+  const published = articles.filter(a => a.status === 'published');
 
   return (
     <nav className="sb">
@@ -32,20 +49,16 @@ export default function Sidebar() {
       </div>
 
       <div className="sb-scroll">
-        {/* In progress */}
         {inProgress.length > 0 && (
           <>
             <div className="sb-g">Now</div>
             {inProgress.map(art => (
-              <Link
-                key={art.id}
-                href={`/article/${art.id}/write`}
-                className={`sb-item ${pathname.includes(`/article/${art.id}/`) ? 'active' : ''}`}
-              >
+              <Link key={art.id} href={`/article/${art.id}/${getStage(art)}`}
+                className={`sb-item ${pathname.includes(`/article/${art.id}/`) ? 'active' : ''}`}>
                 <div className="dot dg" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="sb-name">{art.title}</div>
-                  <div className="sb-meta">Writing…</div>
+                  <div className="sb-meta">{art.status === 'writing' ? 'Writing…' : art.status === 'images' ? 'Images…' : 'Pinterest…'}</div>
                 </div>
               </Link>
             ))}
@@ -53,16 +66,12 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* Needs review */}
         {needsReview.length > 0 && (
           <>
             <div className="sb-g">Needs Review ({needsReview.length})</div>
             {needsReview.map(art => (
-              <Link
-                key={art.id}
-                href={`/article/${art.id}/${getArticleStage(art.id)}`}
-                className={`sb-item ${pathname.includes(`/article/${art.id}/`) ? 'active' : ''}`}
-              >
+              <Link key={art.id} href={`/article/${art.id}/${getStage(art)}`}
+                className={`sb-item ${pathname.includes(`/article/${art.id}/`) ? 'active' : ''}`}>
                 <div className="dot dr" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="sb-name">{art.title}</div>
@@ -78,14 +87,9 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* Queue */}
         <div className="sb-g">Queue ({queued.length})</div>
-        {queued.slice(0, 4).map(art => (
-          <Link
-            key={art.id}
-            href="/"
-            className="sb-item"
-          >
+        {queued.slice(0, 5).map(art => (
+          <Link key={art.id} href={`/article/${art.id}/outline`} className="sb-item">
             <div className="dot dq" />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sb-name">{art.title}</div>
@@ -93,13 +97,12 @@ export default function Sidebar() {
             </div>
           </Link>
         ))}
-        {queued.length > 4 && (
+        {queued.length > 5 && (
           <Link href="/" style={{ padding: '8px 18px', fontSize: 11, color: '#3A3835', cursor: 'pointer', display: 'block', textDecoration: 'none' }}>
-            + {queued.length - 4} more in queue →
+            + {queued.length - 5} more in queue →
           </Link>
         )}
 
-        {/* Published */}
         {published.length > 0 && (
           <>
             <div className="sb-div" />
@@ -109,7 +112,7 @@ export default function Sidebar() {
                 <div className="dot dp" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="sb-name">{art.title}</div>
-                  <div className="sb-meta">Live · {art.publishedDate}</div>
+                  <div className="sb-meta">Live · {art.publishedAt}</div>
                 </div>
               </div>
             ))}
