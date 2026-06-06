@@ -11,6 +11,7 @@ const PIN_COLORS2 = ['#8A7A60', '#7A9580', '#A8957A', '#6A8060'];
 
 export default function PinterestPage() {
   const { id } = useParams<{ id: string }>();
+  const article = { title: 'Article', type: 'editorial', category: '', slug: '' };
   const isProduct = false;
 
   const selectedPins = ['hero', '4grid', 'steps'].map(tid => PINTEREST_TEMPLATES.find(t => t.id === tid)!).filter(Boolean);

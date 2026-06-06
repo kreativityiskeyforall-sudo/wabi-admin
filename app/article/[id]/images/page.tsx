@@ -24,6 +24,7 @@ const TEMPLATE_SVGS: Record<string, string> = {
 
 export default function ImagesPage() {
   const { id } = useParams<{ id: string }>();
+  const article = { title: 'Article', type: 'editorial', category: '' };
   const isProduct = false; // determined by article type from sheet
 
   const [selectedTemplates, setSelectedTemplates] = useState(new Set(['hero', '4grid', 'steps']));

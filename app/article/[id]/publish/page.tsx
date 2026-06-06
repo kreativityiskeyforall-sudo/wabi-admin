@@ -7,6 +7,7 @@ import StageBar from '@/components/StageBar';
 
 export default function PublishPage() {
   const { id } = useParams<{ id: string }>();
+  const article = { title: 'Article', type: 'editorial', category: '' };
   const isProduct = false;
   const [publishing, setPublishing] = useState(false);
   const [published, setPublished] = useState(false);
