@@ -14,7 +14,7 @@ export default function ProductBriefPage() {
   const [priceHigh, setPriceHigh] = useState('£119');
   const [stars, setStars] = useState('4.3');
   const [reviews, setReviews] = useState('1,247');
-  const [amazonUrl, setAmazonUrl] = useState(article?.amazonUrl ?? '');
+  const [amazonUrl, setAmazonUrl] = useState('');
   const [angle, setAngle] = useState('Budget-friendly japandi-style bookshelf. Focus on clean bamboo aesthetic, how it fits minimalist room styling, value vs premium options, and practical tips for styling it Japandi. Target buyer: first-time japandi decorator, £50–£100 budget.');
 
   return (
