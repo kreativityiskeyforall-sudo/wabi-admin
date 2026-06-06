@@ -28,10 +28,12 @@ export default function ImagesPage() {
   const isProduct = article?.type === 'product-review' || article?.type === 'roundup';
 
   const [selectedTemplates, setSelectedTemplates] = useState(new Set(['hero', '4grid', 'steps']));
-  const [generated, setGenerated] = useState(false);
+  const [generated, setGenerated] = useState<Array<{ url: string; label: string }>>([]);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
   const [pinModel, setPinModel] = useState<'dev' | 'schnell'>('dev');
   const [sectionModel, setSectionModel] = useState<'dev' | 'schnell'>('schnell');
+  const [pinPrompt, setPinPrompt] = useState('Minimalist japandi living room interior, warm neutral tones, natural wood low-profile coffee table, linen sofa, dried pampas grass in ceramic vase, soft morning light, calm serene atmosphere, interior photography');
 
   const toggleTemplate = (id: string) => {
     setSelectedTemplates(s => {
@@ -43,9 +45,33 @@ export default function ImagesPage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
-    await new Promise(r => setTimeout(r, 1800));
-    setGenerating(false);
-    setGenerated(true);
+    setError('');
+    try {
+      const prompts = [
+        // Pinterest pins — one per selected template
+        ...[...selectedTemplates].map(t => ({
+          prompt: pinPrompt,
+          model: pinModel,
+          label: `📌 Pin (${PINTEREST_TEMPLATES.find(p => p.id === t)?.name ?? t})`,
+        })),
+        // Featured image
+        { prompt: pinPrompt, model: pinModel as 'dev' | 'schnell', label: 'Featured' },
+        // Section images
+        ...SECTION_IMAGES.map(s => ({ prompt: `${pinPrompt}, ${s}`, model: sectionModel, label: s })),
+      ];
+      const res = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompts }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Generation failed');
+      setGenerated(data.images);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Generation failed');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const pinCount = selectedTemplates.size;
@@ -112,7 +138,7 @@ export default function ImagesPage() {
                     <button className={`mdl-btn ${pinModel === 'dev' ? 'on' : 'off'}`} onClick={() => setPinModel('dev')}>Dev · $0.025 ★</button>
                   </div>
                 </div>
-                <textarea className="prompt-ta" style={{ marginTop: 10 }} defaultValue="Minimalist japandi living room interior, warm neutral tones, natural wood low-profile coffee table, linen sofa, dried pampas grass in ceramic vase, soft morning light, calm serene atmosphere, interior photography" />
+                <textarea className="prompt-ta" style={{ marginTop: 10 }} value={pinPrompt} onChange={e => setPinPrompt(e.target.value)} />
               </div>
             </div>
 
@@ -163,18 +189,26 @@ export default function ImagesPage() {
               </button>
             </div>
 
+            {/* Error */}
+            {error && (
+              <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '12px 16px', color: '#991B1B', fontSize: 13, marginTop: 12 }}>
+                ✕ {error}
+              </div>
+            )}
+
             {/* Generated grid */}
-            {generated && (
+            {generated.length > 0 && (
               <div style={{ marginTop: 22 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--t3)', marginBottom: 10 }}>
-                  Generated — all portrait 1000×1500 · hover to regenerate
+                  Generated — all portrait 1000×1500 · click to open full size
                 </div>
                 <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
-                    {['📌 Pin 1', '📌 Pin 2', '📌 Pin 3', 'Featured', 'Section 1', 'Section 2', 'Section 3', 'Section 4', 'Section 5', 'Section 6'].map((label, i) => (
-                      <div key={i} style={{ background: `hsl(${30 + i * 15},30%,${60 + (i % 3) * 5}%)`, aspectRatio: '2/3', borderRadius: 'var(--r)', position: 'relative', cursor: 'pointer' }}>
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 8px', background: 'rgba(0,0,0,.5)', fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,.85)', borderRadius: '0 0 var(--r) var(--r)' }}>{label}</div>
-                      </div>
+                    {generated.map((img, i) => (
+                      <a key={i} href={img.url} target="_blank" rel="noopener" style={{ display: 'block', aspectRatio: '2/3', borderRadius: 'var(--r)', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}>
+                        <img src={img.url} alt={img.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '6px 8px', background: 'rgba(0,0,0,.55)', fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,.9)', borderRadius: '0 0 var(--r) var(--r)' }}>{img.label}</div>
+                      </a>
                     ))}
                   </div>
                 </div>
