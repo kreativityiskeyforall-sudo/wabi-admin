@@ -64,6 +64,8 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Generation failed');
       setGenerated(data.images);
+      // Persist for Pinterest stage
+      sessionStorage.setItem(`images-${id}`, JSON.stringify(data.images));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
