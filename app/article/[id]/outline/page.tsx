@@ -24,6 +24,8 @@ export default function OutlinePage() {
   const article = getArticle(id);
   const [headings, setHeadings] = useState(DEFAULT_HEADINGS);
   const [generating, setGenerating] = useState(false);
+  const [seoTitle, setSeoTitle] = useState(article?.title ?? '');
+  const [metaDescription, setMetaDescription] = useState('Transform your living room with these 15 affordable Japandi DIY hacks that each take a weekend or less.');
 
   const addHeading = () => {
     setHeadings(h => [...h, { level: 'H2', text: 'New heading', note: 'Add a brief note' }]);
@@ -39,9 +41,27 @@ export default function OutlinePage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
-    // TODO: call /api/outline with article data from Sheet
-    await new Promise(r => setTimeout(r, 1500));
-    setGenerating(false);
+    try {
+      const res = await fetch('/api/outline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: article?.title,
+          type: article?.type,
+          category: article?.category,
+          keywords: article?.category,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      if (data.headings) setHeadings(data.headings);
+      if (data.seoTitle) setSeoTitle(data.seoTitle);
+      if (data.metaDescription) setMetaDescription(data.metaDescription);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -70,17 +90,21 @@ export default function OutlinePage() {
         <div className="meta-grid">
           <div className="meta-card">
             <span className="lbl">SEO title</span>
-            <div contentEditable suppressContentEditableWarning style={{ fontSize: 13, fontWeight: 500, outline: 'none' }}>
-              15 Japandi Living Room DIY Hacks That Cost Almost Nothing
+            <div contentEditable suppressContentEditableWarning onBlur={e => setSeoTitle(e.currentTarget.textContent ?? '')} style={{ fontSize: 13, fontWeight: 500, outline: 'none' }}>
+              {seoTitle}
             </div>
-            <div style={{ fontSize: 10, marginTop: 4 }} className="ok">✓ 55 chars</div>
+            <div style={{ fontSize: 10, marginTop: 4 }} className={seoTitle.length >= 50 && seoTitle.length <= 60 ? 'ok' : 'warn'}>
+              {seoTitle.length} chars {seoTitle.length < 50 ? '(too short)' : seoTitle.length > 60 ? '(too long)' : '✓'}
+            </div>
           </div>
           <div className="meta-card">
             <span className="lbl">Meta description</span>
-            <div contentEditable suppressContentEditableWarning style={{ fontSize: 12, outline: 'none' }}>
-              Transform your living room with these 15 affordable Japandi DIY hacks that each take a weekend or less.
+            <div contentEditable suppressContentEditableWarning onBlur={e => setMetaDescription(e.currentTarget.textContent ?? '')} style={{ fontSize: 12, outline: 'none' }}>
+              {metaDescription}
             </div>
-            <div style={{ fontSize: 10, marginTop: 4 }} className="ok">✓ 140 chars</div>
+            <div style={{ fontSize: 10, marginTop: 4 }} className={metaDescription.length >= 140 && metaDescription.length <= 160 ? 'ok' : 'warn'}>
+              {metaDescription.length} chars {metaDescription.length < 140 ? '(too short)' : metaDescription.length > 160 ? '(too long)' : '✓'}
+            </div>
           </div>
           <div className="meta-card">
             <span className="lbl">Summary</span>

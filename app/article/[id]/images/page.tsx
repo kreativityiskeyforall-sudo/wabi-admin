@@ -49,7 +49,7 @@ export default function ImagesPage() {
     try {
       const prompts = [
         // Pinterest pins — one per selected template
-        ...[...selectedTemplates].map(t => ({
+        ...Array.from(selectedTemplates).map(t => ({
           prompt: pinPrompt,
           model: pinModel,
           label: `📌 Pin (${PINTEREST_TEMPLATES.find(p => p.id === t)?.name ?? t})`,
