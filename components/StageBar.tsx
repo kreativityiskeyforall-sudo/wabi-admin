@@ -52,7 +52,7 @@ export default function StageBar({ articleId, currentStage, articleTitle, isProd
               style={{ textDecoration: 'none' }}
             >
               <div className="sn">{isDone ? '✓' : num}</div>
-              <div className="sl" style={s.isPin ? { color: 'var(--pin)' } : undefined}>
+              <div className="sl" style={'isPin' in s ? { color: 'var(--pin)' } : undefined}>
                 {label}
               </div>
             </Link>
