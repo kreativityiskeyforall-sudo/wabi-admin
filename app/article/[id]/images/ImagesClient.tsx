@@ -8,7 +8,7 @@ import type { SheetArticle } from '@/lib/sheets';
 type Heading = { level: string; text: string; note: string };
 
 type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null };
-type PinImg     = { prompt: string; enabled: boolean; titleOverlay: boolean; url: string | null };
+type PinImg     = { prompt: string; enabled: boolean; titleOverlay: boolean; url: string | null; layout: 'collage4' | 'hero3panel' | 'complete' };
 type FeaturedImg = { prompt: string; url: string | null };
 
 export type ImageStore = {
@@ -128,7 +128,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
 }
 
-async function downloadPinWithOverlay(imageUrl: string, titleText: string, filename: string) {
+async function downloadPinWithOverlay(imageUrl: string, titleText: string, filename: string, textPosition: 'bottom' | 'center' = 'bottom') {
   const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
   const res = await fetch(proxyUrl);
   const blob = await res.blob();
@@ -143,18 +143,34 @@ async function downloadPinWithOverlay(imageUrl: string, titleText: string, filen
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0, 1000, 1500);
 
-      const grad = ctx.createLinearGradient(0, 900, 0, 1500);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(0.5, 'rgba(0,0,0,0.6)');
-      grad.addColorStop(1, 'rgba(0,0,0,0.82)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 1000, 1500);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '400 50px Georgia, serif';
-      wrapText(ctx, titleText, 500, 1360, 860, 64);
+      if (textPosition === 'center') {
+        // Semi-transparent overlay in the middle third
+        const grad = ctx.createLinearGradient(0, 450, 0, 1050);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.3, 'rgba(0,0,0,0.65)');
+        grad.addColorStop(0.7, 'rgba(0,0,0,0.65)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1000, 1500);
+        ctx.fillStyle = 'rgba(255,255,255,0.97)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '400 50px Georgia, serif';
+        wrapText(ctx, titleText, 500, 750, 860, 64);
+      } else {
+        // Gradient at bottom
+        const grad = ctx.createLinearGradient(0, 900, 0, 1500);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.5, 'rgba(0,0,0,0.6)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.82)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1000, 1500);
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '400 50px Georgia, serif';
+        wrapText(ctx, titleText, 500, 1360, 860, 64);
+      }
 
       canvas.toBlob(async (cb) => {
         URL.revokeObjectURL(objectUrl);
@@ -179,9 +195,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const [sections, setSections] = useState<SectionImg[]>([]);
   const [generatingPrompts, setGeneratingPrompts] = useState(false);
   const [pins, setPins] = useState<PinImg[]>([
-    { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null },
-    { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null },
-    { prompt: buildPinPrompt(category, 2), enabled: true, titleOverlay: false, url: null },
+    { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null, layout: 'collage4' },
+    { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null, layout: 'hero3panel' },
+    { prompt: buildPinPrompt(category, 2), enabled: true, titleOverlay: false, url: null, layout: 'complete' },
   ]);
 
   const [genFeatured, setGenFeatured] = useState(false);
@@ -264,15 +280,28 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     if (!headings.length) return;
     setGeneratingPrompts(true); setError('');
     try {
+      const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
       const res = await fetch('/api/generate-image-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleTitle, category, headings }),
+        body: JSON.stringify({ articleTitle, category, headings, articleMarkdown, includePins: true }),
       });
       const data = await res.json();
-      if (!res.ok || !data.prompts) throw new Error(data.error ?? 'Failed');
-      setSections(sec => sec.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
-      persistSections(sections.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
+      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      if (data.sectionPrompts) {
+        const newSec = sections.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }));
+        setSections(newSec);
+        persistSections(newSec);
+      }
+      if (data.pinPrompts?.length) {
+        const newPins = pins.map((p, i) => ({
+          ...p,
+          prompt: data.pinPrompts[i]?.prompt ?? p.prompt,
+          layout: (data.pinPrompts[i]?.layout ?? p.layout) as PinImg['layout'],
+        }));
+        setPins(newPins);
+        persistPins(newPins);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Prompt generation failed');
     } finally {
@@ -325,7 +354,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     try {
       const filename = `wabi-${id}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`;
       if (withOverlay && articleTitle) {
-        await downloadPinWithOverlay(url, articleTitle, filename);
+        const pin = label.startsWith('pin-') ? pins[parseInt(label.split('-')[1]) - 1] : null;
+        const textPos = pin?.layout === 'complete' ? 'bottom' : 'center';
+        await downloadPinWithOverlay(url, articleTitle, filename, textPos);
       } else {
         await downloadImage(url, filename);
       }
@@ -494,7 +525,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                     }}
                     style={{ marginRight: 8, flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pin)' }}>Pin {i + 1}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pin)' }}>
+                    Pin {i + 1} · <span style={{ fontWeight: 400, fontSize: 10 }}>
+                      {p.layout === 'collage4' ? '4-panel collage' : p.layout === 'hero3panel' ? 'hero + 2 panels' : 'complete scene'}
+                    </span>
+                  </span>
 
                   {/* Title overlay toggle */}
                   <label className="overlay-toggle" style={{ marginLeft: 'auto' }}>

@@ -80,7 +80,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       const res = await fetch('/api/generate-image-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleTitle: title, category, headings }),
+        body: JSON.stringify({ articleTitle: title, category, headings, articleMarkdown: data.markdown, includePins: false }),
       });
       const data = await res.json();
       if (!res.ok || !data.prompts) throw new Error(data.error ?? 'Failed to generate prompts');
