@@ -34,6 +34,7 @@ export default async function OverviewPage() {
       category: a.category ?? '', cluster: a.cluster ?? '',
       articleType: 'Branch', pinterestTitle: '', contentType: a.type,
       competition: '', status: a.status, notes: '', slug: '', publishedAt: '',
+      rowNumber: 0,
     }));
   }
 
