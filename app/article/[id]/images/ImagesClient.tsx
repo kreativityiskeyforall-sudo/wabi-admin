@@ -177,6 +177,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   const [featured, setFeatured] = useState<FeaturedImg>({ prompt: buildFeaturedPrompt(category), url: null });
   const [sections, setSections] = useState<SectionImg[]>([]);
+  const [generatingPrompts, setGeneratingPrompts] = useState(false);
   const [pins, setPins] = useState<PinImg[]>([
     { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null },
     { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null },
@@ -256,6 +257,27 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       persistFeatured(newF);
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
     finally { setGenFeatured(false); }
+  };
+
+  const improvePrompts = async () => {
+    const headings = sections.map(s => s.headingText);
+    if (!headings.length) return;
+    setGeneratingPrompts(true); setError('');
+    try {
+      const res = await fetch('/api/generate-image-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleTitle, category, headings }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.prompts) throw new Error(data.error ?? 'Failed');
+      setSections(sec => sec.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
+      persistSections(sections.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Prompt generation failed');
+    } finally {
+      setGeneratingPrompts(false);
+    }
   };
 
   const generateSections = async () => {
@@ -391,9 +413,14 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             <div className="img-card-title">
               Section Images <span className="img-tag">1000×1500 portrait · FLUX Schnell · {enabledSections} enabled</span>
             </div>
-            <button className="btn btn-out btn-sm" onClick={generateSections} disabled={genSections}>
-              {genSections ? '⟳' : '⚡'} Generate sections
-            </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-out btn-sm" onClick={improvePrompts} disabled={generatingPrompts || sections.length === 0} title="Claude rewrites all prompts as detailed scene descriptions">
+                {generatingPrompts ? '⟳ Writing…' : '✦ Improve prompts'}
+              </button>
+              <button className="btn btn-out btn-sm" onClick={generateSections} disabled={genSections}>
+                {genSections ? '⟳' : '⚡'} Generate
+              </button>
+            </div>
           </div>
           <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sections.length === 0 && (

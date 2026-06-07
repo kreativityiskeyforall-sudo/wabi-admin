@@ -5,21 +5,6 @@ import Link from 'next/link';
 
 type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null };
 
-const ROOM_CTX: Record<string, string> = {
-  bedroom: 'Japandi bedroom, pale oak furniture, linen bedding, ceramic bedside accessories',
-  'living-room': 'Japandi living room, low wooden sofa, natural rattan, wabi-sabi ceramics on shelf',
-  bathroom: 'Japandi bathroom, stone basin, bamboo accessories, matte neutral tiles',
-  kitchen: 'Japandi kitchen, pale oak cabinets, handmade clay ceramics, open shelf',
-};
-const LIGHTINGS = ['soft morning light filtering through sheer curtains', 'warm golden afternoon sunlight', 'diffused overcast daylight', 'gentle dappled light through bamboo blinds', 'cool north-facing light'];
-const ANGLES = ['eye-level interior photography', 'slight low angle', 'three-quarter room view', 'intimate close-up detail shot', 'wide environmental shot'];
-
-function buildPrompt(heading: string, category: string, index: number) {
-  const clean = heading.replace(/^(\d+[:.]\s*|idea\s+\d+[:.]\s*)/i, '').trim();
-  const room = ROOM_CTX[category] ?? 'Japandi interior, natural materials';
-  return `${clean}, ${room}, ${LIGHTINGS[index % LIGHTINGS.length]}, ${ANGLES[index % ANGLES.length]}, editorial interior photography`;
-}
-
 function fallbackDownload(blob: Blob, filename: string) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -33,7 +18,10 @@ async function downloadImage(imageUrl: string, filename: string) {
   const blob = await res.blob();
   if ('showSaveFilePicker' in window) {
     try {
-      const handle = await (window as any).showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Image', accept: { 'image/jpeg': ['.jpg'] } }] });
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'Image', accept: { 'image/jpeg': ['.jpg'] } }],
+      });
       const writable = await handle.createWritable();
       await writable.write(blob);
       await writable.close();
@@ -49,6 +37,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   const [category, setCategory] = useState('');
   const [slug, setSlug] = useState('');
   const [sections, setSections] = useState<SectionImg[]>([]);
+  const [generatingPrompts, setGeneratingPrompts] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -64,15 +53,17 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         setCategory(data.category);
         setSlug(data.slug);
 
-        // Extract H2 headings from markdown
+        // Extract both H2 and H3 headings
         const headings = data.markdown
           .split('\n')
-          .filter((l: string) => l.startsWith('## '))
-          .map((l: string) => l.slice(3).trim());
+          .filter((l: string) => l.startsWith('## ') || l.startsWith('### '))
+          .map((l: string) => l.replace(/^#{2,3} /, '').trim())
+          .filter((h: string) => h.length > 0);
 
-        setSections(headings.map((h: string, i: number) => ({
+        // Start with blank prompts — user clicks "Generate prompts" to fill them via Claude
+        setSections(headings.map((h: string) => ({
           headingText: h,
-          prompt: buildPrompt(h, data.category, i),
+          prompt: '',
           enabled: true,
           url: null,
         })));
@@ -81,9 +72,29 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       .finally(() => setLoading(false));
   }, [sanityId]);
 
+  const generatePrompts = async () => {
+    const headings = sections.map(s => s.headingText);
+    if (!headings.length) return;
+    setGeneratingPrompts(true); setError('');
+    try {
+      const res = await fetch('/api/generate-image-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleTitle: title, category, headings }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.prompts) throw new Error(data.error ?? 'Failed to generate prompts');
+      setSections(sec => sec.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Prompt generation failed');
+    } finally {
+      setGeneratingPrompts(false);
+    }
+  };
+
   const generateImages = async () => {
-    const enabled = sections.filter(s => s.enabled);
-    if (!enabled.length) return;
+    const enabled = sections.filter(s => s.enabled && s.prompt.trim());
+    if (!enabled.length) { setError('Generate prompts first, then generate images.'); return; }
     setGenerating(true); setError('');
     try {
       const BATCH = 3;
@@ -94,7 +105,13 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            prompts: batch.map(s => ({ prompt: s.prompt, model: 'schnell', label: s.headingText, width: 1000, height: 1500 })),
+            prompts: batch.map(s => ({
+              prompt: s.prompt,
+              model: 'schnell',
+              label: s.headingText,
+              width: 1000,
+              height: 1500,
+            })),
           }),
         });
         const data = await res.json();
@@ -128,7 +145,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           sections: ready.map(s => ({
             headingText: s.headingText,
             imageUrl: s.url,
-            altText: `${s.headingText.replace(/^\d+\.\s*/, '')} – Japandi ${(category).replace('-', ' ')} decor · ${title}`,
+            altText: `${s.headingText.replace(/^\d+\.\s*/, '')} – Japandi ${category.replace('-', ' ')} · ${title}`,
           })),
         }),
       });
@@ -143,32 +160,47 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
 
   const enabledCount = sections.filter(s => s.enabled).length;
   const generatedCount = sections.filter(s => s.url).length;
+  const promptsReady = sections.filter(s => s.prompt.trim()).length;
 
   if (loading) return <div className="wsbody" style={{ padding: 40, color: 'var(--t3)' }}>Loading…</div>;
 
   return (
     <div className="wsbody">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--t3)', marginBottom: 4 }}>
             Add section images — published article
           </div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 400, maxWidth: 600 }}>{title}</div>
           <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 3 }}>
-            {sections.length} sections · {enabledCount} enabled · {generatedCount} generated · FLUX Schnell · 1000×1500px portrait
+            {sections.length} sections (H2+H3) · {enabledCount} enabled · {promptsReady} prompts ready · {generatedCount} generated
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Link href={`/edit/${sanityId}`} className="btn btn-out btn-sm">← Edit text</Link>
-          <button className="btn btn-amber" onClick={generateImages} disabled={generating || enabledCount === 0}>
-            {generating ? '⟳ Generating…' : '⚡ Generate all'}
-          </button>
           {generatedCount > 0 && (
             <button className="btn btn-sage" onClick={handleSaveToSanity} disabled={saving || saved}>
-              {saving ? '⟳ Saving…' : saved ? '✓ Saved to Sanity' : `↑ Save ${generatedCount} images to site`}
+              {saving ? '⟳ Saving…' : saved ? '✓ Saved' : `↑ Save ${generatedCount} to site`}
             </button>
           )}
         </div>
+      </div>
+
+      {/* Step guide */}
+      <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>Step 1:</div>
+        <button className="btn btn-amber" onClick={generatePrompts} disabled={generatingPrompts || sections.length === 0}>
+          {generatingPrompts ? '⟳ Claude is writing prompts…' : '✦ Generate image prompts with Claude'}
+        </button>
+        <div style={{ fontSize: 12, color: 'var(--t3)' }}>Claude writes a detailed scene for each section → you review + edit → then generate images</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button className="btn btn-dark" onClick={generateImages} disabled={generating || promptsReady === 0}>
+          {generating ? '⟳ Generating images…' : `⚡ Generate all images (FLUX Schnell · 1000×1500px)`}
+        </button>
+        {generating && <span style={{ fontSize: 12, color: 'var(--t3)', alignSelf: 'center' }}>Batching in groups of 3…</span>}
       </div>
 
       {error && (
@@ -179,41 +211,55 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
 
       {saved && (
         <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 14, fontSize: 13, color: 'var(--sage)' }}>
-          ✓ Images saved to Sanity — Cloudflare will rebuild the page in ~3 minutes.{' '}
+          ✓ Images saved — Cloudflare rebuilds in ~3 min.{' '}
           <a href={`https://wabidecor.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)', fontWeight: 700 }}>View live ↗</a>
         </div>
       )}
 
+      {/* Section list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {sections.map((s, i) => (
-          <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', opacity: s.enabled ? 1 : 0.45 }}>
+          <div key={i} style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r)', padding: '12px 14px',
+            opacity: s.enabled ? 1 : 0.45,
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <input
                 type="checkbox"
                 checked={s.enabled}
                 onChange={e => setSections(sec => sec.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x))}
               />
-              <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{s.headingText}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{s.headingText}</span>
               {s.url && (
                 <button
                   className="btn btn-out btn-sm"
                   style={{ fontSize: 10 }}
-                  onClick={() => { setDownloading(`sec-${i}`); downloadImage(s.url!, `section-${i + 1}-${s.headingText.slice(0, 20).replace(/\s+/g, '-').toLowerCase()}.jpg`).finally(() => setDownloading(null)); }}
+                  onClick={async () => {
+                    setDownloading(`sec-${i}`);
+                    await downloadImage(s.url!, `${s.headingText.slice(0, 25).replace(/\s+/g, '-').toLowerCase()}.jpg`).catch(() => {});
+                    setDownloading(null);
+                  }}
                   disabled={downloading === `sec-${i}`}
                 >
                   {downloading === `sec-${i}` ? '⟳' : '↓'} Download
                 </button>
               )}
             </div>
+
+            {/* Prompt */}
             <textarea
               className="prompt-ta"
               value={s.prompt}
+              placeholder={generatingPrompts ? 'Claude is generating…' : 'Click "Generate image prompts with Claude" above to auto-fill, or type your own scene description here…'}
               onChange={e => setSections(sec => sec.map((x, j) => j === i ? { ...x, prompt: e.target.value } : x))}
               disabled={!s.enabled}
             />
+
+            {/* Generated image */}
             {s.url && (
               <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <img src={s.url} alt={s.headingText} style={{ width: 80, aspectRatio: '2/3', objectFit: 'cover', borderRadius: 4 }} />
+                <img src={s.url} alt={s.headingText} style={{ width: 72, aspectRatio: '2/3', objectFit: 'cover', borderRadius: 4 }} />
                 <span style={{ fontSize: 11, color: 'var(--sage)', marginTop: 4 }}>✓ Generated</span>
               </div>
             )}
@@ -221,17 +267,18 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         ))}
       </div>
 
-      {sections.length === 0 && (
+      {sections.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)', fontSize: 14 }}>
-          No H2 headings found in this article.
+          No headings found in this article.
         </div>
       )}
 
-      <style>{`
-        .prompt-ta { width: 100%; font-size: 11px; font-family: inherit; line-height: 1.5; color: var(--t2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; resize: vertical; background: white; min-height: 48px; box-sizing: border-box; outline: none; }
-        .prompt-ta:focus { border-color: var(--sage); }
+      <style dangerouslySetInnerHTML={{ __html: `
+        .prompt-ta { width: 100%; font-size: 11px; font-family: inherit; line-height: 1.55; color: var(--t2); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; resize: vertical; background: white; min-height: 52px; box-sizing: border-box; outline: none; }
+        .prompt-ta:focus { border-color: var(--amber); }
         .prompt-ta:disabled { background: var(--sbg); cursor: not-allowed; }
-      `}</style>
+        .prompt-ta::placeholder { color: var(--t3); font-style: italic; }
+      ` }} />
     </div>
   );
 }
