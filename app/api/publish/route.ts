@@ -96,7 +96,7 @@ async function uploadImageUrl(imageUrl: string, filename: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const { title, slug, body, category, type, featuredImageUrl, sectionImages, publishedAt } = await req.json();
+  const { title, slug, body, category, type, featuredImageUrl, sectionImages, pinterestPins, publishedAt } = await req.json();
 
   if (!title || !slug || !body) {
     return NextResponse.json({ error: 'title, slug, and body are required' }, { status: 400 });
@@ -152,6 +152,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Upload Pinterest pins to Sanity CDN (makes URLs permanent)
+  const savedPins: any[] = [];
+  if (Array.isArray(pinterestPins) && pinterestPins.length > 0) {
+    await Promise.all(pinterestPins.map(async (pin: { url: string; layout: string }, i: number) => {
+      if (!pin.url) return;
+      try {
+        const assetId = await uploadImageUrl(pin.url, `${slug}-pin-${i + 1}.jpg`);
+        savedPins[i] = {
+          _type: 'pinImage',
+          _key: key(),
+          asset: { _type: 'reference', _ref: assetId },
+          layout: pin.layout ?? 'complete',
+        };
+      } catch { /* skip failed pin upload */ }
+    }));
+  }
+
   const doc = {
     _type: 'article',
     title,
@@ -160,6 +177,7 @@ export async function POST(req: NextRequest) {
     category,
     articleType: type,
     featuredImage,
+    pinterestPins: savedPins.filter(Boolean),
     publishedAt: publishedAt ?? new Date().toISOString(),
   };
 

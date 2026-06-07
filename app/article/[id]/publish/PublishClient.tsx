@@ -50,6 +50,15 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
         sectionImages = (compose.sections ?? []).filter((s: any) => s.imageUrl);
       } catch { /* ignore */ }
 
+      // Pinterest pins from images store
+      let pinterestPins: Array<{ url: string; layout: string }> = [];
+      try {
+        const imgStore = JSON.parse(localStorage.getItem(`images-${id}`) ?? '{}');
+        pinterestPins = (imgStore.pins ?? [])
+          .filter((p: any) => p.url)
+          .map((p: any) => ({ url: p.url, layout: p.layout ?? 'complete' }));
+      } catch { /* ignore */ }
+
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -61,6 +70,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           type: article?.type,
           featuredImageUrl,
           sectionImages,
+          pinterestPins,
           publishedAt,
         }),
       });
