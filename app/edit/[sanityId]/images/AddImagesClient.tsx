@@ -101,7 +101,9 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   };
 
   const generatePrompts = async () => {
-    const headings = sections.map(s => s.headingText);
+    // Only generate prompts for enabled (checked) sections — skip unchecked to save tokens
+    const enabledSections = sections.filter(s => s.enabled);
+    const headings = enabledSections.map(s => s.headingText);
     if (!headings.length) return;
     setGeneratingPrompts(true); setError('');
     try {
@@ -112,7 +114,14 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       });
       const result = await res.json();
       if (!res.ok || !result.sectionPrompts) throw new Error(result.error ?? 'Failed to generate prompts');
-      const updated = sections.map((s, i) => ({ ...s, prompt: result.sectionPrompts[i] ?? s.prompt }));
+      // Match prompts back by heading text, not by index
+      const promptMap = Object.fromEntries(
+        headings.map((h, i) => [h, result.sectionPrompts[i] ?? ''])
+      );
+      const updated = sections.map(s => ({
+        ...s,
+        prompt: promptMap[s.headingText] ?? s.prompt,
+      }));
       setSections(updated);
       persistSections(updated);
     } catch (e: unknown) {

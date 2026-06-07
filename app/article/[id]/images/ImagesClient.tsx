@@ -276,7 +276,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   };
 
   const improvePrompts = async () => {
-    const headings = sections.map(s => s.headingText);
+    const headings = sections.filter(s => s.enabled).map(s => s.headingText);
     if (!headings.length) return;
     setGeneratingPrompts(true); setError('');
     try {
@@ -289,7 +289,10 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
       if (data.sectionPrompts) {
-        const newSec = sections.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }));
+        const promptMap = Object.fromEntries(
+          headings.map((h, i) => [h, data.sectionPrompts[i] ?? ''])
+        );
+        const newSec = sections.map(s => ({ ...s, prompt: promptMap[s.headingText] ?? s.prompt }));
         setSections(newSec);
         persistSections(newSec);
       }
