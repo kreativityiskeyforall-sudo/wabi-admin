@@ -38,11 +38,15 @@ export async function POST(req: NextRequest) {
         contentType: 'image/jpeg',
       });
 
-      // Find the H2 matching this heading
-      const idx = body.findIndex(
-        b => b._type === 'block' && b.style === 'h2' &&
-          b.children?.[0]?.text === section.headingText
-      );
+      // Find the heading block (H2 or H3) matching this section
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const target = normalize(section.headingText);
+      const idx = body.findIndex(b => {
+        if (b._type !== 'block') return false;
+        if (b.style !== 'h2' && b.style !== 'h3') return false;
+        const text = b.children?.[0]?.text ?? '';
+        return text === section.headingText || normalize(text) === target;
+      });
 
       if (idx !== -1) {
         // Remove any existing image immediately after this H2

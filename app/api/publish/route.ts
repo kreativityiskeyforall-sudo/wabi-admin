@@ -136,9 +136,12 @@ export async function POST(req: NextRequest) {
           section.imageUrl,
           `${slug}-section-${section.headingText.slice(0, 30).replace(/[^a-z0-9]/gi, '-').toLowerCase()}.jpg`
         );
-        // Find matching H2 block and insert image block after it
-        const headingIdx = portableBody.findIndex(
-          b => b.style === 'h2' && b.children?.[0]?.text === section.headingText
+        // Find matching H2 or H3 block
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const target = normalize(section.headingText);
+        const headingIdx = portableBody.findIndex(b =>
+          (b.style === 'h2' || b.style === 'h3') &&
+          (b.children?.[0]?.text === section.headingText || normalize(b.children?.[0]?.text ?? '') === target)
         );
         if (headingIdx !== -1) {
           portableBody.splice(headingIdx + 1, 0, {
