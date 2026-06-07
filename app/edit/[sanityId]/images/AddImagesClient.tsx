@@ -43,6 +43,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [articleMarkdown, setArticleMarkdown] = useState('');
 
   useEffect(() => {
     fetch(`/api/edit-article?id=${sanityId}`)
@@ -52,6 +53,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         setTitle(data.title);
         setCategory(data.category);
         setSlug(data.slug);
+        setArticleMarkdown(data.markdown ?? '');
 
         // Extract both H2 and H3 headings
         const headings = data.markdown
@@ -80,11 +82,11 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       const res = await fetch('/api/generate-image-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleTitle: title, category, headings, articleMarkdown: data.markdown, includePins: false }),
+        body: JSON.stringify({ articleTitle: title, category, headings, articleMarkdown, includePins: false }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.prompts) throw new Error(data.error ?? 'Failed to generate prompts');
-      setSections(sec => sec.map((s, i) => ({ ...s, prompt: data.prompts[i] ?? s.prompt })));
+      const result = await res.json();
+      if (!res.ok || !result.sectionPrompts) throw new Error(result.error ?? 'Failed to generate prompts');
+      setSections(sec => sec.map((s, i) => ({ ...s, prompt: result.sectionPrompts[i] ?? s.prompt })));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Prompt generation failed');
     } finally {
