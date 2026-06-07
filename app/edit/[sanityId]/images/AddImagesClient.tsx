@@ -62,17 +62,43 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           .map((l: string) => l.replace(/^#{2,3} /, '').trim())
           .filter((h: string) => h.length > 0);
 
-        // Start with blank prompts — user clicks "Generate prompts" to fill them via Claude
+        // Restore any previously generated URLs from localStorage
+        const savedRaw = localStorage.getItem(`add-images-${sanityId}`);
+        let savedUrls: Record<string, string> = {};
+        let savedPrompts: Record<string, string> = {};
+        let savedEnabled: Record<string, boolean> = {};
+        if (savedRaw) {
+          try {
+            const parsed = JSON.parse(savedRaw);
+            savedUrls = parsed.urls ?? {};
+            savedPrompts = parsed.prompts ?? {};
+            savedEnabled = parsed.enabled ?? {};
+          } catch { /* ignore */ }
+        }
+
         setSections(headings.map((h: string) => ({
           headingText: h,
-          prompt: '',
-          enabled: true,
-          url: null,
+          prompt: savedPrompts[h] ?? '',
+          enabled: savedEnabled[h] !== undefined ? savedEnabled[h] : true,
+          url: savedUrls[h] ?? null,
         })));
       })
       .catch(() => setError('Failed to load article'))
       .finally(() => setLoading(false));
   }, [sanityId]);
+
+  // Persist sections to localStorage whenever they change
+  const persistSections = (secs: SectionImg[]) => {
+    const urls: Record<string, string> = {};
+    const prompts: Record<string, string> = {};
+    const enabled: Record<string, boolean> = {};
+    for (const s of secs) {
+      if (s.url) urls[s.headingText] = s.url;
+      if (s.prompt) prompts[s.headingText] = s.prompt;
+      enabled[s.headingText] = s.enabled;
+    }
+    localStorage.setItem(`add-images-${sanityId}`, JSON.stringify({ urls, prompts, enabled }));
+  };
 
   const generatePrompts = async () => {
     const headings = sections.map(s => s.headingText);
@@ -86,7 +112,9 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       });
       const result = await res.json();
       if (!res.ok || !result.sectionPrompts) throw new Error(result.error ?? 'Failed to generate prompts');
-      setSections(sec => sec.map((s, i) => ({ ...s, prompt: result.sectionPrompts[i] ?? s.prompt })));
+      const updated = sections.map((s, i) => ({ ...s, prompt: result.sectionPrompts[i] ?? s.prompt }));
+      setSections(updated);
+      persistSections(updated);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Prompt generation failed');
     } finally {
@@ -126,6 +154,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           }
         }
         setSections([...newSections]);
+        persistSections([...newSections]);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Generation failed');
@@ -181,9 +210,14 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Link href={`/edit/${sanityId}`} className="btn btn-out btn-sm">← Edit text</Link>
-          {generatedCount > 0 && (
-            <button className="btn btn-sage" onClick={handleSaveToSanity} disabled={saving || saved}>
-              {saving ? '⟳ Saving…' : saved ? '✓ Saved' : `↑ Save ${generatedCount} to site`}
+          {generatedCount > 0 && !saved && (
+            <button className="btn btn-sage" onClick={handleSaveToSanity} disabled={saving}>
+              {saving ? '⟳ Saving…' : `↑ Save ${generatedCount} images to site`}
+            </button>
+          )}
+          {saved && (
+            <button className="btn btn-out btn-sm" onClick={() => setSaved(false)}>
+              ↑ Re-save to site
             </button>
           )}
         </div>
@@ -230,7 +264,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
               <input
                 type="checkbox"
                 checked={s.enabled}
-                onChange={e => setSections(sec => sec.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x))}
+                onChange={e => { const n = sections.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x); setSections(n); persistSections(n); }}
               />
               <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{s.headingText}</span>
               {s.url && (
@@ -254,7 +288,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
               className="prompt-ta"
               value={s.prompt}
               placeholder={generatingPrompts ? 'Claude is generating…' : 'Click "Generate image prompts with Claude" above to auto-fill, or type your own scene description here…'}
-              onChange={e => setSections(sec => sec.map((x, j) => j === i ? { ...x, prompt: e.target.value } : x))}
+              onChange={e => { const n = sections.map((x, j) => j === i ? { ...x, prompt: e.target.value } : x); setSections(n); persistSections(n); }}
               disabled={!s.enabled}
             />
 
