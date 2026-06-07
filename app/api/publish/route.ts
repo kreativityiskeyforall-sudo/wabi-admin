@@ -9,31 +9,154 @@ const sanity = createClient({
   useCdn: false,
 });
 
+function key() { return Math.random().toString(36).slice(2, 10); }
+
+type PTSpan = { _type: 'span'; _key: string; text: string; marks: string[] };
+type PTMarkDef = { _type: string; _key: string; href?: string };
+type PTBlock = { _type: 'block'; _key: string; style: string; markDefs: PTMarkDef[]; children: PTSpan[]; listItem?: string; level?: number };
+
+function parseInline(text: string): { children: PTSpan[]; markDefs: PTMarkDef[] } {
+  const children: PTSpan[] = [];
+  const markDefs: PTMarkDef[] = [];
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/);
+  for (const part of parts) {
+    if (!part) continue;
+    if (part.startsWith('**') && part.endsWith('**')) {
+      children.push({ _type: 'span', _key: key(), text: part.slice(2, -2), marks: ['strong'] });
+    } else if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+      children.push({ _type: 'span', _key: key(), text: part.slice(1, -1), marks: ['em'] });
+    } else {
+      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        const mk = key();
+        markDefs.push({ _type: 'link', _key: mk, href: linkMatch[2] });
+        children.push({ _type: 'span', _key: key(), text: linkMatch[1], marks: [mk] });
+      } else {
+        children.push({ _type: 'span', _key: key(), text: part, marks: [] });
+      }
+    }
+  }
+  return { children, markDefs };
+}
+
+function markdownToPortableText(markdown: string): PTBlock[] {
+  const blocks: PTBlock[] = [];
+  const lines = markdown.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (!line.trim()) { i++; continue; }
+
+    if (line.startsWith('### ')) {
+      const { children, markDefs } = parseInline(line.slice(4).trim());
+      blocks.push({ _type: 'block', _key: key(), style: 'h3', markDefs, children });
+      i++; continue;
+    }
+    if (line.startsWith('## ')) {
+      const { children, markDefs } = parseInline(line.slice(3).trim());
+      blocks.push({ _type: 'block', _key: key(), style: 'h2', markDefs, children });
+      i++; continue;
+    }
+    if (line.startsWith('# ')) {
+      const { children, markDefs } = parseInline(line.slice(2).trim());
+      blocks.push({ _type: 'block', _key: key(), style: 'h2', markDefs, children });
+      i++; continue;
+    }
+    if (/^[*-] /.test(line)) {
+      const { children, markDefs } = parseInline(line.slice(2).trim());
+      blocks.push({ _type: 'block', _key: key(), style: 'normal', listItem: 'bullet', level: 1, markDefs, children });
+      i++; continue;
+    }
+
+    // Paragraph: collect consecutive content lines
+    const paraLines: string[] = [];
+    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('#') && !/^[*-] /.test(lines[i])) {
+      paraLines.push(lines[i]);
+      i++;
+    }
+    if (paraLines.length > 0) {
+      const { children, markDefs } = parseInline(paraLines.join(' '));
+      blocks.push({ _type: 'block', _key: key(), style: 'normal', markDefs, children });
+    }
+  }
+
+  return blocks;
+}
+
+async function uploadImageUrl(imageUrl: string, filename: string) {
+  const imgRes = await fetch(imageUrl);
+  const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+  const asset = await sanity.assets.upload('image', imgBuffer, {
+    filename,
+    contentType: 'image/jpeg',
+  });
+  return asset._id;
+}
+
 export async function POST(req: NextRequest) {
-  const { title, slug, body, category, type, featuredImageUrl, publishedAt } = await req.json();
+  const { title, slug, body, category, type, featuredImageUrl, sectionImages, publishedAt } = await req.json();
 
   if (!title || !slug || !body) {
     return NextResponse.json({ error: 'title, slug, and body are required' }, { status: 400 });
   }
 
-  // Upload featured image to Sanity CDN if URL provided
+  // Convert markdown body → Sanity Portable Text
+  const portableBody = markdownToPortableText(body);
+
+  // Strip leading heading block if it duplicates the article title
+  // (Claude often opens the article with # Title or ## Title)
+  if (portableBody.length > 0) {
+    const first = portableBody[0];
+    if ((first.style === 'h1' || first.style === 'h2') && first.children?.[0]) {
+      const headingText = first.children[0].text?.trim().toLowerCase() ?? '';
+      const titleText = title.trim().toLowerCase();
+      if (headingText === titleText || titleText.includes(headingText) || headingText.includes(titleText.slice(0, 30))) {
+        portableBody.shift();
+      }
+    }
+  }
+
+  // Upload featured image
   let featuredImage = null;
   if (featuredImageUrl) {
-    const imgRes = await fetch(featuredImageUrl);
-    const imgBlob = await imgRes.blob();
-    const imgBuffer = Buffer.from(await imgBlob.arrayBuffer());
-    const asset = await sanity.assets.upload('image', imgBuffer, {
-      filename: `${slug}-featured.jpg`,
-      contentType: 'image/jpeg',
-    });
-    featuredImage = { _type: 'image', asset: { _type: 'reference', _ref: asset._id } };
+    try {
+      const assetId = await uploadImageUrl(featuredImageUrl, `${slug}-featured.jpg`);
+      featuredImage = { _type: 'image', asset: { _type: 'reference', _ref: assetId } };
+    } catch { /* continue without featured image */ }
+  }
+
+  // Upload section images and insert them after matching H2 blocks
+  if (Array.isArray(sectionImages) && sectionImages.length > 0) {
+    for (const section of sectionImages) {
+      if (!section.imageUrl) continue;
+      try {
+        const assetId = await uploadImageUrl(
+          section.imageUrl,
+          `${slug}-section-${section.headingText.slice(0, 30).replace(/[^a-z0-9]/gi, '-').toLowerCase()}.jpg`
+        );
+        // Find matching H2 block and insert image block after it
+        const headingIdx = portableBody.findIndex(
+          b => b.style === 'h2' && b.children?.[0]?.text === section.headingText
+        );
+        if (headingIdx !== -1) {
+          portableBody.splice(headingIdx + 1, 0, {
+            _type: 'image',
+            _key: key(),
+            asset: { _type: 'reference', _ref: assetId },
+            alt: section.altText ?? section.headingText,
+          } as any);
+        }
+      } catch { /* skip this image if upload fails */ }
+    }
   }
 
   const doc = {
     _type: 'article',
     title,
     slug: { _type: 'slug', current: slug },
-    body,
+    body: portableBody,
     category,
     articleType: type,
     featuredImage,

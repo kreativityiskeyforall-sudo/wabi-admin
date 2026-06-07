@@ -21,6 +21,9 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [generated, setGenerated] = useState(false);
   const [error, setError] = useState('');
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   const handleGenerate = async () => {
     setGenerating(true);
     setError('');
@@ -49,14 +52,38 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   };
 
   const handleApprove = () => {
-    // Store outline in sessionStorage for the write page
-    sessionStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription }));
+    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription }));
     router.push(`/article/${id}/write`);
   };
 
   const addHeading = () => setHeadings(h => [...h, { level: 'H2', text: 'New heading', note: 'Add a note' }]);
   const removeHeading = (i: number) => setHeadings(h => h.filter((_, idx) => idx !== i));
   const updateText = (i: number, text: string) => setHeadings(h => h.map((hh, idx) => idx === i ? { ...hh, text } : hh));
+  const updateNote = (i: number, note: string) => setHeadings(h => h.map((hh, idx) => idx === i ? { ...hh, note } : hh));
+
+  const handleDragStart = (i: number) => setDragIndex(i);
+  const handleDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    if (dragOverIndex !== i) setDragOverIndex(i);
+  };
+  const handleDrop = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === i) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const next = [...headings];
+    const [removed] = next.splice(dragIndex, 1);
+    next.splice(i, 0, removed);
+    setHeadings(next);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <>
@@ -143,17 +170,45 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
             </div>
 
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--t3)', marginBottom: 10 }}>
-              Headings — click to edit
+              Headings — drag to reorder · click to edit
             </div>
             <div className="headings-card">
               {headings.map((h, i) => (
-                <div key={i} className="h-row">
+                <div
+                  key={i}
+                  className="h-row"
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={e => handleDragOver(e, i)}
+                  onDrop={e => handleDrop(e, i)}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    opacity: dragIndex === i ? 0.4 : 1,
+                    borderTop: dragOverIndex === i && dragIndex !== i ? '2px solid var(--amber)' : '2px solid transparent',
+                    transition: 'border-color .1s, opacity .1s',
+                    cursor: 'grab',
+                  }}
+                >
+                  <span className="drag-handle" title="Drag to reorder">⠿</span>
                   <span className={`h-badge ${h.level === 'H1' ? 'h1b' : 'h2b'}`}>{h.level}</span>
                   <div className="h-body">
-                    <input className="h-text" value={h.text} onChange={e => updateText(i, e.target.value)} />
-                    <div className="h-note">{h.note}</div>
+                    <input
+                      className="h-text"
+                      value={h.text}
+                      onChange={e => updateText(i, e.target.value)}
+                      onMouseDown={e => e.stopPropagation()}
+                    />
+                    <input
+                      className="h-note-input"
+                      value={h.note}
+                      onChange={e => updateNote(i, e.target.value)}
+                      onMouseDown={e => e.stopPropagation()}
+                      placeholder="Add a note…"
+                    />
                   </div>
-                  {i > 0 && <button className="btn-icon" onClick={() => removeHeading(i)}>✕</button>}
+                  {i > 0 && (
+                    <button className="btn-icon" onClick={() => removeHeading(i)} title="Remove heading">✕</button>
+                  )}
                 </div>
               ))}
               <button className="add-h" onClick={addHeading}>+ Add heading</button>
@@ -168,6 +223,35 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
           </>
         )}
       </div>
+
+      <style>{`
+        .drag-handle {
+          font-size: 16px;
+          color: var(--t3);
+          cursor: grab;
+          padding: 0 6px 0 2px;
+          user-select: none;
+          flex-shrink: 0;
+          line-height: 1;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .h-note-input {
+          width: 100%;
+          border: none;
+          background: transparent;
+          font-size: 11px;
+          color: var(--t3);
+          font-family: inherit;
+          padding: 2px 0;
+          outline: none;
+          cursor: text;
+        }
+        .h-note-input:focus {
+          color: var(--t2);
+          border-bottom: 1px solid var(--border);
+        }
+        .h-note-input::placeholder { color: var(--t3); opacity: 0.6; }
+      `}</style>
     </>
   );
 }

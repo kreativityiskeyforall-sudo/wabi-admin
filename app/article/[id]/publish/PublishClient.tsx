@@ -34,7 +34,22 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
     // ── Step 1: Sanity ────────────────────────────────────────────────
     setSteps(prev => prev.map((s, i) => i === 0 ? { ...s, state: 'running' } : s));
     try {
-      const storedArticle = sessionStorage.getItem(`article-${id}`) ?? '';
+      const storedArticle = localStorage.getItem(`article-${id}`) ?? '';
+
+      // Featured image from new ImageStore format
+      let featuredImageUrl = '';
+      try {
+        const imgStore = JSON.parse(localStorage.getItem(`images-${id}`) ?? '{}');
+        featuredImageUrl = imgStore.featured?.url ?? '';
+      } catch { /* ignore */ }
+
+      // Section images from compose layout
+      let sectionImages: Array<{ headingText: string; imageUrl: string; altText: string }> = [];
+      try {
+        const compose = JSON.parse(localStorage.getItem(`compose-${id}`) ?? '{}');
+        sectionImages = (compose.sections ?? []).filter((s: any) => s.imageUrl);
+      } catch { /* ignore */ }
+
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,6 +59,8 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           body: storedArticle,
           category: article?.category?.toLowerCase().replace(/ /g, '-'),
           type: article?.type,
+          featuredImageUrl,
+          sectionImages,
           publishedAt,
         }),
       });

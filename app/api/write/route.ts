@@ -8,7 +8,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 500 });
   }
 
-  const { type, title, headings, productBrief } = await req.json();
+  const { type, title, headings, productBrief, wordCount } = await req.json();
+  const targetWords = wordCount ?? (type === 'product-review' ? 1400 : type === 'roundup' ? 1600 : 1800);
 
   let prompt = '';
 
@@ -23,7 +24,7 @@ Headings and notes:
 ${headings.map((h: { level: string; text: string; note: string }) => `${h.level}: ${h.text}\nNote: ${h.note}`).join('\n\n')}
 
 Writing rules:
-- ~1,800 words total
+- ~${targetWords} words total
 - Tone: warm, editorial, knowledgeable — like a trusted friend who knows interiors well
 - Each H2 section: 2-3 solid paragraphs, specific and actionable
 - Open with a compelling 2-paragraph introduction (no H2)
@@ -48,7 +49,7 @@ Amazon stars: ${p.stars} (${p.reviewCount} reviews)
 Amazon URL: ${p.amazonUrl}
 Editorial angle: ${p.angle}
 
-Write a ~1,400 word review with these sections:
+Write a ~${targetWords} word review with these sections:
 ## Overview
 ## Design & Aesthetic
 ## Build Quality & Materials
@@ -76,7 +77,7 @@ Title: ${title}
 Products to include:
 ${products.map((p: { name: string; currentPrice: string; stars: string; angle: string }, i: number) => `${i + 1}. ${p.name} — £${p.currentPrice} — ${p.stars}★ — ${p.angle}`).join('\n')}
 
-Write ~1,600 words. Structure:
+Write ~${targetWords} words. Structure:
 - Introduction (2 paragraphs, no heading)
 ## How We Chose
 ## The Best [Category] — Our Picks (then number each product as ### 1. Product Name)
@@ -92,7 +93,7 @@ Rules:
 
   const message = await client.messages.create({
     model: 'claude-opus-4-7',
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [{ role: 'user', content: prompt }],
   });
 

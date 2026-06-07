@@ -28,7 +28,7 @@ export default function PinterestClient({ id, article }: { id: string; article: 
   const [boards, setBoards] = useState<Board[]>([]);
   const [boardsError, setBoardsError] = useState('');
 
-  // Generated image URLs from previous stage (saved in sessionStorage by ImagesClient)
+  // Generated image URLs from previous stage (saved in localStorage by ImagesClient)
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   // Per-pin editable state
@@ -69,13 +69,16 @@ export default function PinterestClient({ id, article }: { id: string; article: 
       .catch(() => setBoardsError('Could not connect to Pinterest API'));
   }, []);
 
-  // Load generated image URLs from sessionStorage
+  // Load generated pin image URLs from localStorage (new ImageStore format)
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem(`images-${id}`);
+      const stored = localStorage.getItem(`images-${id}`);
       if (stored) {
-        const imgs: Array<{ url: string; label: string }> = JSON.parse(stored);
-        const pinImgs = imgs.filter(i => i.label.startsWith('📌')).map(i => i.url);
+        const store = JSON.parse(stored);
+        // New format: { featured, sections, pins: [{ url, ... }] }
+        const pinImgs: string[] = (store.pins ?? [])
+          .filter((p: { url: string | null }) => p.url)
+          .map((p: { url: string }) => p.url);
         setImageUrls(pinImgs);
         setPins(prev => prev.map((p, i) => ({ ...p, imageUrl: pinImgs[i] ?? '' })));
       }
@@ -150,14 +153,15 @@ export default function PinterestClient({ id, article }: { id: string; article: 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{ fontSize: 18 }}>📌</span>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--pin)' }}>Stage 4 — Pinterest Publisher</div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--pin)' }}>Stage 5 — Pinterest Publisher</div>
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 400 }}>
               Schedule pins for: {article?.title ?? 'Article'}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href={`/article/${id}/images`} className="btn btn-out btn-sm">← Images</Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <Link href={`/article/${id}/compose`} className="btn btn-out btn-sm">← Compose</Link>
+            <Link href={`/article/${id}/publish`} className="btn btn-out btn-sm">Skip — Publish now →</Link>
             <button className="btn btn-pin" onClick={scheduleAll} disabled={scheduling}>
               {scheduling ? '⟳ Scheduling…' : `Schedule all ${selectedPins.length} pins →`}
             </button>
