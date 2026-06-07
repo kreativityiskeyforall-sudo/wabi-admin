@@ -17,6 +17,7 @@ export type SheetArticle = {
   notes: string;
   slug: string;
   publishedAt: string;
+  rowNumber: number; // 1-based row index in the sheet tab (for PATCH updates)
 };
 
 function getAuth() {
@@ -67,7 +68,8 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
         range: `${tab}!A:I`,
       });
       const rows = res.data.values ?? [];
-      for (const row of rows) {
+      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
         if (!row[0] || isNaN(Number(row[0].toString().trim()))) continue;
         const title = row[3]?.toString().trim();
         if (!title) continue;
@@ -85,6 +87,7 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
           notes: row[8]?.toString().trim() ?? '',
           slug: '',
           publishedAt: '',
+          rowNumber: rowIdx + 1, // 1-based sheet row number
         });
       }
     } catch { /* tab missing — skip */ }
