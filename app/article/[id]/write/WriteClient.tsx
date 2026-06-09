@@ -58,6 +58,12 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
           headings: outline?.headings ?? [],
           productBrief: undefined,
           wordCount,
+          uniqueAngle: article?.uniqueAngle,
+          category: article?.category,
+          cluster: article?.cluster,
+          competition: article?.competition,
+          priority: article?.priority,
+          contentType: article?.contentType,
         }),
       });
       const data = await res.json();
