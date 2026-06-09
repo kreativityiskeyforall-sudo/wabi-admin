@@ -15,8 +15,8 @@ const DEFAULT_PRODUCTS: RoundupProduct[] = [
 export default function RoundupClient({ id, article }: { id: string; article: SheetArticle | null }) {
   const [products, setProducts] = useState<RoundupProduct[]>(DEFAULT_PRODUCTS);
   const [angle, setAngle] = useState(
-    article?.notes
-      ? article.notes
+    article?.uniqueAngle
+      ? article.uniqueAngle
       : 'Best products with a japandi / minimalist aesthetic. Mix of budget and mid-range options. Focus on clean lines, natural materials. Best-pick badge for highest overall score.'
   );
 

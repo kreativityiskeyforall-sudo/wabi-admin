@@ -33,7 +33,8 @@ export default async function OverviewPage() {
       id: a.id, title: a.title, type: a.type as SheetArticle['type'],
       category: a.category ?? '', cluster: a.cluster ?? '',
       articleType: 'Branch', pinterestTitle: '', contentType: a.type,
-      competition: '', status: a.status, notes: '', slug: '', publishedAt: '',
+      uniqueAngle: '', competition: '', priority: '',
+      status: a.status, slug: '', publishedAt: '',
       rowNumber: 0,
     }));
   }
@@ -51,7 +52,7 @@ export default async function OverviewPage() {
             Content Queue
           </div>
           <div style={{ fontSize: 12, color: 'var(--t3)' }}>
-            {total} articles · 4 categories: Living Room · Bedroom · Kitchen · Bathroom
+            {total} articles · 27 categories
             {usingMock && <span style={{ color: 'var(--amber)', marginLeft: 8 }}>· demo data</span>}
           </div>
         </div>
@@ -60,7 +61,7 @@ export default async function OverviewPage() {
           <div className="stat">
             <span className="lbl">Total in queue</span>
             <div className="stat-val">{total}</div>
-            <div className="stat-sub">4 categories · 5-stage pipeline</div>
+            <div className="stat-sub">27 categories · 5-stage pipeline</div>
           </div>
           <div className="stat sage">
             <span className="lbl">Published</span>

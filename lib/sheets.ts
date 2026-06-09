@@ -1,7 +1,15 @@
 import { google } from 'googleapis';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
-const TABS = ['Living Room', 'Bedroom', 'Kitchen', 'Bathroom'];
+
+export const CONTENT_TABS = [
+  'Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Seasonal', 'Gifting',
+  'Extra Niches', 'Entryway', 'Dining Room', 'Outdoor', 'Kids & Nursery',
+  'Home Office', 'Style Comparisons', 'Colour & Materials', 'Wabi-Sabi',
+  'Apartment', 'Rental Living', 'Wellbeing', 'Product Guides', 'Beginner Guides',
+  'Makeovers', 'Dark Academia', 'Travel Inspired', 'Texture & Craft', 'Hosting',
+  'Sustainable', 'Art & Wall Decor',
+];
 
 export type SheetArticle = {
   id: string;
@@ -12,12 +20,13 @@ export type SheetArticle = {
   articleType: string;
   pinterestTitle: string;
   contentType: string;
+  uniqueAngle: string;
   competition: string;
   status: string;
-  notes: string;
+  priority: string;
   slug: string;
   publishedAt: string;
-  rowNumber: number; // 1-based row index in the sheet tab (for PATCH updates)
+  rowNumber: number;
 };
 
 function getAuth() {
@@ -39,12 +48,13 @@ function mapType(t: string): 'editorial' | 'product-review' | 'roundup' {
 
 function mapStatus(s: string): string {
   const lower = s.toLowerCase().trim();
-  if (!lower || lower === 'not written') return 'queue';
+  if (!lower || lower === 'not written' || lower === 'to do') return 'queue';
   if (lower === 'outline ready' || lower === 'outline-ready') return 'outline-ready';
   if (lower === 'writing' || lower === 'in progress') return 'writing';
   if (lower === 'images') return 'images';
   if (lower === 'pinterest') return 'pinterest';
   if (lower === 'published') return 'published';
+  if (lower === 'delete') return 'delete';
   return 'queue';
 }
 
@@ -61,11 +71,11 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
   const allArticles: SheetArticle[] = [];
   let globalId = 1;
 
-  for (const tab of TABS) {
+  for (const tab of CONTENT_TABS) {
     try {
       const res = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
-        range: `${tab}!A:I`,
+        range: `${tab}!A:J`,
       });
       const rows = res.data.values ?? [];
       for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
@@ -73,6 +83,8 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
         if (!row[0] || isNaN(Number(row[0].toString().trim()))) continue;
         const title = row[3]?.toString().trim();
         if (!title) continue;
+        const status = mapStatus(row[8]?.toString().trim() ?? '');
+        if (status === 'delete') continue;
         allArticles.push({
           id: String(globalId++),
           title,
@@ -82,12 +94,13 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
           articleType: row[1]?.toString().trim() ?? '',
           pinterestTitle: row[4]?.toString().trim() ?? '',
           contentType: row[5]?.toString().trim() ?? '',
-          competition: row[6]?.toString().trim() ?? '',
-          status: mapStatus(row[7]?.toString().trim() ?? ''),
-          notes: row[8]?.toString().trim() ?? '',
+          uniqueAngle: row[6]?.toString().trim() ?? '',
+          competition: row[7]?.toString().trim() ?? '',
+          status,
+          priority: row[9]?.toString().trim() ?? '',
           slug: '',
           publishedAt: '',
-          rowNumber: rowIdx + 1, // 1-based sheet row number
+          rowNumber: rowIdx + 1,
         });
       }
     } catch { /* tab missing — skip */ }

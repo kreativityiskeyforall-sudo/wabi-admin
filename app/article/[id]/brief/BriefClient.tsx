@@ -13,8 +13,8 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
   const [reviews, setReviews] = useState('1,247');
   const [amazonUrl, setAmazonUrl] = useState('');
   const [angle, setAngle] = useState(
-    article?.notes
-      ? article.notes
+    article?.uniqueAngle
+      ? article.uniqueAngle
       : 'Budget-friendly japandi-style product. Focus on clean aesthetic, how it fits minimalist room styling, value vs premium options, and practical tips for styling it Japandi.'
   );
 
