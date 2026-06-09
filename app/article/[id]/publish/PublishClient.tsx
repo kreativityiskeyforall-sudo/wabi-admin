@@ -135,9 +135,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
         }),
       });
       const data = await res.json();
-      if (data.skipped) {
-        updateStep(2, { state: 'done', detail: '⚠ Skipped on Vercel — update locally after pulling latest code' });
-      } else if (!res.ok) {
+      if (!res.ok) {
         throw new Error(data.error ?? 'Content bible update failed');
       } else {
         updateStep(2, { state: 'done', detail: `✓ ${data.h2Added} H2 + ${data.h3Added} H3 concepts recorded` });

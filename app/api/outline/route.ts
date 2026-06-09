@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import fs from 'fs';
-import path from 'path';
+import { createClient } from '@sanity/client';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-function loadContentBible() {
-  const filePath = path.join(process.cwd(), 'lib', 'data', 'content-bible.json');
-  const raw = fs.readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw);
+const sanity = createClient({
+  projectId: process.env.SANITY_PROJECT_ID!,
+  dataset: process.env.SANITY_DATASET ?? 'production',
+  token: process.env.SANITY_TOKEN!,
+  apiVersion: '2024-01-01',
+  useCdn: false,
+});
+
+async function loadContentBible() {
+  const doc = await sanity.fetch<{ json: string }>('*[_id == "content-bible"][0]{ json }');
+  if (!doc?.json) throw new Error('Content bible not found in Sanity');
+  return JSON.parse(doc.json);
 }
 
 function toSlug(title: string): string {
@@ -31,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 500 });
   }
 
-  const bible = loadContentBible();
+  const bible = await loadContentBible();
   const catKey = getCategoryKey(category, bible);
   const slug = toSlug(title ?? '');
 

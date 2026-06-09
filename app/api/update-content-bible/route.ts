@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { createClient } from '@sanity/client';
 
 type Heading = { level: string; text: string; note: string; concept: string };
 
-function biblePath() {
-  return path.join(process.cwd(), 'lib', 'data', 'content-bible.json');
-}
-
-function readBible() {
-  return JSON.parse(fs.readFileSync(biblePath(), 'utf-8'));
-}
-
-function writeBible(bible: Record<string, unknown>) {
-  fs.writeFileSync(biblePath(), JSON.stringify(bible, null, 2), 'utf-8');
-}
+const sanity = createClient({
+  projectId: process.env.SANITY_PROJECT_ID!,
+  dataset: process.env.SANITY_DATASET ?? 'production',
+  token: process.env.SANITY_TOKEN!,
+  apiVersion: '2024-01-01',
+  useCdn: false,
+});
 
 function getCategoryKey(tab: string, bible: Record<string, unknown>): string {
   const map = (bible.google_sheet as Record<string, Record<string, string>>)?.tab_to_category_key ?? {};
@@ -22,7 +17,7 @@ function getCategoryKey(tab: string, bible: Record<string, unknown>): string {
 }
 
 function addUnique(arr: string[], items: string[]): string[] {
-  const set = new Set(arr);
+  const set = new Set(arr.map(s => s.toLowerCase()));
   for (const item of items) {
     const clean = item.trim().toLowerCase();
     if (clean && !set.has(clean)) {
@@ -34,15 +29,6 @@ function addUnique(arr: string[], items: string[]): string[] {
 }
 
 export async function POST(req: NextRequest) {
-  // On Vercel production, filesystem is read-only — skip gracefully
-  if (process.env.VERCEL) {
-    return NextResponse.json({
-      ok: false,
-      skipped: true,
-      message: 'Running on Vercel — content bible not updated. Pull latest code locally and it will be current.',
-    });
-  }
-
   const { slug, title, tab, cluster, uniqueAngle, rowNumber, headings, sanityId } = await req.json() as {
     slug: string;
     title: string;
@@ -58,14 +44,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'slug, title, and tab are required' }, { status: 400 });
   }
 
-  const bible = readBible();
+  // Fetch current bible from Sanity
+  const doc = await sanity.fetch<{ json: string }>('*[_id == "content-bible"][0]{ json }');
+  if (!doc?.json) {
+    return NextResponse.json({ error: 'Content bible not found in Sanity' }, { status: 500 });
+  }
+
+  const bible = JSON.parse(doc.json);
   const catKey = getCategoryKey(tab, bible);
 
-  // 1. Add to article_registry
-  const registry = bible.article_registry as Record<string, unknown>;
   const h2Concepts = headings.filter(h => h.level === 'H2' && h.concept).map(h => h.concept.trim().toLowerCase());
   const h3Concepts = headings.filter(h => h.level === 'H3' && h.concept).map(h => h.concept.trim().toLowerCase());
 
+  // 1. Add to article_registry
+  const registry = bible.article_registry as Record<string, unknown>;
   registry[slug] = {
     title,
     sanity_id: sanityId ?? '',
@@ -78,17 +70,18 @@ export async function POST(req: NextRequest) {
     h3_concepts_used: h3Concepts,
   };
 
-  // 2. Add H2 concepts to used_h2_concepts[catKey]
+  // 2. Append new H2 concepts
   const usedH2 = bible.used_h2_concepts as Record<string, string[]>;
   if (!usedH2[catKey]) usedH2[catKey] = [];
   addUnique(usedH2[catKey], h2Concepts);
 
-  // 3. Add H3 concepts to used_h3_concepts[catKey]
+  // 3. Append new H3 concepts
   const usedH3 = bible.used_h3_concepts as Record<string, string[]>;
   if (!usedH3[catKey]) usedH3[catKey] = [];
   addUnique(usedH3[catKey], h3Concepts);
 
-  writeBible(bible);
+  // Write updated bible back to Sanity
+  await sanity.patch('content-bible').set({ json: JSON.stringify(bible) }).commit();
 
   return NextResponse.json({
     ok: true,
