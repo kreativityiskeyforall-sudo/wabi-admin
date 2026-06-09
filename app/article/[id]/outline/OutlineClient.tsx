@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { getWebsiteCategory, WEBSITE_CATEGORIES } from '@/lib/category-map';
 
 type Heading = { level: string; text: string; note: string; concept: string };
 type BibleCheck = {
@@ -24,6 +25,9 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [seoTitle, setSeoTitle] = useState(article?.title ?? '');
   const [metaDescription, setMetaDescription] = useState('');
   const [bibleCheck, setBibleCheck] = useState<BibleCheck | null>(null);
+  const [websiteCategory, setWebsiteCategory] = useState(
+    () => getWebsiteCategory(article?.category ?? '', article?.cluster, article?.contentType)
+  );
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +67,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   };
 
   const handleApprove = () => {
-    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription }));
+    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory }));
     router.push(`/article/${id}/write`);
   };
 
@@ -118,6 +122,18 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
                 {article.uniqueAngle}
               </div>
             )}
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)' }}>Publishes to</span>
+              <select
+                value={websiteCategory}
+                onChange={e => setWebsiteCategory(e.target.value)}
+                style={{ fontSize: 11, fontFamily: 'inherit', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--surface)', color: 'var(--t1)', padding: '3px 8px', cursor: 'pointer' }}
+              >
+                {WEBSITE_CATEGORIES.map(c => (
+                  <option key={c.slug} value={c.slug}>/{c.slug} — {c.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <Link href="/" className="btn btn-out btn-sm">← Queue</Link>

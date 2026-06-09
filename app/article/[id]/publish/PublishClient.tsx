@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { getWebsiteCategory } from '@/lib/category-map';
 
 type Step = { label: string; detail: string; state: 'pending' | 'running' | 'done' | 'error'; error?: string };
 
@@ -17,6 +18,13 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
   const slug = article?.title
     ?.toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '')
     ?? id;
+
+  // Use category saved at outline stage, fall back to mapping, fall back to tab name
+  const savedOutline = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem(`outline-${id}`) ?? '{}'); } catch { return {}; } })()
+    : {};
+  const websiteCategory = savedOutline.websiteCategory
+    ?? getWebsiteCategory(article?.category ?? '', article?.cluster, article?.contentType);
 
   const updateStep = (i: number, patch: Partial<Step>) =>
     setSteps(prev => prev.map((s, j) => j === i ? { ...s, ...patch } : s));
@@ -67,7 +75,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           title: article?.title,
           slug,
           body: storedArticle,
-          category: article?.category?.toLowerCase().replace(/ /g, '-'),
+          category: websiteCategory,
           type: article?.type,
           featuredImageUrl,
           sectionImages,
@@ -213,7 +221,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
             {sanityId && <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 20, fontFamily: 'monospace' }}>Sanity ID: {sanityId}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <Link href="/" className="btn btn-sage">← Back to queue</Link>
-              <a href={`https://wabidecor.com/${article?.category?.toLowerCase().replace(/ /g, '-')}/${slug}`} target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
+              <a href={`https://wabidecor.com/${websiteCategory}/${slug}`} target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
             </div>
           </div>
         ) : (
