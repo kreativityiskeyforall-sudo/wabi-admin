@@ -78,10 +78,11 @@ export default function Sidebar() {
       .finally(() => setPubLoading(false));
   }, [tab]);
 
-  const inProgress  = articles.filter(a => ['writing', 'images', 'pinterest'].includes(a.status));
-  const needsReview = articles.filter(a => a.status === 'outline-ready');
-  const queued      = articles.filter(a => a.status === 'queue' || a.status === 'queued');
-  const allUnpub    = [...inProgress, ...needsReview, ...queued];
+  const inProgress    = articles.filter(a => ['writing', 'images', 'pinterest'].includes(a.status));
+  const needsReview   = articles.filter(a => a.status === 'outline-ready');
+  const queued        = articles.filter(a => a.status === 'queue' || a.status === 'queued');
+  const publishedInQ  = articles.filter(a => a.status === 'published');
+  const allUnpub      = [...inProgress, ...needsReview, ...queued];
 
   const toggleCat = (cat: string) => setOpenCats(s => {
     const n = new Set(s); n.has(cat) ? n.delete(cat) : n.add(cat); return n;
@@ -170,6 +171,22 @@ export default function Sidebar() {
             <div style={{ padding: '20px 18px', fontSize: 12, color: 'var(--t3)' }}>
               All articles published!
             </div>
+          )}
+
+          {publishedInQ.length > 0 && (
+            <>
+              <div className="sb-div" />
+              <div className="sb-g">Published ({publishedInQ.length})</div>
+              {publishedInQ.map(art => (
+                <div key={art.id} className="sb-item" style={{ opacity: 0.7 }}>
+                  <div className="dot" style={{ background: 'var(--sage)', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="sb-name">{art.title}</div>
+                    <div className="sb-meta">{art.category} · <span style={{ color: 'var(--sage)', fontWeight: 600 }}>✓ Published</span></div>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </div>
       )}

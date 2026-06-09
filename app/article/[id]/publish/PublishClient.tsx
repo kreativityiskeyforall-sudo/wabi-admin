@@ -28,6 +28,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
     const initialSteps: Step[] = [
       { label: 'Publish to Sanity CMS', detail: 'Creates article document + uploads featured image', state: 'pending' },
       { label: 'Update Google Sheet', detail: `Set status → Published · write slug + date to row ${article?.rowNumber}`, state: 'pending' },
+      { label: 'Update content bible', detail: 'Adds H2 + H3 concepts to used lists — prevents future duplicates', state: 'pending' },
     ];
     setSteps(initialSteps);
 
@@ -110,6 +111,42 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
       updateStep(1, {
         state: 'error',
         error: (e instanceof Error ? e.message : 'Failed') + ' (article is live — update sheet manually)',
+      });
+    }
+
+    // ── Step 3: Content Bible ─────────────────────────────────────────
+    updateStep(2, { state: 'running' });
+    try {
+      const outline = JSON.parse(localStorage.getItem(`outline-${id}`) ?? '{}');
+      const headings = outline.headings ?? [];
+
+      const res = await fetch('/api/update-content-bible', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug,
+          title: article?.title,
+          tab: article?.category,
+          cluster: article?.cluster,
+          uniqueAngle: article?.uniqueAngle,
+          rowNumber: article?.rowNumber,
+          headings,
+          sanityId,
+        }),
+      });
+      const data = await res.json();
+      if (data.skipped) {
+        updateStep(2, { state: 'done', detail: '⚠ Skipped on Vercel — update locally after pulling latest code' });
+      } else if (!res.ok) {
+        throw new Error(data.error ?? 'Content bible update failed');
+      } else {
+        updateStep(2, { state: 'done', detail: `✓ ${data.h2Added} H2 + ${data.h3Added} H3 concepts recorded` });
+      }
+    } catch (e: unknown) {
+      // Non-fatal — article is already published
+      updateStep(2, {
+        state: 'error',
+        error: (e instanceof Error ? e.message : 'Failed') + ' (article is live — update bible manually)',
       });
     }
 
