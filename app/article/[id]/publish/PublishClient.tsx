@@ -68,6 +68,9 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           .map((p: any) => ({ url: p.url, layout: p.layout ?? 'complete' }));
       } catch { /* ignore */ }
 
+      const normalizedCluster = (article?.cluster ?? '').replace(/^→\s*/, '').trim();
+      const isMother = (article?.articleType ?? '').toUpperCase() === 'MOTHER';
+
       const res = await fetch('/api/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,6 +80,8 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           body: storedArticle,
           category: websiteCategory,
           type: article?.type,
+          cluster: normalizedCluster || null,
+          isMother,
           featuredImageUrl,
           sectionImages,
           pinterestPins,

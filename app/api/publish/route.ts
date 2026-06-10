@@ -96,7 +96,7 @@ async function uploadImageUrl(imageUrl: string, filename: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const { title, slug, body, category, type, featuredImageUrl, sectionImages, pinterestPins, publishedAt } = await req.json();
+  const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, publishedAt } = await req.json();
 
   if (!title || !slug || !body) {
     return NextResponse.json({ error: 'title, slug, and body are required' }, { status: 400 });
@@ -179,6 +179,8 @@ export async function POST(req: NextRequest) {
     body: portableBody,
     category,
     articleType: type,
+    cluster: cluster ?? null,
+    isMother: isMother ?? false,
     featuredImage,
     pinterestPins: savedPins.filter(Boolean),
     publishedAt: publishedAt ?? new Date().toISOString(),

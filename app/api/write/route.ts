@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@sanity/client';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const sanity = createClient({
+  projectId: process.env.SANITY_PROJECT_ID!,
+  dataset: process.env.SANITY_DATASET ?? 'production',
+  token: process.env.SANITY_TOKEN!,
+  apiVersion: '2024-01-01',
+  useCdn: false,
+});
 
 const STYLE_RULES = `
 WRITING RULES — FOLLOW EXACTLY:
@@ -158,6 +167,35 @@ Return ONLY the article in markdown. No preamble.`;
 
   if (!prompt) {
     return NextResponse.json({ error: `Unknown article type: ${type}` }, { status: 400 });
+  }
+
+  // Fetch published articles from Sanity to enable contextual internal linking
+  let publishedArticles: Array<{ title: string; slug: string; category: string }> = [];
+  try {
+    publishedArticles = await sanity.fetch(
+      `*[_type == "article" && defined(slug.current) && slug.current != $slug] { title, "slug": slug.current, category }`,
+      { slug: (title ?? '').toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '') }
+    );
+  } catch { /* non-fatal — continue without links */ }
+
+  if (publishedArticles.length > 0) {
+    const linkList = publishedArticles
+      .map(a => `- [${a.title}](https://wabidecor.com/${a.category}/${a.slug})`)
+      .join('\n');
+    prompt += `
+
+INTERNAL LINKING — REQUIRED:
+Embed 1–2 of these published articles as natural inline links within the article prose.
+Pick only the most topically relevant ones. Format: [anchor text](full url).
+Do NOT list them at the end — weave them naturally into a sentence mid-article.
+Published articles available to link:
+${linkList}
+
+EXTERNAL LINK — REQUIRED:
+Add exactly one external link to a reputable home decor or design authority site.
+Use real domains: dezeen.com, architecturaldigest.com, housebeautiful.com, mydomaine.com, apartmenttherapy.com, interiors-online.com.
+Pick a URL that plausibly exists on that site for this topic. Format: [anchor text](full url).
+Place it naturally in the prose — not as a footnote.`;
   }
 
   const message = await client.messages.create({
