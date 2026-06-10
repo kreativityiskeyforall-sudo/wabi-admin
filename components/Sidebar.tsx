@@ -294,7 +294,14 @@ export default function Sidebar() {
         </div>
       )}
 
-      <Link href="/article/new/brief" className="sb-new">+ New product review / roundup</Link>
+      <div className="sb-footer">
+        <Link href="/seo-agent" className={`sb-footer-btn ${pathname === '/seo-agent' ? 'on' : ''}`}>
+          ◈ SEO Agent
+        </Link>
+        <Link href="/article/new/brief" className="sb-footer-btn">
+          + New roundup
+        </Link>
+      </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .sb-tabs { display: flex; border-bottom: 1px solid var(--border); }
@@ -323,6 +330,10 @@ export default function Sidebar() {
 
         .media-nav-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); text-decoration: none; color: var(--t1); transition: background .12s; }
         .media-nav-btn:hover { background: var(--sbg); }
+        .sb-footer { display: flex; flex-direction: column; border-top: 1px solid var(--border); padding: 8px 0; margin-top: auto; }
+        .sb-footer-btn { display: block; padding: 9px 18px; font-size: 11px; font-weight: 600; font-family: inherit; color: var(--t3); text-decoration: none; transition: color .12s, background .12s; }
+        .sb-footer-btn:hover { color: var(--t1); background: var(--sbg); }
+        .sb-footer-btn.on { color: var(--sage); background: var(--sbg); }
       ` }} />
     </nav>
   );
