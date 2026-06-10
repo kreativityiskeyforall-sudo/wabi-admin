@@ -155,19 +155,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Every article needs at least one external link
-    for (const article of catArticles) {
-      if (!article.hasExternalLink) {
-        const raw = await askClaude(
-          `Article: "${article.title}" (${article.category} home decor)\nSuggest ONE external link to a real authoritative source.\nUse: dezeen.com, architecturaldigest.com, housebeautiful.com, mydomaine.com, apartmenttherapy.com\nReturn JSON: {"url":"full url","label":"4-6 word anchor text","description":"why this source"}`
-        );
-        const ext = parseJson(raw);
-        if (ext?.url && ext?.label) {
-          await addExternalLink(article._id, ext.url, ext.label, ext.description ?? '');
-          fixes.push(`EXTERNAL LINK: "${article.title}" → ${ext.url}`);
-        }
-      }
-    }
+    // External links are managed manually via the admin UI — not auto-generated
+    // to avoid hallucinated URLs. See Published tab → Edit sources.
   }
 
   // Trigger Cloudflare Pages rebuild if any fixes were made

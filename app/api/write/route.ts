@@ -193,9 +193,9 @@ ${linkList}
 
 EXTERNAL LINK — REQUIRED:
 Add exactly one external link to a reputable home decor or design authority site.
-Use real domains: dezeen.com, architecturaldigest.com, housebeautiful.com, mydomaine.com, apartmenttherapy.com, interiors-online.com.
-Pick a URL that plausibly exists on that site for this topic. Format: [anchor text](full url).
-Place it naturally in the prose — not as a footnote.`;
+Link to the ROOT domain only — no invented paths or article slugs.
+Approved URLs: https://www.dezeen.com/, https://www.architecturaldigest.com/, https://www.housebeautiful.com/, https://www.mydomaine.com/, https://www.apartmenttherapy.com/, https://www.elledecor.com/
+Format: [descriptive anchor text](root url). Place naturally in the prose.`;
   }
 
   const message = await client.messages.create({
