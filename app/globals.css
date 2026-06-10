@@ -24,19 +24,19 @@ body{
 .sb-logo{font-family:'Playfair Display',serif;font-size:15px;color:#FDFAF6}
 .sb-tag{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
 .sb-scroll{flex:1;overflow-y:auto;padding:10px 0}
-.sb-g{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#444;padding:12px 18px 5px}
+.sb-g{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#6A6660;padding:12px 18px 5px}
 .sb-item{display:flex;align-items:flex-start;gap:9px;padding:8px 14px 8px 12px;cursor:pointer;border-left:2px solid transparent;transition:background .12s;text-decoration:none}
 .sb-item:hover{background:#252421}
 .sb-item.active{background:#2A2927;border-left-color:#B87355}
 .dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.dq{background:#4A4845}.dg{background:#5A7450;animation:pulse 1.5s ease-in-out infinite}.dr{background:#B87355}.dp{background:#5A7450}
+.dq{background:#6A6660}.dg{background:#7AB870;animation:pulse 1.5s ease-in-out infinite}.dr{background:#B87355}.dp{background:#7AB870}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sb-name{font-size:12px;font-weight:500;color:#9A9692;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-item.active .sb-name{color:#FDFAF6}
-.sb-meta{font-size:10px;color:#4A4845;margin-top:1px}
-.sb-div{height:1px;background:#252421;margin:6px 14px}
-.sb-new{margin:10px 14px;display:flex;align-items:center;justify-content:center;padding:9px;border-radius:var(--r);border:1px dashed #333;background:transparent;color:#555;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;width:calc(100% - 28px);text-decoration:none}
-.sb-new:hover{border-color:#666;color:#9A9692;background:#252421}
+.sb-meta{font-size:10px;color:#6A6660;margin-top:1px}
+.sb-div{height:1px;background:#2E2D2A;margin:6px 14px}
+.sb-new{margin:10px 14px;display:flex;align-items:center;justify-content:center;padding:9px;border-radius:var(--r);border:1px dashed #3A3935;background:transparent;color:#6A6660;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;width:calc(100% - 28px);text-decoration:none}
+.sb-new:hover{border-color:#555;color:#9A9692;background:#252421}
 
 /* ── WORKSPACE ── */
 .ws{flex:1;display:flex;flex-direction:column;overflow:hidden}
