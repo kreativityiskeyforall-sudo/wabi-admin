@@ -102,25 +102,40 @@ export default function Sidebar() {
     setNewUrl('');
   };
 
+  const labelFromUrl = (url: string) => {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+  };
+
   const handleAddSource = () => {
-    const label = newLabel.trim();
     const url = newUrl.trim();
-    if (!label || !url) return;
+    if (!url) return;
+    const label = newLabel.trim() || labelFromUrl(url);
     setSourceDraft(d => [...d, { label, url }]);
     setNewLabel('');
     setNewUrl('');
   };
 
   const handleSaveSources = async (docId: string) => {
+    // Auto-add anything still in the inputs before saving
+    let finalDraft = sourceDraft;
+    const pendingUrl = newUrl.trim();
+    if (pendingUrl) {
+      const pendingLabel = newLabel.trim() || labelFromUrl(pendingUrl);
+      finalDraft = [...sourceDraft, { label: pendingLabel, url: pendingUrl }];
+      setSourceDraft(finalDraft);
+      setNewLabel('');
+      setNewUrl('');
+    }
+
     setSavingId(docId);
     try {
       await fetch('/api/external-links', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docId, links: sourceDraft }),
+        body: JSON.stringify({ docId, links: finalDraft }),
       });
       setPubArticles(prev => prev.map(a => a._id === docId
-        ? { ...a, externalLinks: sourceDraft.map(l => ({ label: l.label, url: l.url })), externalCount: sourceDraft.length }
+        ? { ...a, externalLinks: finalDraft.map(l => ({ label: l.label, url: l.url })), externalCount: finalDraft.length }
         : a
       ));
       setEditingSourcesId(null);
@@ -291,19 +306,13 @@ export default function Sidebar() {
 
                           <div style={{ borderTop: '1px solid #2E2D2A', paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
                             <input
-                              value={newLabel}
-                              onChange={e => setNewLabel(e.target.value)}
-                              placeholder="Label (e.g. Dezeen)"
-                              className="src-input"
-                            />
-                            <input
                               value={newUrl}
                               onChange={e => setNewUrl(e.target.value)}
-                              placeholder="https://dezeen.com/articles/…"
+                              placeholder="Paste URL here"
                               className="src-input"
                               onKeyDown={e => e.key === 'Enter' && handleAddSource()}
                             />
-                            <button className="pub-action-btn" onClick={handleAddSource} disabled={!newLabel.trim() || !newUrl.trim()}>+ Add</button>
+                            <button className="pub-action-btn" onClick={handleAddSource} disabled={!newUrl.trim()}>+ Add</button>
                           </div>
 
                           <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
