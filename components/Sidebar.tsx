@@ -55,6 +55,11 @@ export default function Sidebar() {
   const [pubLoading, setPubLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [openCats, setOpenCats] = useState<Set<string>>(new Set());
+  const [editingSourcesId, setEditingSourcesId] = useState<string | null>(null);
+  const [sourceDraft, setSourceDraft] = useState<{ label: string; url: string }[]>([]);
+  const [newLabel, setNewLabel] = useState('');
+  const [newUrl, setNewUrl] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/sheets')
@@ -89,6 +94,40 @@ export default function Sidebar() {
   });
 
   const pubGroups = groupByCategory(pubArticles);
+
+  const openSources = (art: PubArticle) => {
+    setEditingSourcesId(art._id);
+    setSourceDraft((art.externalLinks ?? []).map(l => ({ label: l.label ?? '', url: l.url ?? '' })));
+    setNewLabel('');
+    setNewUrl('');
+  };
+
+  const handleAddSource = () => {
+    const label = newLabel.trim();
+    const url = newUrl.trim();
+    if (!label || !url) return;
+    setSourceDraft(d => [...d, { label, url }]);
+    setNewLabel('');
+    setNewUrl('');
+  };
+
+  const handleSaveSources = async (docId: string) => {
+    setSavingId(docId);
+    try {
+      await fetch('/api/external-links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId, links: sourceDraft }),
+      });
+      setPubArticles(prev => prev.map(a => a._id === docId
+        ? { ...a, externalLinks: sourceDraft.map(l => ({ label: l.label, url: l.url })), externalCount: sourceDraft.length }
+        : a
+      ));
+      setEditingSourcesId(null);
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   return (
     <nav className="sb">
@@ -229,32 +268,83 @@ export default function Sidebar() {
                         <button className="pub-action-btn" onClick={() => router.push(`/edit/${art._id}`)}>✎ Edit</button>
                         <button className="pub-action-btn" onClick={() => router.push(`/edit/${art._id}/images`)}>+ Images</button>
                         <a href={`https://wabidecor.com/${art.category}/${art.slug}`} target="_blank" rel="noopener" className="pub-action-btn">↗ Live</a>
+                        <button className="pub-action-btn" onClick={() => openSources(art)}>↗ Sources</button>
                       </div>
 
-                      {art.internalLinks?.length > 0 && (
-                        <div className="pub-links-section">
-                          <div className="pub-links-label">Internal links</div>
-                          {art.internalLinks.map((l, i) => (
-                            <div key={i} className="pub-link-row">
-                              <span className="pub-link-icon">→</span>
-                              <span className="pub-link-text">{l.title ?? l.label ?? 'Unknown'}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      {editingSourcesId === art._id ? (
+                        <div>
+                          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 8 }}>External Sources</div>
 
-                      {art.externalLinks?.length > 0 && (
-                        <div className="pub-links-section">
-                          <div className="pub-links-label">External links</div>
-                          {art.externalLinks.map((l, i) => (
-                            <div key={i} className="pub-link-row">
-                              <span className="pub-link-icon">↗</span>
-                              <a href={l.url} target="_blank" rel="noopener" className="pub-link-text pub-link-ext">
-                                {l.label || l.url}
-                              </a>
+                          {sourceDraft.length === 0 && (
+                            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>No sources yet — add one below.</div>
+                          )}
+
+                          {sourceDraft.map((link, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 6, background: '#1E1D1B', borderRadius: 4, padding: '6px 8px' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: '#FDFAF6', marginBottom: 2 }}>{link.label}</div>
+                                <div style={{ fontSize: 10, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</div>
+                              </div>
+                              <button onClick={() => setSourceDraft(d => d.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6A6660', fontSize: 12, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}>✕</button>
                             </div>
                           ))}
+
+                          <div style={{ borderTop: '1px solid #2E2D2A', paddingTop: 8, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                            <input
+                              value={newLabel}
+                              onChange={e => setNewLabel(e.target.value)}
+                              placeholder="Label (e.g. Dezeen)"
+                              className="src-input"
+                            />
+                            <input
+                              value={newUrl}
+                              onChange={e => setNewUrl(e.target.value)}
+                              placeholder="https://dezeen.com/articles/…"
+                              className="src-input"
+                              onKeyDown={e => e.key === 'Enter' && handleAddSource()}
+                            />
+                            <button className="pub-action-btn" onClick={handleAddSource} disabled={!newLabel.trim() || !newUrl.trim()}>+ Add</button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                            <button
+                              className="pub-action-btn src-save-btn"
+                              onClick={() => handleSaveSources(art._id)}
+                              disabled={savingId === art._id}
+                            >
+                              {savingId === art._id ? '⟳ Saving…' : '✓ Save & rebuild'}
+                            </button>
+                            <button className="pub-action-btn" onClick={() => setEditingSourcesId(null)}>Cancel</button>
+                          </div>
                         </div>
+                      ) : (
+                        <>
+                          {art.internalLinks?.length > 0 && (
+                            <div className="pub-links-section">
+                              <div className="pub-links-label">Internal links</div>
+                              {art.internalLinks.map((l, i) => (
+                                <div key={i} className="pub-link-row">
+                                  <span className="pub-link-icon">→</span>
+                                  <span className="pub-link-text">{l.title ?? l.label ?? 'Unknown'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {art.externalLinks?.length > 0 && (
+                            <div className="pub-links-section">
+                              <div className="pub-links-label">External links</div>
+                              {art.externalLinks.map((l, i) => (
+                                <div key={i} className="pub-link-row">
+                                  <span className="pub-link-icon">↗</span>
+                                  <a href={l.url} target="_blank" rel="noopener" className="pub-link-text pub-link-ext">
+                                    {l.label || l.url}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -328,6 +418,11 @@ export default function Sidebar() {
         .pub-link-ext { color: #7AB870; text-decoration: none; }
         .pub-link-ext:hover { text-decoration: underline; }
 
+        .src-input { width: 100%; padding: 5px 8px; font-size: 11px; font-family: inherit; background: #1E1D1B; border: 1px solid #3A3935; border-radius: 4px; color: #FDFAF6; outline: none; box-sizing: border-box; }
+        .src-input::placeholder { color: #4A4845; }
+        .src-input:focus { border-color: #6A6660; }
+        .src-save-btn { color: #7AB870 !important; border-color: #3A5238 !important; }
+        .src-save-btn:hover { background: #2A3828 !important; }
         .media-nav-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #252421; border: 1px solid #2E2D2A; border-radius: var(--r); text-decoration: none; color: #9A9692; transition: background .12s; }
         .media-nav-btn:hover { background: #2E2D2A; color: #FDFAF6; }
         .sb-footer { display: flex; flex-direction: column; border-top: 1px solid #2E2D2A; padding: 8px 0; margin-top: auto; }
