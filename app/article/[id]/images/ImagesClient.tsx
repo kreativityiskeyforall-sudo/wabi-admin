@@ -204,6 +204,8 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const [genSections, setGenSections] = useState(false);
   const [genPins, setGenPins] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [uploadingSectionIdx, setUploadingSectionIdx] = useState<number | null>(null);
+  const [uploadingFeatured, setUploadingFeatured] = useState(false);
   const [error, setError] = useState('');
 
   // Restore from localStorage + build section prompts from outline
@@ -249,6 +251,39 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     const raw = localStorage.getItem(`images-${id}`);
     const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections, pins };
     localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, pins: newPins }));
+  };
+
+  // ── upload helpers ────────────────────────────────────────────────────────
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload-image', { method: 'POST', body: form });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+    return data.url as string;
+  };
+
+  const uploadFeaturedImage = async (file: File) => {
+    setUploadingFeatured(true); setError('');
+    try {
+      const url = await uploadFile(file);
+      const newF = { ...featured, url };
+      setFeatured(newF);
+      persistFeatured(newF);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Upload failed'); }
+    finally { setUploadingFeatured(false); }
+  };
+
+  const uploadSectionImage = async (idx: number, file: File) => {
+    setUploadingSectionIdx(idx); setError('');
+    try {
+      const url = await uploadFile(file);
+      const newSec = sections.map((s, j) => j === idx ? { ...s, url, enabled: true } : s);
+      setSections(newSec);
+      persistSections(newSec);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Upload failed'); }
+    finally { setUploadingSectionIdx(null); }
   };
 
   // ── generate helpers ──────────────────────────────────────────────────────
@@ -414,9 +449,18 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         <div className="img-card" style={{ marginBottom: 14 }}>
           <div className="img-card-hd">
             <div className="img-card-title">Featured Image <span className="img-tag">1200×800 landscape · FLUX Dev</span></div>
-            <button className="btn btn-out btn-sm" onClick={generateFeatured} disabled={genFeatured}>
-              {genFeatured ? '⟳' : '⚡'} Generate
-            </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <label className="btn btn-out btn-sm" style={{ cursor: 'pointer' }}>
+                {uploadingFeatured ? '⟳ Uploading…' : '↑ Upload'}
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadFeaturedImage(f); e.target.value = ''; }}
+                  disabled={uploadingFeatured}
+                />
+              </label>
+              <button className="btn btn-out btn-sm" onClick={generateFeatured} disabled={genFeatured || uploadingFeatured}>
+                {genFeatured ? '⟳' : '⚡'} Generate
+              </button>
+            </div>
           </div>
           <div style={{ padding: '10px 14px' }}>
             <textarea
@@ -475,6 +519,13 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                     style={{ marginRight: 8, flexShrink: 0 }}
                   />
                   <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: 'var(--t1)' }}>{s.headingText}</span>
+                  <label className="dl-btn dl-btn--sm" style={{ cursor: uploadingSectionIdx === i ? 'not-allowed' : 'pointer', opacity: uploadingSectionIdx === i ? 0.5 : 1 }}>
+                    {uploadingSectionIdx === i ? '⟳' : '↑'} Upload
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) uploadSectionImage(i, f); e.target.value = ''; }}
+                      disabled={uploadingSectionIdx === i}
+                    />
+                  </label>
                   {s.url && (
                     <button
                       className="dl-btn dl-btn--sm"
