@@ -169,7 +169,6 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
     { icon: '✓', label: 'Article written', detail: '~1,800 words · all sections complete', ok: true },
     { icon: '✓', label: 'SEO metadata', detail: 'Title 55 chars · Meta 140 chars · Keyword in H1', ok: true },
     { icon: '✓', label: 'Images', detail: '11 portrait images (1000×1500) · 3 pins + featured + 6 sections', ok: true },
-    { icon: '✓', label: 'Pinterest pins scheduled', detail: '3 pins · spaced weekly · via Pinterest API', ok: true },
     ...(isProduct ? [
       { icon: '✓', label: 'Price sparkline', detail: 'Current / 90-day high & low · auto-renders in article', ok: true },
       { icon: '✓', label: 'Verdict box', detail: 'Star rating · pros/cons · editorial quote', ok: true },

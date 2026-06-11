@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 interface Props {
   articleId: string;
-  currentStage: 'outline' | 'brief' | 'roundup' | 'write' | 'images' | 'compose' | 'pinterest' | 'publish';
+  currentStage: 'outline' | 'brief' | 'roundup' | 'write' | 'images' | 'compose' | 'publish';
   articleTitle?: string;
   isProduct?: boolean;
 }
@@ -14,11 +14,10 @@ const STAGES = [
   { key: 'write',     label: 'Write',     num: 2 },
   { key: 'images',    label: 'Images',    num: 3 },
   { key: 'compose',   label: 'Compose',   num: 4 },
-  { key: 'pinterest', label: 'Pinterest', num: 5, isPin: true },
-  { key: 'publish',   label: 'Publish',   num: 6 },
+  { key: 'publish',   label: 'Publish',   num: 5 },
 ] as const;
 
-const stageOrder = ['outline', 'brief', 'roundup', 'write', 'images', 'compose', 'pinterest', 'publish'];
+const stageOrder = ['outline', 'brief', 'roundup', 'write', 'images', 'compose', 'publish'];
 
 export default function StageBar({ articleId, currentStage, articleTitle, isProduct }: Props) {
   const stageHref = (key: string) => {
@@ -32,8 +31,7 @@ export default function StageBar({ articleId, currentStage, articleTitle, isProd
       write: 2,
       images: 3,
       compose: 4,
-      pinterest: 5,
-      publish: 6,
+      publish: 5,
     };
     return map[key] ?? 0;
   };
