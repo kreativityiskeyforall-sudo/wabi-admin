@@ -12,40 +12,48 @@ type Section = {
   bodyText: string;
   imageUrl: string | null;
   altText: string;
+  level?: 'H2' | 'H3';
 };
 
 export type ComposeStore = { sections: Section[] };
 
-// Parse markdown into intro + sections with full body text
-function parseArticle(markdown: string): { intro: string; sections: Array<{ heading: string; body: string }> } {
+// Parse markdown into intro + sections with full body text (H2 and H3)
+function parseArticle(markdown: string): { intro: string; sections: Array<{ heading: string; body: string; level: 'H2' | 'H3' }> } {
   const lines = markdown.split('\n');
-  const sections: Array<{ heading: string; body: string }> = [];
+  const sections: Array<{ heading: string; body: string; level: 'H2' | 'H3' }> = [];
   let introLines: string[] = [];
   let currentHeading = '';
+  let currentLevel: 'H2' | 'H3' | '' = '';
   let bodyLines: string[] = [];
-  let seenH2 = false;
+  let seenHeading = false;
+
+  const flush = () => {
+    if (seenHeading && currentHeading && currentLevel) {
+      sections.push({ heading: currentHeading, body: bodyLines.join('\n').trim(), level: currentLevel as 'H2' | 'H3' });
+    }
+  };
 
   for (const line of lines) {
-    if (line.startsWith('## ')) {
-      if (seenH2 && currentHeading) {
-        sections.push({ heading: currentHeading, body: bodyLines.join('\n').trim() });
-      }
-      currentHeading = line.slice(3).trim();
+    if (line.startsWith('### ')) {
+      flush();
+      currentHeading = line.slice(4).trim();
+      currentLevel = 'H3';
       bodyLines = [];
-      seenH2 = true;
+      seenHeading = true;
+    } else if (line.startsWith('## ')) {
+      flush();
+      currentHeading = line.slice(3).trim();
+      currentLevel = 'H2';
+      bodyLines = [];
+      seenHeading = true;
     } else if (line.startsWith('# ')) {
       // skip H1
     } else {
-      if (!seenH2) {
-        introLines.push(line);
-      } else {
-        bodyLines.push(line);
-      }
+      if (!seenHeading) introLines.push(line);
+      else bodyLines.push(line);
     }
   }
-  if (seenH2 && currentHeading) {
-    sections.push({ heading: currentHeading, body: bodyLines.join('\n').trim() });
-  }
+  flush();
 
   return { intro: introLines.join('\n').trim(), sections };
 }
@@ -95,17 +103,32 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
       } catch { /* ignore */ }
     }
 
+    // Build image URL map by heading text for reliable matching
+    let imgMap: Record<string, string | null> = {};
+    if (imagesRaw) {
+      try {
+        const imgStore: ImageStore = JSON.parse(imagesRaw);
+        for (const s of imgStore.sections ?? []) {
+          if (s.headingText) imgMap[s.headingText] = s.url ?? null;
+        }
+      } catch { /* ignore */ }
+    }
+
     // Try to restore saved compose layout first
     if (savedCompose) {
       try {
         const saved = JSON.parse(savedCompose);
         // Re-merge with latest article parse to pick up any text changes
-        const merged: Section[] = parsedSections.map((p, i) => {
-          const existing = saved.sections?.[i];
+        const savedMap = Object.fromEntries(
+          (saved.sections ?? []).map((s: Section) => [s.headingText, s])
+        );
+        const merged: Section[] = parsedSections.map(p => {
+          const existing = savedMap[p.heading];
           return {
             headingText: p.heading,
             bodyText: p.body,
-            imageUrl: existing?.imageUrl ?? null,
+            level: p.level,
+            imageUrl: existing?.imageUrl ?? imgMap[p.heading] ?? null,
             altText: existing?.altText ?? buildAltText(p.heading, category, articleTitle),
           };
         });
@@ -116,15 +139,11 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     }
 
     // Build fresh from images store
-    let store: ImageStore | null = null;
-    if (imagesRaw) {
-      try { store = JSON.parse(imagesRaw); } catch { /* ignore */ }
-    }
-
-    const built: Section[] = parsedSections.map((p, i) => ({
+    const built: Section[] = parsedSections.map(p => ({
       headingText: p.heading,
       bodyText: p.body,
-      imageUrl: store?.sections?.[i]?.url ?? null,
+      level: p.level,
+      imageUrl: imgMap[p.heading] ?? null,
       altText: buildAltText(p.heading, category, articleTitle),
     }));
 
@@ -215,7 +234,10 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
                 {/* Sections */}
                 {sections.map((s, i) => (
                   <div key={i} className="preview-section">
-                    <h2 className="preview-h2">{s.headingText}</h2>
+                    {s.level === 'H3'
+                      ? <h3 className="preview-h3">{s.headingText}</h3>
+                      : <h2 className="preview-h2">{s.headingText}</h2>
+                    }
                     {s.imageUrl && (
                       <div className="preview-img-wrap">
                         <img
@@ -268,9 +290,9 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
                         : <span style={{ fontSize: 9, color: 'var(--t3)' }}>—</span>
                       }
                     </div>
-                    <div className="arrange-info">
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t1)', lineHeight: 1.3 }}>
-                        {s.headingText.length > 45 ? s.headingText.slice(0, 45) + '…' : s.headingText}
+                    <div className="arrange-info" style={{ paddingLeft: s.level === 'H3' ? 10 : 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: s.level === 'H3' ? 400 : 600, color: s.level === 'H3' ? 'var(--t2)' : 'var(--t1)', lineHeight: 1.3 }}>
+                        {s.level === 'H3' ? '↳ ' : ''}{s.headingText.length > 42 ? s.headingText.slice(0, 42) + '…' : s.headingText}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2 }}>
                         {s.imageUrl ? 'Image assigned' : 'No image'}

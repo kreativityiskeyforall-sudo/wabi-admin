@@ -7,7 +7,7 @@ import type { SheetArticle } from '@/lib/sheets';
 
 type Heading = { level: string; text: string; note: string };
 
-type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null };
+type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null; level?: 'H2' | 'H3' };
 type PinImg     = { prompt: string; enabled: boolean; titleOverlay: boolean; url: string | null; layout: 'collage4' | 'hero3panel' | 'complete' };
 type FeaturedImg = { prompt: string; url: string | null };
 
@@ -225,13 +225,50 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     if (outlineRaw) {
       try {
         const outline: { headings: Heading[] } = JSON.parse(outlineRaw);
-        const h2s = outline.headings.filter(h => h.level === 'H2');
-        setSections(h2s.map((h, i) => ({
+        const allHeadings = outline.headings.filter(h => h.level === 'H2' || h.level === 'H3');
+        const built: SectionImg[] = allHeadings.map((h, i) => ({
           headingText: h.text,
           prompt: buildSectionPrompt(h.text, category, i),
           enabled: true,
           url: null,
-        })));
+          level: h.level as 'H2' | 'H3',
+        }));
+        setSections(built);
+
+        // Auto-improve prompts using article content on first load
+        const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
+        if (articleMarkdown && built.length > 0) {
+          setGeneratingPrompts(true);
+          const headings = built.map(s => s.headingText);
+          fetch('/api/generate-image-prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ articleTitle, category, headings, articleMarkdown, includePins: true }),
+          })
+            .then(r => r.json())
+            .then(data => {
+              const improved = data.sectionPrompts
+                ? built.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }))
+                : built;
+              setSections(improved);
+              const defaultPins: PinImg[] = [
+                { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null, layout: 'collage4' },
+                { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null, layout: 'hero3panel' },
+                { prompt: buildPinPrompt(category, 2), enabled: true, titleOverlay: false, url: null, layout: 'complete' },
+              ];
+              const improvedPins = data.pinPrompts?.length
+                ? defaultPins.map((p, i) => ({ ...p, prompt: data.pinPrompts[i]?.prompt ?? p.prompt, layout: (data.pinPrompts[i]?.layout ?? p.layout) as PinImg['layout'] }))
+                : defaultPins;
+              setPins(improvedPins);
+              localStorage.setItem(`images-${id}`, JSON.stringify({
+                featured: { prompt: buildFeaturedPrompt(category), url: null },
+                sections: improved,
+                pins: improvedPins,
+              }));
+            })
+            .catch(() => {})
+            .finally(() => setGeneratingPrompts(false));
+        }
       } catch { /* ignore */ }
     }
   }, [id, category]);
@@ -311,7 +348,8 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   };
 
   const improvePrompts = async () => {
-    const headings = sections.filter(s => s.enabled).map(s => s.headingText);
+    const enabledSecs = sections.filter(s => s.enabled);
+    const headings = enabledSecs.map(s => (s.level === 'H3' ? `  ↳ ${s.headingText}` : s.headingText));
     if (!headings.length) return;
     setGeneratingPrompts(true); setError('');
     try {
@@ -493,7 +531,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="btn btn-out btn-sm" onClick={improvePrompts} disabled={generatingPrompts || sections.length === 0} title="Claude rewrites all prompts as detailed scene descriptions">
-                {generatingPrompts ? '⟳ Writing…' : '✦ Improve prompts'}
+                {generatingPrompts ? '⟳ Writing prompts…' : '✦ Improve prompts'}
               </button>
               <button className="btn btn-out btn-sm" onClick={generateSections} disabled={genSections}>
                 {genSections ? '⟳' : '⚡'} Generate
@@ -518,7 +556,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                     }}
                     style={{ marginRight: 8, flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: 12, fontWeight: 600, flex: 1, color: 'var(--t1)' }}>{s.headingText}</span>
+                  <span style={{ fontSize: 12, fontWeight: s.level === 'H3' ? 400 : 600, flex: 1, color: s.level === 'H3' ? 'var(--t2)' : 'var(--t1)', paddingLeft: s.level === 'H3' ? 12 : 0 }}>
+                    {s.level === 'H3' ? '↳ ' : ''}{s.headingText}
+                  </span>
                   <label className="dl-btn dl-btn--sm" style={{ cursor: uploadingSectionIdx === i ? 'not-allowed' : 'pointer', opacity: uploadingSectionIdx === i ? 0.5 : 1 }}>
                     {uploadingSectionIdx === i ? '⟳' : '↑'} Upload
                     <input type="file" accept="image/*" style={{ display: 'none' }}
