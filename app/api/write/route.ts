@@ -169,27 +169,41 @@ Return ONLY the article in markdown. No preamble.`;
     return NextResponse.json({ error: `Unknown article type: ${type}` }, { status: 400 });
   }
 
-  // Fetch published articles from Sanity to enable contextual internal linking
-  let publishedArticles: Array<{ title: string; slug: string; category: string }> = [];
+  // Fetch published articles + cluster mother for contextual internal linking
+  let publishedArticles: Array<{ title: string; slug: string; category: string; isMother?: boolean }> = [];
+  let motherArticle: { title: string; slug: string; category: string } | null = null;
   try {
     publishedArticles = await sanity.fetch(
-      `*[_type == "article" && defined(slug.current) && slug.current != $slug] { title, "slug": slug.current, category }`,
+      `*[_type == "article" && defined(slug.current) && slug.current != $slug] { title, "slug": slug.current, category, isMother }`,
       { slug: (title ?? '').toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '') }
     );
+    // Find this cluster's mother article (if this is a branch article with a cluster)
+    if (cluster) {
+      motherArticle = publishedArticles.find(a => a.isMother && a.category === (category ?? '').toLowerCase().replace(/ /g, '-')) ?? null;
+      // Fallback: any mother in same cluster by slug pattern if category doesn't match exactly
+      if (!motherArticle) {
+        motherArticle = publishedArticles.find(a => a.isMother) ?? null;
+      }
+    }
   } catch { /* non-fatal — continue without links */ }
 
   if (publishedArticles.length > 0) {
-    const linkList = publishedArticles
+    const otherLinks = publishedArticles
+      .filter(a => !motherArticle || a.slug !== motherArticle.slug)
       .map(a => `- [${a.title}](https://wabidecor.com/${a.category}/${a.slug})`)
       .join('\n');
+
+    const motherBlock = motherArticle
+      ? `CLUSTER MOTHER ARTICLE — YOU MUST LINK TO THIS:
+This article belongs to a content cluster. The master guide for this cluster is:
+[${motherArticle.title}](https://wabidecor.com/${motherArticle.category}/${motherArticle.slug})
+You MUST embed this link naturally in the article prose — in a sentence that flows into it organically (e.g. "For the full room guide, [the ultimate Japandi living room guide](url) covers every element in depth."). Do not add it as a list or footnote.\n\n`
+      : '';
+
     prompt += `
 
 INTERNAL LINKING — REQUIRED:
-Embed 1–2 of these published articles as natural inline links within the article prose.
-Pick only the most topically relevant ones. Format: [anchor text](full url).
-Do NOT list them at the end — weave them naturally into a sentence mid-article.
-Published articles available to link:
-${linkList}
+${motherBlock}${otherLinks ? `Also embed 1 additional link from this list where naturally relevant:\n${otherLinks}\n` : ''}Format all links as: [anchor text](full url). Weave naturally into prose mid-article. Never list links at the end.
 
 EXTERNAL LINK — REQUIRED:
 Add exactly one external link to a reputable home decor or design authority site.
