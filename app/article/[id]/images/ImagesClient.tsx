@@ -251,6 +251,8 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                 ? built.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }))
                 : built;
               setSections(improved);
+              const newFeatured: FeaturedImg = { prompt: data.featuredPrompt ?? buildFeaturedPrompt(category), url: null };
+              setFeatured(newFeatured);
               const defaultPins: PinImg[] = [
                 { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null, layout: 'collage4' },
                 { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null, layout: 'hero3panel' },
@@ -261,7 +263,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                 : defaultPins;
               setPins(improvedPins);
               localStorage.setItem(`images-${id}`, JSON.stringify({
-                featured: { prompt: buildFeaturedPrompt(category), url: null },
+                featured: newFeatured,
                 sections: improved,
                 pins: improvedPins,
               }));
@@ -361,9 +363,14 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
+      if (data.featuredPrompt) {
+        const newF = { ...featured, prompt: data.featuredPrompt };
+        setFeatured(newF);
+        persistFeatured(newF);
+      }
       if (data.sectionPrompts) {
         const promptMap = Object.fromEntries(
-          headings.map((h, i) => [h, data.sectionPrompts[i] ?? ''])
+          headings.map((h, i) => [h.replace(/^\s*↳\s*/, ''), data.sectionPrompts[i] ?? ''])
         );
         const newSec = sections.map(s => ({ ...s, prompt: promptMap[s.headingText] ?? s.prompt }));
         setSections(newSec);

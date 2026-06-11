@@ -70,11 +70,15 @@ PIN 2 — HERO + 2 PANELS: A single 1000×1500px portrait image. Large hero pane
 PIN 3 — FULL SCENE WITH TEXT SPACE: A complete scenic ${roomType} image. Bottom 25–30% is intentionally calm and uncluttered (bare floor, plain wall, soft bokeh surface) for text overlay. Apply all 12 prompt elements. End with: "full scenic portrait, intentionally minimal bottom 25% for text overlay, portrait 2:3 format, hyper-realistic, Kinfolk editorial photography"
 ` : ''}
 
+FEATURED IMAGE PROMPT:
+Also write one featured image prompt for the article as a whole. This is the hero/cover image — 1200×800px landscape format. It should represent the overall theme and mood of the entire article, showing a wide, beautiful ${roomType} scene. Apply all 12 prompt elements. The scene should be a complete room overview (not a close-up), landscape oriented, with generous negative space and editorial quality. End with: "1200×800px landscape orientation, wide hero shot, editorial cover photography, hyper-realistic RAW photograph, Kinfolk magazine quality, 8K"
+
 SECTION HEADINGS:
 ${headings.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
 
 Return ONLY valid JSON, no explanation:
 {
+  "featuredPrompt": "full prompt for the featured hero image",
   "sectionPrompts": ["full prompt for heading 1", "full prompt for heading 2", ...],
   "pinPrompts": [
     { "layout": "collage4", "textPosition": "center", "prompt": "..." },
