@@ -502,6 +502,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           <div className="img-card-hd">
             <div className="img-card-title">Featured Image <span className="img-tag">1200×800 landscape · FLUX Dev</span></div>
             <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn btn-out btn-sm" onClick={improvePrompts} disabled={generatingPrompts || sections.length === 0} title="Claude rewrites featured + all section prompts">
+                {generatingPrompts ? '⟳ Writing prompts…' : '✦ Improve prompt'}
+              </button>
               <label className="btn btn-out btn-sm" style={{ cursor: 'pointer' }}>
                 {uploadingFeatured ? '⟳ Uploading…' : '↑ Upload'}
                 <input type="file" accept="image/*" style={{ display: 'none' }}
@@ -515,6 +518,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             </div>
           </div>
           <div style={{ padding: '10px 14px' }}>
+            {generatingPrompts && (
+              <div style={{ fontSize: 11, color: 'var(--t3)', fontStyle: 'italic', marginBottom: 6 }}>
+                ⟳ Writing prompt with Claude…
+              </div>
+            )}
             <textarea
               className="prompt-ta"
               value={featured.prompt}
