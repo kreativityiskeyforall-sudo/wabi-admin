@@ -422,6 +422,12 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     await generatePins();
   };
 
+  const resetAndRebuild = () => {
+    if (!confirm('Clear all saved images and prompts for this article and rebuild from outline?')) return;
+    localStorage.removeItem(`images-${id}`);
+    window.location.reload();
+  };
+
   // ── download handlers ────────────────────────────────────────────────────
 
   const handleDownload = async (url: string, label: string, withOverlay = false) => {
@@ -470,6 +476,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <Link href={`/article/${id}/write`} className="btn btn-out btn-sm">← Write</Link>
+            <button className="btn btn-out btn-sm" onClick={resetAndRebuild} title="Clear saved state and rebuild all sections from outline">↺ Reset</button>
             <button className="btn btn-amber" onClick={generateAll} disabled={anyGenerating}>
               {anyGenerating ? '⟳ Generating…' : '⚡ Generate all'}
             </button>
