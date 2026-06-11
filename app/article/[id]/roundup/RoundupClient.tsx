@@ -7,7 +7,7 @@ import type { SheetArticle } from '@/lib/sheets';
 import type { RoundupProduct } from '@/lib/types';
 
 const DEFAULT_PRODUCTS: RoundupProduct[] = [
-  { name: 'Artiss Bookshelf Bamboo 5 Tier', amazonUrl: 'https://amazon.co.uk/dp/B08YQ2RLGX?tag=wabidecore-21', notes: 'Best value pick — clean bamboo finish, easy assembly', priceNow: '£89', price90Low: '£72', price90High: '£119', stars: 4.3, reviewCount: 1247, isBestPick: true },
+  { name: 'Artiss Bookshelf Bamboo 5 Tier', amazonUrl: 'https://amazon.co.uk/dp/B08YQ2RLGX?tag=oppositeattra-20', notes: 'Best value pick — clean bamboo finish, easy assembly', priceNow: '£89', price90Low: '£72', price90High: '£119', stars: 4.3, reviewCount: 1247, isBestPick: true },
   { name: 'IKEA KALLAX 4-Unit Shelf', amazonUrl: 'https://amazon.co.uk/dp/B07G4ZK4ZQ', notes: 'Modular, customisable, pairs well with japandi inserts', priceNow: '£119', price90Low: '£99', price90High: '£139', stars: 4.5, reviewCount: 8432 },
   { name: 'Songmics Ladder Shelf Bamboo', amazonUrl: 'https://amazon.co.uk/dp/B08N5ZCWZ1', notes: 'Space-saving ladder design, very japandi, budget pick', priceNow: '£65', price90Low: '£58', price90High: '£79', stars: 4.1, reviewCount: 2891 },
 ];

@@ -66,7 +66,7 @@ export default async function OverviewPage() {
           <div className="stat sage">
             <span className="lbl">Published</span>
             <div className="stat-val">{published}</div>
-            <div className="stat-sub">live on wabidecor.com</div>
+            <div className="stat-sub">live on decoreixy.com</div>
           </div>
           <div className="stat amber">
             <span className="lbl">In progress</span>
@@ -122,7 +122,7 @@ export default async function OverviewPage() {
                       {href ? (
                         <Link href={href} className="btn btn-dark btn-sm">Open →</Link>
                       ) : (
-                        <a href={`https://wabidecor.com/${art.slug}`} target="_blank" rel="noopener" className="btn btn-out btn-sm">↗ View live</a>
+                        <a href={`https://decoreixy.com/${art.slug}`} target="_blank" rel="noopener" className="btn btn-out btn-sm">↗ View live</a>
                       )}
                     </td>
                   </tr>

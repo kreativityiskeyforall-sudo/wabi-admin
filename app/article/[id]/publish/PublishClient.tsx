@@ -225,7 +225,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
             {sanityId && <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 20, fontFamily: 'monospace' }}>Sanity ID: {sanityId}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <Link href="/" className="btn btn-sage">← Back to queue</Link>
-              <a href={`https://wabidecor.com/${websiteCategory}/${slug}`} target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
+              <a href={`https://decoreixy.com/${websiteCategory}/${slug}`} target="_blank" rel="noopener" className="btn btn-dark">↗ View live</a>
             </div>
           </div>
         ) : (
@@ -247,7 +247,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
 
             <div className="pub-cta">
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 400, marginBottom: 8 }}>
-                Publish to wabidecor.com
+                Publish to decoreixy.com
               </div>
               <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 22 }}>
                 Pushes to Sanity, updates Google Sheet, Cloudflare rebuilds (~3 min).

@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   let prompt = '';
 
   if (type === 'editorial' || isListicle) {
-    prompt = `You are the wabi. Content Agent writing for wabidecor.com, a Japandi home decor blog.
+    prompt = `You are the wabi. Content Agent writing for decoreixy.com, a Japandi home decor blog.
 
 ARTICLE DETAILS:
 Title: ${title}
@@ -102,7 +102,7 @@ Return ONLY the article in markdown. No preamble, no meta-commentary, no "Here i
 
   } else if (type === 'product-review') {
     const p = productBrief ?? {};
-    prompt = `You are the wabi. Content Agent writing for wabidecor.com, a Japandi home decor blog.
+    prompt = `You are the wabi. Content Agent writing for decoreixy.com, a Japandi home decor blog.
 
 ARTICLE DETAILS:
 Title: ${title}
@@ -139,7 +139,7 @@ Return ONLY the article in markdown. No preamble.`;
 
   } else if (type === 'roundup') {
     const products = (productBrief?.products ?? []) as { name: string; currentPrice: string; stars: string; angle: string }[];
-    prompt = `You are the wabi. Content Agent writing for wabidecor.com, a Japandi home decor blog.
+    prompt = `You are the wabi. Content Agent writing for decoreixy.com, a Japandi home decor blog.
 
 ARTICLE DETAILS:
 Title: ${title}
@@ -188,20 +188,20 @@ Return ONLY the article in markdown. No preamble.`;
   if (publishedArticles.length > 0) {
     const motherBlock = motherArticle
       ? `CLUSTER MOTHER ARTICLE — MUST LINK TO THIS ONCE:
-The master guide for this cluster is: [${motherArticle.title}](https://wabidecor.com/${motherArticle.category}/${motherArticle.slug})
+The master guide for this cluster is: [${motherArticle.title}](https://decoreixy.com/${motherArticle.category}/${motherArticle.slug})
 Embed this link naturally in one sentence (e.g. "For the full room guide, [the ultimate Japandi living room guide](url) covers every element."). Do not list it — weave it into prose.\n\n`
       : '';
 
     const siblingBlock = siblingArticles.length > 0
       ? `CLUSTER SIBLING ARTICLES — LINK TO 1–2 WHERE RELEVANT:
 These are other articles in the same content cluster. Pick 1–2 that are topically closest to a section in this article and link to them naturally mid-prose:
-${siblingArticles.map(a => `- [${a.title}](https://wabidecor.com/${a.category}/${a.slug})`).join('\n')}\n\n`
+${siblingArticles.map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug})`).join('\n')}\n\n`
       : '';
 
     const otherArticles = publishedArticles
       .filter(a => a.slug !== motherArticle?.slug && !siblingArticles.find(s => s.slug === a.slug))
       .slice(0, 3)
-      .map(a => `- [${a.title}](https://wabidecor.com/${a.category}/${a.slug})`)
+      .map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug})`)
       .join('\n');
 
     const otherBlock = !siblingArticles.length && otherArticles

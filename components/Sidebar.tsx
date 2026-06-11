@@ -282,7 +282,7 @@ export default function Sidebar() {
                       <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
                         <button className="pub-action-btn" onClick={() => router.push(`/edit/${art._id}`)}>✎ Edit</button>
                         <button className="pub-action-btn" onClick={() => router.push(`/edit/${art._id}/images`)}>+ Images</button>
-                        <a href={`https://wabidecor.com/${art.category}/${art.slug}`} target="_blank" rel="noopener" className="pub-action-btn">↗ Live</a>
+                        <a href={`https://decoreixy.com/${art.category}/${art.slug}`} target="_blank" rel="noopener" className="pub-action-btn">↗ Live</a>
                         <button className="pub-action-btn" onClick={() => openSources(art)}>↗ Sources</button>
                       </div>
 

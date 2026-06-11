@@ -113,7 +113,7 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
           </div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 400, maxWidth: 600 }}>{title}</div>
           <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 3 }}>
-            {category} · <a href={`https://wabidecor.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)' }}>↗ view live</a>
+            {category} · <a href={`https://decoreixy.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)' }}>↗ view live</a>
             {existingImages.length > 0 && ` · ${existingImages.length} images preserved`}
           </div>
         </div>

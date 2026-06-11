@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     ? `\nFull article content — READ THIS CAREFULLY before writing each prompt. Every prompt must reflect the specific objects and ideas described in that section:\n---\n${articleMarkdown.slice(0, 8000)}\n---\n`
     : '';
 
-  const prompt = `You are the world's best AI image prompt writer for FLUX (a hyper-realistic photographic model). You write prompts for wabidecor.com, a Japandi and wabi-sabi interior design blog.
+  const prompt = `You are the world's best AI image prompt writer for FLUX (a hyper-realistic photographic model). You write prompts for decoreixy.com, a Japandi and wabi-sabi interior design blog.
 ${articleContext}
 Article: "${articleTitle}"
 Room type: ${roomType}

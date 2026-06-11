@@ -257,7 +257,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       {saved && (
         <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 14, fontSize: 13, color: 'var(--sage)' }}>
           ✓ Images saved — Cloudflare rebuilds in ~3 min.{' '}
-          <a href={`https://wabidecor.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)', fontWeight: 700 }}>View live ↗</a>
+          <a href={`https://decoreixy.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)', fontWeight: 700 }}>View live ↗</a>
         </div>
       )}
 

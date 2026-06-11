@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   const isListicle = ['ideas', 'decor', 'hacks', 'diy guide'].includes((contentType ?? '').toLowerCase());
 
-  const prompt = `You are the content writer for wabi., a Japandi home decor affiliate blog at wabidecor.com.
+  const prompt = `You are the content writer for wabi., a Japandi home decor affiliate blog at decoreixy.com.
 
 ARTICLE DETAILS:
 Title: ${title}

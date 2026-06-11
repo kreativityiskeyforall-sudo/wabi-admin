@@ -117,7 +117,7 @@ function ArticleSection({ article, type }: { article: MediaArticle; type: 'pinte
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{article.title}</span>
         <span style={{ fontSize: 10, fontWeight: 700, background: 'var(--border)', color: 'var(--t3)', padding: '2px 7px', borderRadius: 10, flexShrink: 0 }}>{images.length}</span>
         <a
-          href={`https://wabidecor.com/${article.category}/${article.slug}`}
+          href={`https://decoreixy.com/${article.category}/${article.slug}`}
           target="_blank"
           rel="noopener"
           onClick={e => e.stopPropagation()}
