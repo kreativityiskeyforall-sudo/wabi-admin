@@ -69,7 +69,7 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
-    if (tab !== 'published' || pubArticles.length > 0) return;
+    if (tab !== 'published') return;
     setPubLoading(true);
     fetch('/api/published-articles')
       .then(r => r.json())
