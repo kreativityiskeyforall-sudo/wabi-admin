@@ -394,6 +394,9 @@ export default function Sidebar() {
       )}
 
       <div className="sb-footer">
+        <Link href="/comments" className={`sb-footer-btn ${pathname === '/comments' ? 'on' : ''}`}>
+          💬 Comments
+        </Link>
         <Link href="/seo-agent" className={`sb-footer-btn ${pathname === '/seo-agent' ? 'on' : ''}`}>
           ◈ SEO Agent
         </Link>
