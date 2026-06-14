@@ -95,6 +95,29 @@ async function uploadImageUrl(imageUrl: string, filename: string) {
   return asset._id;
 }
 
+function extractIntro(markdown: string): string {
+  const lines = markdown.split('\n');
+  const paraLines: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith('#')) break; // stop at first heading
+    const trimmed = line.trim();
+    if (trimmed) paraLines.push(trimmed);
+    if (paraLines.length >= 3) break; // take up to 3 sentences
+  }
+  return paraLines.join(' ').slice(0, 320).trim();
+}
+
+function buildKicker(category: string, wordCount: number): string {
+  const CAT_LABELS: Record<string, string> = {
+    'living-room': 'Living Room', bedroom: 'Bedroom', kitchen: 'Kitchen & Dining',
+    bathroom: 'Bathroom', 'home-office': 'Home Office', entryway: 'Entryway',
+    style: 'Style', guides: 'Guide', 'gift-guides': 'Gifts',
+  };
+  const label = CAT_LABELS[category] ?? category;
+  const mins = Math.max(3, Math.round(wordCount / 200));
+  return `${label} · ${mins} min read`;
+}
+
 export async function POST(req: NextRequest) {
   const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, publishedAt } = await req.json();
 
@@ -172,11 +195,17 @@ export async function POST(req: NextRequest) {
     }));
   }
 
+  const intro = extractIntro(body);
+  const wordCount = body.split(/\s+/).length;
+  const kicker = buildKicker(category, wordCount);
+
   const doc = {
     _type: 'article',
     title,
     slug: { _type: 'slug', current: slug },
     body: portableBody,
+    intro: intro || null,
+    kicker,
     category,
     articleType: type,
     cluster: cluster ?? null,
