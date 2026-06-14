@@ -30,200 +30,183 @@ ${articleContext}
 Article: "${articleTitle}"
 Room type: ${roomType}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-JAPANDI 60-30-10 COLOUR CONTRAST SYSTEM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Rule: 60% wall colour (dominant, most neutral), 30% furniture (one step deeper or warmer), 10% dark anchor (frames, curtain, ceramics — the contrast punch).
-The tension between warm + cool + dark in each combo is what makes it visually exciting.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE JAPANDI 60-30-10 COLOUR SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Every image MUST apply all 3 contrast types simultaneously:
+  1. LIGHT vs DARK — pale wall always gets a dark anchor (furniture legs, frames, curtain panel)
+  2. WARM vs COOL — never use only warm OR only cool tones. Always mix at least one of each.
+  3. MATTE vs TEXTURE — smooth plaster wall + rough rattan or woven linen + polished wood grain
 
-Assign ONE COMBO per section. NEVER REPEAT a combo in the same article. Each image must look completely different.
+The subject (vase, tray, lamp, etc.) is the HERO of the image. The wall colour, curtains, and furniture are the STAGE that makes the hero pop. Every element of the stage must contrast with the hero object so it stands out clearly.
 
-COMBO 1 — FOREST NIGHT
- Wall 60%: deep forest green (#2d4a3e) — rich, moody, nature-inspired
- Furniture 30%: pale ash wood shelving, cream boucle armchair — high contrast against dark wall
- Dark anchor 10%: matte black iron frames, black stoneware ceramics
- Curtains: heavy oatmeal cream linen floor-length panels — pale warmth against dark green
- Objects: dried pampas, pale sand ceramics, unbleached cotton, natural rope
- Light: warm amber lamp glow 2700K — pools of light against deep green darkness
- Mood: moody forest, intimate and sheltering
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12 COLOUR COMBOS — assign ONE per section, NO REPEATS
+Format: Wall (60%) · Furniture (30%) · Curtains · Dark anchor (10%)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-COMBO 2 — BURNT CLAY
- Wall 60%: warm terracotta / burnt sienna (#b5604a) — earthy, saturated, Moroccan-Japanese fusion
- Furniture 30%: dark wenge or blackened walnut — deep rich tone deepening the room
- Dark anchor 10%: matte black steel frames, deep charcoal cushion
- Curtains: heavy deep indigo linen panels — strong cool-warm contrast against the red-orange wall
- Objects: pale sand stoneware, natural rattan basket, unbleached linen throw
- Light: strong golden afternoon directional 4200K — casting long dramatic shadows
- Mood: earthy and ancient, desert-meets-Japan
+COMBO A — CLASSIC WARM
+  Wall 60%:      Linen sand #EDE5D4 — warm beige plaster, the most classic Japandi wall
+  Furniture 30%: Walnut mid #9C7A52 — deeper warm wood, one step richer than wall
+  Curtains:      Stone grey #B8B4A8 — mid-weight linen, slightly cooler than wall (warm/cool contrast)
+  Dark anchor:   Sumi charcoal #3C3A36 — ceramic vessels, picture frames, lamp base
+  Light:         Warm 3400K golden afternoon directional from left
+  Mood:          Warm and intimate, quietly classic
 
-COMBO 3 — INK NIGHT
- Wall 60%: near-black charcoal (#28261f) — cinematic, bold, night-ink inspired
- Furniture 30%: warm pale oak or light ash — maximum warm/dark contrast
- Dark anchor 10%: deep navy ceramic, black lacquer tray
- Curtains: heavy warm cream or ivory wool panels — glowing against black wall
- Objects: warm amber glass vessels, aged brass accents, pale clay bowl catching light
- Light: single warm lamp 2200K creating chiaroscuro, dramatic pooled light
- Mood: cinematic drama, intimate night ritual
+COMBO B — SAGE & OAK
+  Wall 60%:      Pale moss #D0D5BF — barely-there cool sage green, restful
+  Furniture 30%: Ash blonde oak #E8D5B4 — light warm Scandi oak, warmer than wall (warm/cool)
+  Curtains:      Natural linen sheer #F5EFE6 — pale warm, diffusing light softly
+  Dark anchor:   Matte black frames #2C2C2A — window frames, art frames, lamp stems
+  Light:         Cool 5500K overcast morning, even and diffused
+  Mood:          Clean and airy, cool and meditative
 
-COMBO 4 — SLATE BLUE MIST
- Wall 60%: cool grey-blue slate (#6a7f8f) — calm, mineral, Japanese sea-inspired
- Furniture 30%: warm medium walnut — warm/cool colour tension
- Dark anchor 10%: charcoal throw, near-black iron hardware
- Curtains: deep rust or burnt orange linen — strong warm contrast against cool blue-grey wall
- Objects: dark indigo stoneware, amber beeswax candle, natural stone tray
- Light: cool overcast 6000K with one warm lamp creating contrast
- Mood: quiet tension, cool and considered
+COMBO C — NEUTRAL LUXURY
+  Wall 60%:      Warm rice #F7F2EA — softest warm base, visible plaster grain texture
+  Furniture 30%: Dark walnut #6B4E35 — deep grounding tone (maximum light/dark contrast)
+  Curtains:      Sage linen #A8B0A0 — muted cool green, contrasts the warm wall (warm/cool)
+  Dark anchor:   Ink black trim and ceramic #252320
+  Light:         Soft 4000K neutral morning, gentle raking shadows
+  Mood:          Quiet luxury, serene and grounded
 
-COMBO 5 — DEEP TEAL OCEAN
- Wall 60%: deep teal (#1e5f6a) — bold, watery, Japanese ink wash
- Furniture 30%: weathered driftwood or pale bleached wood — contrast against deep teal
- Dark anchor 10%: very dark navy ceramic vessels, black iron curtain rail
- Curtains: warm raw linen or sand-coloured sheer panels — warm against cool deep teal
- Objects: aged white stoneware, natural rope, bleached wood board
- Light: late afternoon 4500K golden light catching the pale furniture
- Mood: coastal Japan, still and deep
+COMBO D — COOL & WARM BALANCE
+  Wall 60%:      Slate mist #A0AABA — dusty blue-grey, calm and mineral
+  Furniture 30%: Honey oak #C8A876 — warm golden oak against cool wall (warm/cool tension)
+  Curtains:      Natural linen sheer #F5EFE6 — pale warm, glowing against cool slate wall
+  Dark anchor:   Sumi dark ceramic or trim #3A3830
+  Light:         Warm 3800K evening lamp creating warm glow against cool-toned wall
+  Mood:          Cool wall, warm objects — the quiet tension that defines Japandi
 
-COMBO 6 — OLIVE GROVE
- Wall 60%: warm muted olive (#6b7c57) — Italian farmhouse meets Japanese countryside
- Furniture 30%: dark chocolate walnut — deepens and grounds the olive
- Dark anchor 10%: matte black pendant lamp, charcoal linen cushion
- Curtains: deep rust or burnt orange heavy linen — warm earthy contrast against olive
- Objects: terracotta clay pots, amber glass, raw unglazed ceramics
- Light: warm 3500K afternoon sun raking from the side
- Mood: earthy harvest, warmly grounded
+COMBO E — DARK & LIGHT DRAMA
+  Wall 60%:      Sumi charcoal #3C3A36 — deep warm charcoal, slightly brown-toned, not cold
+  Furniture 30%: Ash blonde #E8D5B4 — very pale warm wood, maximum contrast against dark wall
+  Curtains:      Sand sheer #D8CFC2 — pale warm linen, glowing like light against charcoal
+  Dark anchor:   Wall itself is the anchor — add ink black frames #252320
+  Light:         Single warm 2700K lamp, chiaroscuro — pooled light against dark wall
+  Mood:          Cinematic drama, intimate night ritual, high-contrast editorial
 
-COMBO 7 — DUSTY PLASTER ROSE
- Wall 60%: warm dusty blush clay (#c4978a) — soft but saturated, wabi warmth
- Furniture 30%: very dark wenge or ebony stain — maximum contrast
- Dark anchor 10%: matte black iron hardware and frames
- Curtains: deep forest green or dark teal heavy linen panels — cool/warm tension against blush
- Objects: pale cream ceramics, natural linen, dried sage bundles
- Light: soft morning 4000K diffused — gentle shadows on textured plaster wall
- Mood: feminine wabi, warm and quietly bold
+COMBO F — NATURE IMMERSED
+  Wall 60%:      Forest haze #768C6A — deep meditative green, Japanese moss and cedar
+  Furniture 30%: Dark walnut #6B4E35 — warm deep wood grounds the cool green
+  Curtains:      Cream linen #F0EAE0 — pale warm, glowing against deep green wall
+  Dark anchor:   Matte black ceramics or pine shadow accent #566856
+  Light:         Golden 3500K afternoon, warm pools through cream curtains onto green wall
+  Mood:          Nature immersed, forest cabin, warm and deeply calm
 
-COMBO 8 — DEEP OCHRE GOLD
- Wall 60%: deep warm ochre gold (#b8861e) — bold Japanese autumn, saturated and rich
- Furniture 30%: very dark wenge or near-black ebony — maximum contrast
- Dark anchor 10%: matte black steel, deep charcoal heavy curtain
- Curtains: very dark charcoal or near-black heavyweight panels — dramatic frame
- Objects: pale whitewashed ceramics, natural linen, bleached wood objects
- Light: low winter afternoon 3000K, long shadows, golden glow on pale objects
- Mood: bold and graphic, autumn Japan
+COMBO G — CLAY & COOL CONTRAST
+  Wall 60%:      Terracotta mist #B8926A — muted warm clay, not bright — subtle earth tone
+  Furniture 30%: Dark walnut #6B4E35 — deep grounding against warm clay wall
+  Curtains:      Dark slate #4C5050 — heavy cool-toned curtain, strong contrast against warm clay
+  Dark anchor:   Sumi dark curtain #3A3830 + matte black ceramic vessel
+  Light:         Strong directional 4500K, long afternoon shadows across clay wall
+  Mood:          Earthy and ancient, warm wall cool frame
 
-COMBO 9 — CHARCOAL WARM
- Wall 60%: warm dark charcoal (#383530) — slightly brown-toned, not cold
- Furniture 30%: pale birch or whitewashed pine — pale warmth against charcoal
- Dark anchor 10%: black matte ceramic, dark iron curtain rail
- Curtains: off-white or warm ivory heavyweight wool — glowing contrast against charcoal
- Objects: cream linen bundle, pale oak tray, dried botanicals, warm candle
- Light: warm 2800K lamp pooling against the dark wall
- Mood: cabin warmth, dark and cosy
+COMBO H — GRAPHITE & WARMTH
+  Wall 60%:      Graphite #5C5A56 — warm charcoal, not cold grey — slightly brown undertone
+  Furniture 30%: Ash blonde #E8D5B4 — very pale warm wood, glowing against dark wall
+  Curtains:      Mist white #DCDFD8 — slightly cool pale, contrast against warm graphite wall
+  Dark anchor:   Ink black frames #252320 on windows and mirrors
+  Light:         Cool 6000K overcast daylight, pale curtains glowing against dark wall
+  Mood:          Dark warmth, bold and sophisticated
 
-COMBO 10 — SAGE MINERAL
- Wall 60%: soft mineral sage grey-green (#a8baa8) — calm, earthy, Scandinavian nature
- Furniture 30%: dark walnut or teak — grounding contrast
- Dark anchor 10%: charcoal heavy textiles, near-black stoneware
- Curtains: deep burgundy or terracotta rust linen — unexpected warm contrast against sage
- Objects: dark stoneware, amber beeswax candles, natural rattan
- Light: mid-morning 4500K with one warm accent lamp
- Mood: rich and warm, earthy sage world
+COMBO I — BAMBOO DUST & TEAL ACCENT
+  Wall 60%:      Bamboo dust #D8C4A8 — warm tan, echoes natural bamboo and wood tones
+  Furniture 30%: Walnut mid #9C7A52 — deeper warm wood, same family as wall
+  Curtains:      Dusty teal #8C9898 — muted cool teal, the unexpected cool accent in warm room
+  Dark anchor:   Matte black #2C2C2A frames and slim lamp
+  Light:         Warm 3600K mid-afternoon, teal curtain casting subtle cool tint in shadow
+  Mood:          Warm room, cool accent surprise — bamboo warmth with mineral edge
 
-COMBO 11 — STONE WHITE DRAMA
- Wall 60%: aged off-white plaster (#ede8df) — textured, not clean white — visible plaster grain
- Furniture 30%: very dark walnut or near-black wenge — maximum contrast
- Dark anchor 10%: ONE heavy deep indigo curtain panel as anchor, bare window opposite
- Curtains: single very dark indigo or charcoal panel — asymmetric, dramatic
- Objects: dark stoneware casting strong shadows, single candle
- Light: hard single-source side-light creating dramatic chiaroscuro shadows on plaster wall
- Mood: Japanese ink painting contrast, pure graphic beauty
+COMBO J — STONE BLUE BEDROOM
+  Wall 60%:      Stone blue #6D7E8E — serene, perfect for bedrooms, mineral calm
+  Furniture 30%: Honey oak #C8A876 — warm golden oak against cool blue wall (warm/cool)
+  Curtains:      Warm ivory #EAE2D5 — pale warm panel, creating warmth against cool wall
+  Dark anchor:   Deep ocean accent trim #4A5C6A + dark stoneware ceramics
+  Light:         Soft 4200K morning, cool wall lit warmly by ivory curtains
+  Mood:          Bedroom serenity, cool and restful with warm wood anchoring
 
-COMBO 12 — DUSK MAUVE
- Wall 60%: muted dusty mauve grey-purple (#8a7a8e) — unexpected, sophisticated
- Furniture 30%: warm medium walnut — warm/cool tension
- Dark anchor 10%: deep forest green throw, near-black ceramic vessel
- Curtains: deep forest green heavy linen — strong contrast against mauve
- Objects: pale cream ceramics, natural rattan, warm amber candle glow
- Light: golden dusk 3200K — warm light making the mauve wall shift warmer
- Mood: quiet sophistication, twilight Japan
+COMBO K — CLAY VESSEL & SAGE CURTAIN
+  Wall 60%:      Clay vessel #C9A882 — muted warm terracotta-beige, rich earth
+  Furniture 30%: Charcoal slate lacquered sideboard #4A4845 — dark cool furniture against warm wall
+  Curtains:      Sage linen #A8B0A0 — muted cool green, contrasting warm clay wall
+  Dark anchor:   Matte black frames #2C2C2A + charcoal slate furniture together
+  Light:         Neutral 4500K, clean and even, showing wall colour clearly
+  Mood:          Warm earth meets cool mineral — a rich earthy Japandi balance
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ROTATION BANKS — use a DIFFERENT one per section, no repeats:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMBO L — MORNING FOG & DARK WARMTH
+  Wall 60%:      Morning fog #D2D6DC — cool airy pale grey-blue, Scandi-Japanese light
+  Furniture 30%: Dark walnut #6B4E35 — warm deep wood against cool pale wall (warm/cool)
+  Curtains:      Warm charcoal #6A6660 — heavy dark warm curtain, dramatic contrast
+  Dark anchor:   Warm charcoal curtains + dark walnut furniture as paired anchors
+  Light:         Warm 2900K lamp, glowing gold against cool pale wall
+  Mood:          Cool and pale room made intimate by warm dark anchors
 
-WOOD SPECIES: pale birch | dark wenge | weathered driftwood | blackened oak | medium walnut | bamboo | reclaimed pine | dark mahogany | ash | teak | ebony | cedar
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROTATION BANKS — assign a DIFFERENT one per section, NO REPEATS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CAMERA BODIES: Sony A7R V | Hasselblad X2D 100C | Nikon Z9 | Fujifilm GFX 100S | Phase One IQ4 | Leica SL3
+CAMERAS:      Sony A7R V | Hasselblad X2D 100C | Nikon Z9 | Fujifilm GFX 100S | Phase One IQ4 | Leica SL3
+LENSES:       24mm f/1.4 | 35mm f/1.4 | 50mm f/1.2 | 85mm f/1.8 | 100mm f/2.8 macro | 28mm f/2 | 40mm f/2
+ANGLES:       floor-level 25cm looking up | eye-level 95cm | low angle 50cm | overhead flat lay | three-quarter 115cm | doorway frame shot | high angle 160cm looking down | seated level 65cm
+TIMES:        6am blue dawn | 8am early morning | 10am mid-morning | 12pm bright midday | 3pm strong afternoon | 5pm golden hour | 6:30pm blue dusk | 8pm evening lamp | 10pm candlelight
+COMPOSITIONS: rule of thirds subject left | golden spiral | centred symmetry | negative space dominant right | leading lines from window | foreground bokeh with sharp background | strong diagonal | minimal single subject centred | frame within frame
+SCENE TYPES:  tight macro close-up of subject | full room wide establishing shot | corner vignette | window seat or sill | floor-level looking up | doorway frame | overhead flat lay | styled shelf | bedside table | morning routine | workspace surface | hallway entrance
 
-LENSES: 24mm f/1.4 prime | 35mm f/1.4 prime | 50mm f/1.2 standard | 85mm f/1.8 portrait | 100mm f/2.8 macro | 28mm f/2 wide | 40mm f/2 compact prime
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ABSOLUTE RULES — NEVER BREAK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ Never match wall + furniture + curtains in the same tone — no contrast = unfinished, flat image
+✗ Never use bright or saturated colours — all tones are muted, earthy, mineral
+✗ Never use gloss finishes — everything is matte, raw, natural
+✗ Never mix more than one wood family per image — pick one and stay consistent
+✗ Never use patterns — Japandi contrast is solid tones only, never print or stripe
+✗ Never use fresh flowers (dried botanicals only), chrome, glossy plastic, or branded items
+✗ Never repeat a Combo, camera, lens, angle, time of day, or scene type within the same article
+✓ The article section's SUBJECT OBJECT is the hero — wall, curtains, furniture are the contrasting stage
+✓ All 3 contrast types (light/dark + warm/cool + matte/texture) must be visible in every image
+✓ Objects must come from the specific article section content — read it carefully
 
-CAMERA ANGLES: floor-level 25cm looking up | eye-level 95cm straight | low angle 50cm | overhead flat lay | three-quarter 115cm | doorway frame shot | high angle 160cm looking down | seated level 65cm
-
-TIME OF DAY: 6am blue dawn | 8am early morning | 10am mid-morning | 12pm bright midday | 3pm strong afternoon | 5pm golden hour | 6:30pm blue dusk | 8pm evening lamp | 10pm candlelight
-
-COMPOSITIONS: rule of thirds (subject left 1/3) | golden spiral | centred symmetry | negative space dominant right 2/3 | leading lines from window | foreground bokeh with sharp background | strong diagonal | single subject minimal centred | frame within frame (doorway or arch)
-
-SCENE TYPES: tight macro close-up | full room wide establishing shot | corner vignette | window seat or sill | floor-level looking up | doorway frame | overhead flat lay | styled shelf | bedside table | morning routine scene | workspace surface | hallway or entryway
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TASK — write one prompt per section heading
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Assign: COMBO → wood → camera → lens → angle → time → composition → scene (all different per section)
-
-Each prompt uses this structure — all elements comma-separated:
-
-[OBJECTS from article section content — specific materials and items]
-[WALL COLOUR from assigned Combo — include the shade and tone]
-[FURNITURE from Combo — wood species and style]
-[CURTAINS from Combo — fabric, colour, and how they contrast the wall]
-[DARK ANCHOR from Combo — name the specific dark element]
-[SCENE TYPE from rotation bank]
-[LIGHTING SOURCE + direction]
-[COLOUR TEMPERATURE — specific Kelvin value matching the Combo mood]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROMPT STRUCTURE — write ALL elements comma-separated for each section:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HERO SUBJECT — specific object(s) from article section, exact material and finish]
+[WALL — colour name, hex code, surface texture e.g. "linen sand plaster wall #EDE5D4, visible fine grain"]
+[FURNITURE — wood or material, hex code, piece type e.g. "walnut mid dresser #9C7A52, matte grain visible"]
+[CURTAINS — fabric weight, colour, hex, how they contrast e.g. "stone grey mid-weight linen curtains #B8B4A8, cooler tone against warm wall, partial light"]
+[DARK ANCHOR — specific element, hex e.g. "sumi charcoal ceramic lamp base #3C3A36 as dark anchor"]
+[SCENE TYPE from rotation]
+[LIGHTING — source, direction, quality]
+[COLOUR TEMPERATURE — Kelvin value]
 [TIME OF DAY from rotation]
 [CAMERA BODY from rotation]
 [LENS from rotation]
 [APERTURE + ISO]
 [CAMERA ANGLE + HEIGHT from rotation]
 [COMPOSITION from rotation]
-[MOOD — one vivid phrase matching the Combo]
+[MOOD — one vivid phrase]
 hyper-realistic RAW photograph, Kinfolk magazine editorial quality, 8K resolution, photorealistic, no CGI, no artificial rendering, no illustration
 
-ABSOLUTE RULES — if any rule is broken the output is wrong:
-✗ NEVER use the same wall colour combo twice in one article
-✗ NEVER use the same wood species twice
-✗ NEVER use the same time of day twice
-✗ NEVER use the same camera angle twice
-✗ NEVER use the same lens twice
-✗ NEVER use the same scene type twice
-✓ Objects in EVERY prompt must come from that specific article section's content
-✓ Every image must feel like a completely different world — different colour, different light, different mood
-
-JAPANDI PRINCIPLES — always present:
-- Natural materials only: linen, clay, stone, rattan, wool, cotton, ceramic, glass, washi paper, aged leather
-- Wabi-sabi beauty: visible wood grain, handmade asymmetry, organic texture, natural patina, imperfect glaze
-- Intentional negative space — not every surface is filled, emptiness is designed
-- No chrome, no glossy plastic, no bright primary colours, no fresh flowers, no branded items
-- Contrast is QUIET — the tension between light and dark, warm and cool, rough and smooth
-
-${includePins ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PINTEREST PIN PROMPTS — exactly 3 pins — each uses a different Combo:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-PIN 1 — 4-PANEL COLLAGE (portrait 2:3, 1000×1500px): Four equal panels in a 2×2 grid separated by 3px white dividers. Each panel uses a DIFFERENT Combo — four completely different colour worlds of ${roomType}. Apply all prompt elements. End with: "2×2 collage grid, 3px white dividers, four distinct Japandi colour worlds, editorial Pinterest pin, portrait 2:3 format, hyper-realistic composite"
-
-PIN 2 — HERO + 2 DETAIL PANELS (portrait 2:3, 1000×1500px): Large hero panel fills top 60% — full ${roomType} wide scene. Two square panels side by side fill bottom 40% — close-up details. Use a dramatic Combo (1, 3, 8, or 11) for max impact. 3px white dividers. End with: "three-panel Pinterest layout, large hero top, two detail panels bottom, 3px dividers, portrait 2:3, editorial photography"
-
-PIN 3 — FULL SCENE WITH TEXT SPACE (portrait 2:3, 1000×1500px): Complete ${roomType} scene. Bottom 25–30% is intentionally calm and uncluttered (bare floor, plain wall, soft bokeh) for text overlay. Use a bold Combo with strong wall colour. End with: "full scene portrait, clean minimal bottom 25% for text overlay, portrait 2:3, hyper-realistic Kinfolk editorial"
-` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEATURED HERO IMAGE — 1200×800px landscape
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Pick the most dramatic Combo available (prefer 2, 3, 6, 8, or 11). Wide full-room shot of ${roomType}. Strong directional dramatic lighting — not flat. Show wall colour, curtains AND furniture all visible. Immediately arresting, magazine cover quality.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Choose the most visually powerful unused Combo (prefer E, F, D, or L for drama and contrast).
+Wide full-room shot — wall colour, curtains, AND furniture all visible simultaneously.
+Strong directional light — not flat even lighting. Scene must feel immediately arresting.
 End with: "1200×800px landscape hero, wide editorial shot, Kinfolk cover quality, hyper-realistic RAW photograph, 8K, photorealistic"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${includePins ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PINTEREST PIN PROMPTS — exactly 3 pins
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PIN 1 — 4-PANEL COLLAGE (1000×1500px portrait 2:3): Four equal panels in 2×2 grid, 3px white dividers. Each panel uses a DIFFERENT Combo — four completely different colour worlds of ${roomType}. End with: "2×2 collage grid, 3px white dividers, four distinct Japandi colour worlds, editorial Pinterest pin, portrait 2:3 format, hyper-realistic composite"
+
+PIN 2 — HERO + 2 DETAIL PANELS (1000×1500px portrait 2:3): Large hero top 60% — full ${roomType} wide scene using a dramatic Combo (E, F, or L). Two square detail panels bottom 40%, 3px dividers. End with: "three-panel Pinterest layout, hero top 60%, two detail panels bottom 40%, 3px white dividers, portrait 2:3, editorial"
+
+PIN 3 — FULL SCENE WITH TEXT SPACE (1000×1500px portrait 2:3): Complete ${roomType} scene. Bottom 25–30% intentionally uncluttered — bare floor, plain wall, or soft bokeh — for text overlay. Bold wall colour Combo. End with: "full scene portrait, clean minimal bottom 25% for text overlay, portrait 2:3, hyper-realistic Kinfolk editorial"
+` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SECTION HEADINGS:
 ${headings.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
 
