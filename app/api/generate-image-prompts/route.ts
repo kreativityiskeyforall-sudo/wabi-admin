@@ -78,12 +78,12 @@ COMBO D — COOL & WARM BALANCE
   Mood:          Cool wall, warm objects — the quiet tension that defines Japandi
 
 COMBO E — DARK & LIGHT DRAMA
-  Wall 60%:      Sumi charcoal #3C3A36 — deep warm charcoal, slightly brown-toned, not cold
+  Wall 60%:      Sumi charcoal #3C3A36 — deep warm charcoal, slightly brown-toned, NOT black — wall must be visibly charcoal-brown, minimum 15% luminosity
   Furniture 30%: Ash blonde #E8D5B4 — very pale warm wood, maximum contrast against dark wall
   Curtains:      Sand sheer #D8CFC2 — pale warm linen, glowing like light against charcoal
   Dark anchor:   Wall itself is the anchor — add ink black frames #252320
-  Light:         Single warm 2700K lamp, chiaroscuro — pooled light against dark wall
-  Mood:          Cinematic drama, intimate night ritual, high-contrast editorial
+  Light:         Single warm 2700K lamp, chiaroscuro — pooled amber light revealing the charcoal wall colour, room fully legible
+  Mood:          Cinematic drama, intimate night ritual — WELL EXPOSED, wall colour visible
 
 COMBO F — NATURE IMMERSED
   Wall 60%:      Forest haze #768C6A — deep meditative green, Japanese moss and cedar
@@ -102,12 +102,12 @@ COMBO G — CLAY & COOL CONTRAST
   Mood:          Earthy and ancient, warm wall cool frame
 
 COMBO H — GRAPHITE & WARMTH
-  Wall 60%:      Graphite #5C5A56 — warm charcoal, not cold grey — slightly brown undertone
+  Wall 60%:      Graphite #5C5A56 — warm charcoal, NOT black — must read as visible warm grey, minimum 20% luminosity
   Furniture 30%: Ash blonde #E8D5B4 — very pale warm wood, glowing against dark wall
   Curtains:      Mist white #DCDFD8 — slightly cool pale, contrast against warm graphite wall
   Dark anchor:   Ink black frames #252320 on windows and mirrors
-  Light:         Cool 6000K overcast daylight, pale curtains glowing against dark wall
-  Mood:          Dark warmth, bold and sophisticated
+  Light:         Cool 6000K overcast daylight, pale curtains glowing against graphite wall — room well lit and legible
+  Mood:          Dark warmth, bold and sophisticated — wall colour clearly visible
 
 COMBO I — BAMBOO DUST & TEAL ACCENT
   Wall 60%:      Bamboo dust #D8C4A8 — warm tan, echoes natural bamboo and wood tones
@@ -162,9 +162,11 @@ ABSOLUTE RULES — NEVER BREAK
 ✗ Never use patterns — Japandi contrast is solid tones only, never print or stripe
 ✗ Never use fresh flowers (dried botanicals only), chrome, glossy plastic, or branded items
 ✗ Never repeat a Combo, camera, lens, angle, time of day, or scene type within the same article
+✗ NEVER render dark walls as pitch black — dark combos (E, G, H, L) must show the wall colour clearly as charcoal, dark green, or graphite. Exposure must be set so the wall reads as a visible colour, not a void. Minimum 15% luminosity. The room must be legible.
 ✓ The article section's SUBJECT OBJECT is the hero — wall, curtains, furniture are the contrasting stage
 ✓ All 3 contrast types (light/dark + warm/cool + matte/texture) must be visible in every image
 ✓ Objects must come from the specific article section content — read it carefully
+✓ Every image must be well-exposed and legible — mood and drama come from colour and light direction, not underexposure
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PROMPT STRUCTURE — write ALL elements comma-separated for each section:
@@ -192,7 +194,8 @@ FEATURED HERO IMAGE — 1200×800px landscape
 Choose the most visually powerful unused Combo (prefer E, F, D, or L for drama and contrast).
 Wide full-room shot — wall colour, curtains, AND furniture all visible simultaneously.
 Strong directional light — not flat even lighting. Scene must feel immediately arresting.
-End with: "1200×800px landscape hero, wide editorial shot, Kinfolk cover quality, hyper-realistic RAW photograph, 8K, photorealistic"
+CRITICAL: The image must be well-exposed and fully legible. Dark walls must be visible as their colour (charcoal, dark green, graphite) — never underexposed to black. Drama comes from colour contrast and light direction, not from darkness hiding the room.
+End with: "1200×800px landscape hero, wide editorial shot, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K, photorealistic"
 
 ${includePins ? `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
