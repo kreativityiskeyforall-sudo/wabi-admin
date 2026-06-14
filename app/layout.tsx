@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Sidebar from '@/components/Sidebar';
+import ConditionalSidebar from '@/components/ConditionalSidebar';
 
 export const metadata: Metadata = {
   title: 'wabi-decore. Content Studio',
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <Sidebar />
+        <ConditionalSidebar />
         <div className="ws">
           {children}
         </div>
