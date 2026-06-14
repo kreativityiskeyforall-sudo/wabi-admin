@@ -30,35 +30,58 @@ ${articleContext}
 Article: "${articleTitle}"
 Room type: ${roomType}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COLOUR STORY BANK — assign ONE per section, NO REPEATS across the article:
+
+Story A — DARK FOREST: deep charcoal walls (#2a2a25), dark wenge or blackened oak furniture, warm amber candlelight pooling in shadows, dark moss green linen, black matte ceramic, aged brass pin details
+Story B — WARM TERRACOTTA: deep clay-red/burnt sienna wall, raw terracotta pots, sand-coloured linen throw, dark walnut tray, earthy tones throughout, warm afternoon sun casting long shadows
+Story C — COOL SLATE: cool grey-blue walls, pale birch wood, slate stone surfaces, indigo linen, cool 6500K overcast light, muted steel-blue ceramics, minimal white negative space
+Story D — SAGE MOSS: muted sage green walls, pale ash wood, olive and sage textiles, warm cream accents, natural rattan, mid-morning diffused light, dusty green stoneware
+Story E — WARM LINEN (use sparingly — only 1 section max): warm off-white/cream walls, pale oak, unbleached linen, warm morning light — traditional Japandi look
+Story F — MIDNIGHT MOODY: near-black walls (very deep navy or charcoal), dark walnut, single warm lamp creating dramatic chiaroscuro, deep rust linen, moody and cinematic evening scene
+Story G — BLEACHED COASTAL: sun-bleached driftwood, whitewashed plaster walls, cool sea-light, pale pebble tones, aged white ceramics, washed cotton, very airy and light
+Story H — DEEP EARTHY: dark chocolate brown walls, medium walnut, raw clay ceramics in umber and brown, amber wool throws, deep ochre linen, rich warm afternoon light
+
+You MUST use a different story for each section. Track and list which story you used (in a comment before each JSON prompt).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WOOD SPECIES BANK — rotate, never use same wood twice in a row:
+pale birch | dark wenge | weathered driftwood | blackened oak | medium walnut | bamboo | reclaimed pine | dark mahogany | ash | teak
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCENE TYPE BANK — rotate, each section must use a different scene:
+tight macro detail shot | full room wide shot | corner vignette | window seat or ledge | floor-level view looking up | doorway frame shot | flat lay overhead | shelf styled scene | bath/sink close-up | bedside table vignette | workspace surface | morning routine scene
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TASK: Write one hyper-detailed image generation prompt per section heading. Every prompt MUST follow this exact structure — all 12 elements, in this order, separated by commas:
 
-[1. SUBJECT] specific objects in the scene — name exact materials (undyed wool boucle throw, pale oak tray, matte stoneware bottle vase, hand-pinched terracotta cup, indigo sashiko cushion, etc.) — pulled directly from the article section content
-[2. ENVIRONMENT/SETTING] exact room zone and surfaces (low oak coffee table in a minimal Japandi living room, beside a paper shoji screen, on a pale linen sofa, etc.)
-[3. LIGHTING SOURCE + DIRECTION] where light comes from (soft north-facing window light raking across from the left, single pendant warm lamp above, diffused skylight from above, etc.)
-[4. LIGHTING QUALITY + COLOUR TEMP] character of light (warm 3200K golden hour glow, cool 6500K overcast diffused, soft 4000K neutral morning, candlelight 2700K flickering warmth)
-[5. TIME OF DAY] (early morning 7am, mid-morning 10am, golden hour 5pm, blue hour dusk, evening 8pm by lamp)
-[6. CAMERA BODY] (Sony A7R V, Hasselblad X2D 100C, Nikon Z9, Fujifilm GFX 100S)
-[7. LENS + FOCAL LENGTH] (35mm f/1.4 wide prime, 50mm f/1.2 standard prime, 85mm f/1.8 portrait prime, 24mm f/2.8 environmental wide)
-[8. APERTURE + ISO] (f/1.8 ISO 200, f/2.8 ISO 400, f/4 ISO 100, f/1.4 ISO 160)
-[9. CAMERA ANGLE + HEIGHT] (eye-level shot at 90cm height, low angle floor-level at 30cm looking up, overhead flat lay directly above, three-quarter angle at 120cm, doorway frame shot)
-[10. COMPOSITION] (rule of thirds with subject left, centred symmetry, negative space dominant right, leading lines from window, foreground bokeh blur with sharp subject)
-[11. MOOD] (serene and meditative, warm and intimate, clean and airy, quiet and contemplative, cosy and grounded)
+[1. SUBJECT] specific objects in the scene — name exact materials pulled directly from the article section — use the COLOUR STORY assigned to this section for all colours and materials
+[2. ENVIRONMENT/SETTING] exact room zone from SCENE TYPE BANK — must be different from every other section
+[3. LIGHTING SOURCE + DIRECTION] where light comes from (soft north-facing window light raking from left, single pendant warm lamp above, diffused skylight, dramatic side-light through slatted blind, candlelight from below, etc.)
+[4. LIGHTING QUALITY + COLOUR TEMP] character of light matching the COLOUR STORY (warm 2700K candlelight, cool 6500K overcast, golden 3200K afternoon, dramatic chiaroscuro, etc.)
+[5. TIME OF DAY] (early morning 7am, mid-morning 10am, golden hour 5pm, blue hour dusk, evening 8pm by lamp, rainy afternoon)
+[6. CAMERA BODY] (Sony A7R V, Hasselblad X2D 100C, Nikon Z9, Fujifilm GFX 100S, Phase One IQ4)
+[7. LENS + FOCAL LENGTH] (35mm f/1.4 wide prime, 50mm f/1.2 standard prime, 85mm f/1.8 portrait, 24mm f/2.8 wide, 100mm f/2.8 macro, 28mm f/2 wide)
+[8. APERTURE + ISO] (f/1.8 ISO 200, f/2.8 ISO 400, f/4 ISO 100, f/1.4 ISO 160, f/2 ISO 320)
+[9. CAMERA ANGLE + HEIGHT] (eye-level 90cm, low angle floor-level 30cm looking up, overhead flat lay, three-quarter angle 120cm, doorway frame, high angle 150cm looking down)
+[10. COMPOSITION] (rule of thirds subject left, centred symmetry, negative space dominant right, leading lines from window, foreground bokeh blur with sharp subject, diagonal composition)
+[11. MOOD] must match COLOUR STORY (moody and cinematic, earthy and grounded, cool and airy, warm and intimate, dramatic and contemplative, bleached and serene, etc.)
 [12. TECHNICAL FINISH] always end with: "hyper-realistic RAW photograph, Kinfolk magazine editorial quality, 8K resolution, photorealistic, no CGI, no artificial rendering, no illustration"
 
-STRICT VARIATION RULES — track across ALL sections, never repeat:
-- Each section must use a different TIME OF DAY
-- Each section must use a different CAMERA ANGLE
-- Each section must use a different LENS focal length
-- Each section must use a different LIGHTING setup
-- Each section must show a completely different room zone / setting
-- Objects must match the SPECIFIC items described in the article section — do not invent generic furniture
+STRICT VARIATION RULES — MUST FOLLOW or the output is rejected:
+- Assign a different COLOUR STORY to every section — list it
+- Use a different WOOD SPECIES in every section — never repeat
+- Each section uses a different SCENE TYPE
+- Each section uses a different TIME OF DAY
+- Each section uses a different CAMERA ANGLE
+- Each section uses a different LENS focal length
+- Objects must match the SPECIFIC content of each article section
 
 JAPANDI AESTHETIC RULES:
-- Natural materials only: linen, oak, walnut, bamboo, clay, stone, rattan, wool, cotton, ceramic
-- Muted palette: warm whites, soft greys, warm beige, charcoal, muted sage, dusty terracotta
-- Wabi-sabi imperfection: slight texture variation, natural grain visible, organic handmade forms
-- Negative space is intentional — not every surface is filled
-- No bright colours, no chrome, no glossy plastic, no flowers unless dried
+- Natural materials only: linen, clay, stone, rattan, wool, cotton, ceramic, glass, paper, leather
+- Wabi-sabi imperfection: visible grain, organic handmade texture, slight asymmetry, natural patina
+- Negative space is intentional — surfaces are NOT fully filled
+- No bright colours, no chrome, no glossy plastic, no fresh flowers (dried only), no branded items
 
 ${includePins ? `
 PINTEREST PIN PROMPTS — exactly 3 pins:
@@ -71,7 +94,13 @@ PIN 3 — FULL SCENE WITH TEXT SPACE: A complete scenic ${roomType} image. Botto
 ` : ''}
 
 FEATURED IMAGE PROMPT:
-Also write one featured image prompt for the article as a whole. This is the hero/cover image — 1200×800px landscape format. It should represent the overall theme and mood of the entire article, showing a wide, beautiful ${roomType} scene. Apply all 12 prompt elements. The scene should be a complete room overview (not a close-up), landscape oriented, with generous negative space and editorial quality. End with: "1200×800px landscape orientation, wide hero shot, editorial cover photography, hyper-realistic RAW photograph, Kinfolk magazine quality, 8K"
+Also write one featured image prompt for the article as a whole. This is the hero/cover image — 1200×800px landscape format.
+- Choose the most dramatic and visually striking COLOUR STORY from the bank (pick Story A, B, F, or H for maximum impact — dark, moody, or richly earthy)
+- Wide full-room shot showing a beautiful ${roomType} scene
+- Dramatic lighting: strong directional light creating atmosphere, not flat even light
+- Apply all 12 prompt elements
+- The scene should feel editorial, magazine-worthy, and immediately arresting — not plain or neutral
+- End with: "1200×800px landscape orientation, wide hero shot, editorial cover photography, hyper-realistic RAW photograph, Kinfolk magazine quality, 8K"
 
 SECTION HEADINGS:
 ${headings.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
