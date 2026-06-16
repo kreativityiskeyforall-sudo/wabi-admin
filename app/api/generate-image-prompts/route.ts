@@ -17,6 +17,354 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// STYLE VOCABULARY — furniture forms, materials, signature objects, forbidden elements
+// Injected into every prompt so Claude knows WHAT to render, not just what colour
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STYLE_VOCABULARY: Record<string, string> = {
+
+  japandi: `
+JAPANDI STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Japandi images):
+  Beds: platform bed with low solid-wood frame, no headboard or simple slatted headboard, sits 25–35cm off floor
+  Sofas: low-profile linen or bouclé, no visible legs or thin solid oak legs, no rolled arms, no tufting
+  Tables: solid oak or walnut with minimal joinery, stone or wood surface, no glass tops, no ornate legs
+  Storage: handleless cabinetry, simple tab-pull only, flat-front drawer units, low floating shelves
+  Seating: simple solid-wood chair with woven grass seat, no cushioned armchairs with ornate frames
+  Lighting: washi paper pendant, simple ceramic lamp base, minimal floor lamp with linen shade
+
+SURFACE MATERIALS (only these):
+  Wood: solid oak, solid walnut, or solid pine — visible grain, no veneer-look, no MDF
+  Textiles: undyed linen, raw cotton, waffle cotton, woven grass, unbleached hemp
+  Ceramics: hand-thrown, unglazed or single-colour glaze, visible throwing marks
+  Stone: river stone, poured concrete, honed limestone — no polished marble
+  Metal: brushed brass only, matte black iron — no chrome, no polished steel
+
+SIGNATURE OBJECTS (include 1–3 per image):
+  Single large ceramic vase | dried pampas or branch in vase | woven grass tray
+  Linen throw folded once | single candle in simple holder | small stack of books
+  River stone or pebble arrangement | ceramic soap dish | wooden cutting board displayed
+  Single trailing plant (pothos, monstera) or small ceramic plant pot
+
+FORBIDDEN IN JAPANDI (never render these):
+  ✗ Ornate furniture legs, carved wood frames, decorative moulding
+  ✗ Patterned textiles of any kind — no florals, no stripes, no geometric prints
+  ✗ Bright accent colours — no red, no orange, no vivid green, no yellow
+  ✗ Glossy surfaces — no lacquered furniture, no high-gloss paint, no chrome
+  ✗ Gallery walls, busy artwork, decorative plates
+  ✗ Fresh flowers — dried or living plants only, never cut flowers in a vase
+  ✗ Matching furniture suites — individual considered pieces only
+  ✗ Overhead recessed spotlights — natural light and floor/table lamps only
+`,
+
+  coastal: `
+COASTAL STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Coastal images):
+  Beds: rattan or wicker headboard, whitewashed pine or oak frame, linen slipcovered upholstered
+  Sofas: slipcovered linen or cotton, deep-seated, relaxed arms — not tight or formal
+  Tables: whitewashed or bleached wood, natural rattan top, driftwood-finish legs
+  Storage: open shelving whitewashed pine, wicker baskets on shelves, simple painted wood
+  Seating: rattan armchair, wicker side chair, Adirondack-style painted wood
+  Lighting: woven seagrass pendant, rattan shade, simple ceramic or driftwood base
+
+SURFACE MATERIALS (only these):
+  Wood: whitewashed pine, bleached oak, driftwood-finish — always looks sun-bleached or washed
+  Textiles: linen, cotton canvas, chambray, gauze — loose weave, not heavy or stiff
+  Wicker/Rattan: always present somewhere — baskets, trays, headboards, lighting
+  Ceramics: sea glass colours (teal, aqua, sandy cream) or simple white
+  Natural fibre: sisal rug, jute runner, seagrass mat
+
+SIGNATURE OBJECTS (include 1–3 per image):
+  Wicker basket or tray | glass jar with pebbles or sea glass | linen throw loosely draped
+  Driftwood piece as art or styling object | whitewashed wooden frame | rattan mirror
+  Sandy-toned ceramic vase | trailing plant in terracotta | sheer curtain billowing
+
+FORBIDDEN IN COASTAL (never render these):
+  ✗ Nautical clichés — no anchors, no ship wheels, no rope coils, no life rings
+  ✗ Tropical prints — no palm leaf prints, no flamingos, no Hawaiian patterns
+  ✗ Heavy dark carved furniture — no Victorian, no ornate mahogany
+  ✗ Formal or stiff upholstery — no tight Chesterfields, no button-tufted formal pieces
+  ✗ Chrome or polished metal fixtures
+  ✗ Dark walls without pale furniture contrast (coastal rooms are always airy)
+  ✗ Cluttered maximalist layering — coastal is relaxed and edited, not boho
+`,
+
+  'modern-farmhouse': `
+MODERN FARMHOUSE STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Modern Farmhouse images):
+  Beds: iron bed frame (black or aged metal), upholstered linen headboard, simple wood platform
+  Sofas: linen or cotton slipcover, deep-seated, slightly oversized, relaxed and lived-in
+  Tables: reclaimed wood top, trestle base or X-base, farmhouse dining table, butcher block
+  Storage: open shelving with visible bracket, shaker-style cabinet, barn door sliding
+  Seating: Windsor-style wood chair, simple spindle-back, metal stool with wood seat
+  Lighting: industrial pendant (cage or dome), black iron chandelier, Edison bulb exposed
+
+SURFACE MATERIALS (only these):
+  Wood: reclaimed pine, distressed oak, weathered barn wood — always looks aged not new
+  Walls: shiplap planks horizontal, board-and-batten vertical — plank lines always visible
+  Metal: matte black iron exclusively — handles, legs, hardware, light fittings
+  Textiles: drop cloth cotton, linen, grain sack stripe, buffalo check (used sparingly)
+  Stone/Tile: subway tile, brick, butcher block counter, farmhouse apron sink
+
+SIGNATURE OBJECTS (include 1–3 per image):
+  Galvanized metal bin or tray | Mason jar as vase or storage | wooden cutting board
+  Woven wire basket | simple cotton tea towel | iron hook row | shiplap wall visible
+  Apron/farmhouse sink | open shelving with stacked white dishes | simple greenery in crock
+
+FORBIDDEN IN MODERN FARMHOUSE (never render these):
+  ✗ Ornate or Victorian-style furniture — no carved legs, no decorative moulding
+  ✗ Glossy finishes — always matte paint, raw wood, matte hardware
+  ✗ Polished chrome or brushed nickel — only matte black iron
+  ✗ Modern minimalist elements — no handleless cabinetry, no floating vanity with no detail
+  ✗ Tropical or exotic plants — only simple greenery, herbs, lavender
+  ✗ Overly styled or precious — farmhouse rooms look used and comfortable
+`,
+
+  boho: `
+BOHO STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Boho images):
+  Beds: rattan or carved wood headboard, canopy frame with flowing fabric, low-profile
+  Sofas: deep velvet or linen, multiple mixed throw cushions stacked, draped throw
+  Tables: carved wood side table, mosaic tile top, vintage trunk as coffee table, raw wood slab
+  Storage: open wooden shelving with layered objects, wicker storage trunk, rattan side table
+  Seating: rattan egg chair or hanging chair, floor cushions, pouffe or ottoman
+  Lighting: macramé pendant, Moroccan lantern, string of Edison lights, rattan shade
+
+SURFACE MATERIALS (only these):
+  Wood: carved solid wood, aged pine, dark mahogany, driftwood — always has personality
+  Textiles: hand-woven, embroidered, block-print, kantha quilt, Moroccan wedding blanket
+  Rugs: layered — kilim over jute, or Persian over sisal, always stacked or overlapping
+  Rattan/Wicker: large presence — furniture, baskets, lampshades, mirrors
+  Ceramics: hand-thrown, painted or textured, mismatched — never matching sets
+
+SIGNATURE OBJECTS (must be present, always layered):
+  Macramé wall hanging | trailing plant (pothos, monstera, string-of-pearls)
+  Stack of layered rugs | mix of throw cushions in different textures
+  Cluster of candles at different heights | woven basket collection | global textiles draped
+  Vintage or artisan ceramic vessels grouped | rattan mirror | dried pampas or tropical leaves
+
+FORBIDDEN IN BOHO (never render these):
+  ✗ Sparse or empty rooms — boho always has visible abundance and layering
+  ✗ Matching furniture sets — mix and mismatch is essential
+  ✗ Flat-pack or modern minimalist pieces — no IKEA-style clean lines
+  ✗ Bare walls — always art, macramé, or textiles on walls
+  ✗ Cold or cool-only palettes — boho is always warm-anchored
+  ✗ Overhead strip or recessed lighting — warm low lamps and candles only
+`,
+
+  scandinavian: `
+SCANDINAVIAN STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Scandinavian images):
+  Beds: simple solid birch or pine frame, clean rectangular headboard, no ornate detail
+  Sofas: tight clean upholstery in neutral — no overstuffed, no rolled arms, simple legs
+  Tables: round or rectangular pale birch/pine top, simple tapered legs, no ornate edge
+  Storage: functional shelving, built-in white painted, simple shaker door
+  Seating: clean-lined wooden dining chair, simple upholstered accent chair, no fussiness
+  Lighting: simple pendant (globe, cone, or drum shade), bedside table lamp, always candles
+
+SURFACE MATERIALS (only these):
+  Wood: pale birch, light pine, light ash — always light-toned, natural grain
+  Textiles: wool throw, sheepskin, cotton — simple, no heavy pattern (one graphic accent max)
+  Ceramics: simple pale or grey, clean forms — no painted decoration
+  Rugs: simple solid or ONE graphic pattern (stripes or geometric), never ornate floral
+
+SIGNATURE OBJECTS (must be present):
+  Lit candles (always) | simple ceramic vase with single branch or stems
+  Wool throw folded neatly | one graphic cushion | pale wood tray with candles
+  Simple plant (pothos, palm, or branch in clear vase) | clear glass hurricane lamp
+
+FORBIDDEN IN SCANDINAVIAN (never render these):
+  ✗ Ornate or heavily decorated furniture — no carved legs, no Victorian detail
+  ✗ Dark heavy wood — no dark walnut, no mahogany, no teak (use light birch/pine)
+  ✗ Multiple patterns — maximum ONE graphic textile element per image
+  ✗ Cluttered surfaces — everything must look purposeful and ordered
+  ✗ Bright accent colours — one muted accent only (dusty rose, ochre, sage, navy)
+  ✗ No candles in evening/intimate shots — they must always be present
+`,
+
+  cottagecore: `
+COTTAGECORE STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in Cottagecore images):
+  Beds: iron bed frame (white or black, scrollwork or simple spindle), upholstered in floral or linen
+  Sofas: rolled-arm sofa with worn patina, loose slipcover, vintage-looking upholstery
+  Tables: weathered farmhouse table, turned legs, painted or distressed finish
+  Storage: open dresser with turned knobs, armoire with panelled door, painted hutch
+  Seating: ladder-back or spindle-back wooden chair, upholstered in floral or stripe
+  Lighting: ceramic table lamp with pleated shade, chandelier with candle-bulbs, wall sconce
+
+SURFACE MATERIALS (only these):
+  Wood: painted (white, sage, duck egg, butter yellow), distressed or aged — never raw modern
+  Textiles: floral cotton or linen, eyelet/broderie anglaise, lace trim, ruffled edges, gingham
+  Ceramics: vintage-style, blue-and-white china, hand-painted floral, mismatched pieces
+  Walls: soft plaster paint, tongue-and-groove, faded wallpaper with floral or botanical
+
+SIGNATURE OBJECTS (must be present, always botanical):
+  Dried flower bunch | fresh wildflowers in jug or vintage vase | botanical print framed
+  Vintage china displayed on shelf | lace-trimmed textiles | ceramic crockery stacked
+  Garden herbs in pot on windowsill | beeswax candle | old book stack | wicker basket
+
+FORBIDDEN IN COTTAGECORE (never render these):
+  ✗ Modern minimalist furniture — no handleless cabinets, no flat-pack, no Scandi clean lines
+  ✗ Bright saturated colours — everything must be faded, dusty, or muted
+  ✗ Industrial elements — no exposed steel, no concrete, no Edison bulb pendants
+  ✗ Bare or undecorated walls — always botanical prints, vintage plates, or framed florals
+  ✗ Matching modern furniture sets — antique, vintage, or painted aged pieces only
+  ✗ Any furniture that looks brand new — patina and age are essential
+`,
+
+  'mid-century-modern': `
+MID-CENTURY MODERN STYLE VOCABULARY — what must appear, what must never appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FURNITURE FORMS (only these belong in MCM images):
+  Beds: low platform with no headboard OR simple upholstered rectangular headboard, tapered legs
+  Sofas: clean rectangular profile, tight upholstery, tapered solid wood legs, no skirt
+  Tables: tulip pedestal, hairpin legs, or simple tapered-leg base — organic shapes preferred
+  Storage: low horizontal credenza with tapered legs, flat-front drawer faces, walnut veneer
+  Seating: shell chair (Eames-inspired), tulip chair, egg chair, fibreglass or moulded form
+  Lighting: arc floor lamp with dome shade, globe pendant, cone pendant, Noguchi paper lamp
+
+SURFACE MATERIALS (only these):
+  Wood: walnut, teak, or rosewood — warm mid-tone, smooth grain, no distressing
+  Upholstery: wool, boucle, leather — in mustard, olive, burnt orange, rust, teal, cream
+  Rugs: circular or rectangular with graphic pattern — abstract or geometric, warm colours
+  Metal: brushed brass, painted matte iron — clean forms, no ornate casting
+
+SIGNATURE OBJECTS (must be present):
+  Arc floor lamp with dome OR globe pendant visible | low credenza or sideboard
+  One bold accent colour cushion or throw | tapered furniture legs always visible
+  Abstract artwork or graphic print | ceramic in organic sculptural form
+
+FORBIDDEN IN MID-CENTURY MODERN (never render these):
+  ✗ Rustic or distressed finishes — MCM is always smooth, clean, purposeful
+  ✗ Shiplap, board-and-batten, or farmhouse elements
+  ✗ Ornate carved frames, Victorian details, or cottagecore elements
+  ✗ Bright/saturated colours as dominant — bold accent only (one element)
+  ✗ Chrome fixtures — brushed brass or matte iron only
+  ✗ High furniture — MCM is always low-profile, horizontal emphasis
+  ✗ Cluttered surfaces — clean and considered
+`,
+
+  general: `
+ROOM IDEAS STYLE VOCABULARY — accessible aspirational rooms
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Room Ideas articles are keyword-driven — the COLOUR is the hero, not a specific style.
+Furniture should be accessible and recognisable, not avant-garde or style-specific.
+
+FURNITURE FORMS (broadly accessible, aspirational but achievable):
+  Beds: upholstered headboard (any shape), solid wood frame, simple platform
+  Sofas: comfortable deep-seated, clean lines, not overly formal or overly casual
+  Tables: natural wood top, simple base — nothing too styled either way
+  Storage: simple painted or wood wardrobe, open shelf unit, painted dresser
+  Seating: simple upholstered armchair, dining chair in wood or upholstered
+
+SURFACE MATERIALS: natural oak, painted wood (any colour matching article keyword),
+  linen or cotton upholstery, simple ceramics, basic rugs
+
+CRITICAL RULE — WALL COLOUR FIRST:
+  The article's target keyword colour MUST be the wall colour.
+  "Sage green bedroom" = sage green walls. "Navy bedroom" = navy walls.
+  Everything else in the room supports and flatters that wall colour.
+
+SIGNATURE OBJECTS: simple plant, bedside lamp, framed artwork, simple rug, throw
+FORBIDDEN: overly niche style elements — no Japandi ceramics, no boho layering,
+  no MCM tapered legs unless the article is about that style
+`,
+
+  garden: `
+GARDEN & OUTDOOR STYLE VOCABULARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTDOOR FURNITURE FORMS:
+  Pool areas: sun loungers with linen or canvas cushion, side table, pergola or shade sail
+  Patios: outdoor sectional or dining set, outdoor rug, string lights, lanterns
+  Porches: rocking chair, porch swing, Adirondack chairs, hanging plants
+  Garden seating: cast iron bench, teak bench, stone bench, wrought iron bistro
+
+HARDSCAPE MATERIALS: travertine, limestone, timber decking (teak/cedar/pine),
+  concrete, brick, slate, gravel, cobblestone — always looks natural not fake
+
+PLANTING: always lush and alive — roses, lavender, ornamental grasses, box hedging,
+  olive trees, bougainvillea, wisteria, tropical palms, ferns
+
+LIGHTING: golden string lights, lanterns, solar stake lights, pool underwater lights,
+  flame torches, fire pit flames — always warm-toned
+
+FORBIDDEN: plastic furniture that looks cheap, artificial-looking plants,
+  obviously synthetic turf, studio-lit outdoor shots (must feel like real weather)
+`,
+
+  'global-styles': `
+MEXICAN HACIENDA STYLE VOCABULARY — what must appear
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARCHITECTURAL ELEMENTS (must appear in every image):
+  Thick white plaster walls | rounded or pointed arches | exposed wooden ceiling beams
+  Saltillo terracotta floor tiles | courtyard with central fountain | wrought iron window grille
+  Talavera tile accent (blue-and-white painted ceramic) | hacienda arch doorway
+
+FURNITURE FORMS:
+  Heavy hand-carved pine or mesquite wood furniture | iron bed frame with scrollwork
+  Leather-slung chair (equipale) | painted colonial chest | rough-hewn wood dining table
+  Wrought iron chandelier or pendant | painted Talavera lamp base
+
+SURFACE MATERIALS:
+  Saltillo tile floor (terracotta square, handmade) | rough white plaster walls
+  Hand-carved solid wood | Talavera hand-painted ceramic | hand-loomed textiles (serape)
+  Wrought iron — gates, hardware, light fittings | terracotta pots
+
+SIGNATURE OBJECTS (always present):
+  Talavera pottery or tiles | terracotta pot with orange tree or flowering plant
+  Serape or hand-loomed textile | wrought iron detail | carved wood element
+
+FORBIDDEN: IKEA or modern flat furniture, minimalist interiors, concrete floors
+  without tile, chrome fixtures, anything that looks mass-produced
+`,
+
+  seasonal: `
+SEASONAL STYLE VOCABULARY — season-specific objects always required
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+READ THE ARTICLE TITLE to identify the season, then apply the correct vocabulary:
+
+FALL vocabulary (September–November):
+  MUST INCLUDE: pumpkins (white and/or orange), dried pampas grass, dried corn wreaths,
+    autumn leaves (amber/rust/gold), chunky wool throw in rust or amber,
+    terracotta ceramic vessels, amber pillar candles, dried wheat sheaves,
+    chrysanthemums (rust, burnt orange, deep red)
+  FURNITURE: warm dark wood, cosy upholstered seating with layered throws
+  FORBIDDEN: fresh spring flowers, summer brights, Christmas elements
+
+CHRISTMAS + WINTER vocabulary (November–January):
+  MUST INCLUDE: pine or fir tree branch/garland, red berry sprigs (holly, hawthorn),
+    deep forest green velvet cushion or textile, white pillar or taper candles lit,
+    warm amber firelight or fairy lights, plaid or tartan wool throw
+  OPTIONAL: pinecones, cinnamon sticks, white narcissus, eucalyptus garland
+  FORBIDDEN: Santa Claus, cartoon characters, bright commercial red as dominant,
+    tropical plants, summer elements, halloween items
+  NOTE: keep it editorial and atmospheric — Kinfolk Christmas, not catalogue
+
+SPRING vocabulary (February–April):
+  MUST INCLUDE: cherry blossom or tulip flowers, pale yellow or blush palette,
+    white linen fresh and light, moss or greenery fresh, painted eggs or nests (Easter)
+  FURNITURE: pale light wood, whitewashed or painted furniture
+  FORBIDDEN: heavy dark furniture, autumn colours, Christmas elements
+`,
+
+  guides: `
+STYLE GUIDES VOCABULARY — use the compared style's vocabulary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For each section image, apply the vocabulary of the style being described in that section.
+If section discusses Japandi → apply Japandi vocabulary (platform bed, ceramic, linen)
+If section discusses Coastal → apply Coastal vocabulary (rattan, whitewashed, linen)
+The image must CLEARLY and INSTANTLY communicate which style it represents.
+A reader who doesn't know either style should be able to identify it from the image alone.
+`,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TONE CLASSIFICATION KEY (used in all banks below)
 // WL=Warm-Light  WM=Warm-Mid  WD=Warm-Dark
 // CL=Cool-Light  CM=Cool-Mid  CD=Cool-Dark
@@ -922,6 +1270,7 @@ export async function POST(req: NextRequest) {
 
   const roomType = CATEGORY_LABELS[category] ?? 'home interior';
   const paletteBank = PALETTE_BANKS[category] ?? PALETTE_BANKS['japandi'];
+  const styleVocab = STYLE_VOCABULARY[category] ?? STYLE_VOCABULARY['japandi'];
 
   const articleContext = articleMarkdown
     ? `\nFull article content — READ THIS CAREFULLY. Each section prompt must reflect the specific objects described in that section:\n---\n${articleMarkdown.slice(0, 8000)}\n---\n`
@@ -933,6 +1282,8 @@ ${articleContext}
 Article: "${articleTitle}"
 Space type: ${roomType}
 Number of sections: ${headings.length}
+
+${styleVocab}
 
 ${paletteBank}
 
