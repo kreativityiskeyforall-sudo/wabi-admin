@@ -15,25 +15,59 @@ export const CONTENT_TABS = [
   'Coastal — Living Room',
   'Coastal — Kitchen',
   'Coastal — Bathroom',
+  // ── Coastal new ──
+  'Coastal — Dining Room',
+  'Coastal — Outdoor + Porch',
   // ── Scandinavian ──
   'Scandinavian — Bathroom',
   'Scandinavian — Living Room',
   'Scandinavian — Kitchen',
   'Scandinavian — Bedroom',
   'Scandinavian — Hub',
+  'Scandinavian — Dining + Extras',
   // ── Modern Farmhouse ──
   'Modern Farmhouse — Living Room',
   'Modern Farmhouse — Bedroom',
   'Modern Farmhouse — Kitchen',
   'MF — Bathroom + Extras',
+  'MF — Outdoor + Porch',
+  'MF — Laundry + Extras',
   // ── Boho ──
   'Boho — Living Room',
   'Boho — Bedroom',
   'Boho — Kitchen + Bathroom',
+  'Boho — Dining + Entryway',
+  'Boho — Outdoor + Extras',
   // ── Cottagecore ──
   'Cottagecore — Living Room',
   'Cottagecore — Bedroom',
   'Cottagecore — Kitchen',
+  'Cottagecore — Bathroom',
+  'Cottagecore — Dining + Garden',
+  // ── Mid-Century Modern ──
+  'MCM — Living Room',
+  'MCM — Bedroom',
+  'MCM — Kitchen + Bathroom',
+  // ── General Rooms ──
+  'General — Bedroom (Color)',
+  'General — Bedroom (Styles)',
+  'Bedroom — Demographics',
+  'General — Living Room',
+  'General — Kitchen',
+  'General — Bathroom',
+  // ── Garden & Outdoor ──
+  'Garden — Pool + Hot Tub',
+  'Garden — Landscaping',
+  'Garden — Patio + Porch',
+  // ── Global Styles ──
+  'Mexican + Hacienda',
+  'Barndominium',
+  // ── Seasonal ──
+  'Seasonal — Fall',
+  'Seasonal — Christmas + Winter',
+  'Seasonal — Spring + Other',
+  // ── Guides ──
+  'Style Guides',
 ];
 
 export type SheetArticle = {
