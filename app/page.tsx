@@ -23,8 +23,9 @@ function getStageLink(art: SheetArticle) {
   return `/article/${art.id}/outline`;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function OverviewPage() {
-  // Fetch real data on the server — no client-side useEffect needed
   let articles: SheetArticle[] = await getArticlesFromSheets();
   const usingMock = articles.length === 0;
 
@@ -40,6 +41,7 @@ export default async function OverviewPage() {
   }
 
   const total = articles.length;
+  const categoryCount = new Set(articles.map(a => a.category)).size;
   const published = articles.filter(a => a.status === 'published').length;
   const inProgress = articles.filter(a => ['writing', 'images', 'pinterest', 'outline-ready'].includes(a.status)).length;
   const nextArticle = articles.find(a => a.status !== 'published');
@@ -52,7 +54,7 @@ export default async function OverviewPage() {
             Content Queue
           </div>
           <div style={{ fontSize: 12, color: 'var(--t3)' }}>
-            {total} articles · 27 categories
+            {total} articles · {categoryCount} categories
             {usingMock && <span style={{ color: 'var(--amber)', marginLeft: 8 }}>· demo data</span>}
           </div>
         </div>
