@@ -3,12 +3,37 @@ import { google } from 'googleapis';
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
 
 export const CONTENT_TABS = [
-  'Living Room', 'Bedroom', 'Kitchen', 'Bathroom', 'Seasonal', 'Gifting',
-  'Extra Niches', 'Entryway', 'Dining Room', 'Outdoor', 'Kids & Nursery',
-  'Home Office', 'Style Comparisons', 'Colour & Materials', 'Wabi-Sabi',
-  'Apartment', 'Rental Living', 'Wellbeing', 'Product Guides', 'Beginner Guides',
-  'Makeovers', 'Dark Academia', 'Travel Inspired', 'Texture & Craft', 'Hosting',
-  'Sustainable', 'Art & Wall Decor',
+  // ── Japandi core tabs (existing articles kept) ──
+  'Living Room',
+  'Bedroom',
+  'Kitchen',
+  'Bathroom',
+  // ── Japandi small rooms (new) ──
+  'Japandi — Small Rooms',
+  // ── Coastal ──
+  'Coastal — Bedroom',
+  'Coastal — Living Room',
+  'Coastal — Kitchen',
+  'Coastal — Bathroom',
+  // ── Scandinavian ──
+  'Scandinavian — Bathroom',
+  'Scandinavian — Living Room',
+  'Scandinavian — Kitchen',
+  'Scandinavian — Bedroom',
+  'Scandinavian — Hub',
+  // ── Modern Farmhouse ──
+  'Modern Farmhouse — Living Room',
+  'Modern Farmhouse — Bedroom',
+  'Modern Farmhouse — Kitchen',
+  'MF — Bathroom + Extras',
+  // ── Boho ──
+  'Boho — Living Room',
+  'Boho — Bedroom',
+  'Boho — Kitchen + Bathroom',
+  // ── Cottagecore ──
+  'Cottagecore — Living Room',
+  'Cottagecore — Bedroom',
+  'Cottagecore — Kitchen',
 ];
 
 export type SheetArticle = {

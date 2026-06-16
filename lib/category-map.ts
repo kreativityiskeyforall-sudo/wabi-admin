@@ -1,58 +1,45 @@
 export const TAB_TO_CATEGORY: Record<string, string> = {
-  'Living Room': 'living-room',
-  'Bedroom': 'bedroom',
-  'Kids & Nursery': 'bedroom',
-  'Kitchen': 'kitchen',
-  'Dining Room': 'kitchen',
-  'Hosting': 'kitchen',
-  'Bathroom': 'bathroom',
-  'Home Office': 'home-office',
-  'Entryway': 'entryway',
-  'Wabi-Sabi': 'style',
-  'Dark Academia': 'style',
-  'Colour & Materials': 'style',
-  'Texture & Craft': 'style',
-  'Art & Wall Decor': 'style',
-  'Travel Inspired': 'style',
-  'Style Comparisons': 'style',
-  'Beginner Guides': 'guides',
-  'Product Guides': 'guides',
-  'Makeovers': 'guides',
-  'Rental Living': 'guides',
-  'Apartment': 'guides',
-  'Wellbeing': 'guides',
-  'Sustainable': 'guides',
-  'Outdoor': 'guides',
-  'Gifting': 'gift-guides',
-  'Seasonal': 'gift-guides',
+  // ── Japandi ──
+  'Living Room':              'japandi',
+  'Bedroom':                  'japandi',
+  'Kitchen':                  'japandi',
+  'Bathroom':                 'japandi',
+  'Japandi — Small Rooms':    'japandi',
+  // ── Coastal ──
+  'Coastal — Bedroom':        'coastal',
+  'Coastal — Living Room':    'coastal',
+  'Coastal — Kitchen':        'coastal',
+  'Coastal — Bathroom':       'coastal',
+  // ── Scandinavian ──
+  'Scandinavian — Bathroom':      'scandinavian',
+  'Scandinavian — Living Room':   'scandinavian',
+  'Scandinavian — Kitchen':       'scandinavian',
+  'Scandinavian — Bedroom':       'scandinavian',
+  'Scandinavian — Hub':           'scandinavian',
+  // ── Modern Farmhouse ──
+  'Modern Farmhouse — Living Room': 'modern-farmhouse',
+  'Modern Farmhouse — Bedroom':     'modern-farmhouse',
+  'Modern Farmhouse — Kitchen':     'modern-farmhouse',
+  'MF — Bathroom + Extras':         'modern-farmhouse',
+  // ── Boho ──
+  'Boho — Living Room':           'boho',
+  'Boho — Bedroom':               'boho',
+  'Boho — Kitchen + Bathroom':    'boho',
+  // ── Cottagecore ──
+  'Cottagecore — Living Room':    'cottagecore',
+  'Cottagecore — Bedroom':        'cottagecore',
+  'Cottagecore — Kitchen':        'cottagecore',
 };
 
-const EXTRA_NICHES_CLUSTER_MAP: Record<string, string> = {
-  'Home Office': 'home-office',
-  'Kids Room': 'bedroom',
-  'Outdoor': 'guides',
-  'Dark Academia': 'style',
-  'Makeovers': 'guides',
-  'Rentals': 'guides',
-};
-
-export function getWebsiteCategory(tab: string, cluster?: string, contentType?: string): string {
-  if (tab === 'Extra Niches') {
-    if (contentType?.toLowerCase() === 'gift') return 'gift-guides';
-    const cleanCluster = cluster?.replace(/^→\s*/, '').trim() ?? '';
-    return EXTRA_NICHES_CLUSTER_MAP[cleanCluster] ?? 'guides';
-  }
-  return TAB_TO_CATEGORY[tab] ?? 'guides';
+export function getWebsiteCategory(tab: string): string {
+  return TAB_TO_CATEGORY[tab] ?? 'japandi';
 }
 
 export const WEBSITE_CATEGORIES = [
-  { label: 'Living Room',       slug: 'living-room' },
-  { label: 'Bedroom',           slug: 'bedroom' },
-  { label: 'Kitchen & Dining',  slug: 'kitchen' },
-  { label: 'Bathroom',          slug: 'bathroom' },
-  { label: 'Home Office',       slug: 'home-office' },
-  { label: 'Entryway',          slug: 'entryway' },
-  { label: 'Style & Inspiration', slug: 'style' },
-  { label: 'Guides & How-To',   slug: 'guides' },
-  { label: 'Gifts & Seasonal',  slug: 'gift-guides' },
+  { label: 'Japandi',           slug: 'japandi' },
+  { label: 'Coastal',           slug: 'coastal' },
+  { label: 'Scandinavian',      slug: 'scandinavian' },
+  { label: 'Modern Farmhouse',  slug: 'modern-farmhouse' },
+  { label: 'Boho',              slug: 'boho' },
+  { label: 'Cottagecore',       slug: 'cottagecore' },
 ];

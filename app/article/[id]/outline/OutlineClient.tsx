@@ -26,7 +26,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [metaDescription, setMetaDescription] = useState('');
   const [bibleCheck, setBibleCheck] = useState<BibleCheck | null>(null);
   const [websiteCategory, setWebsiteCategory] = useState(
-    () => getWebsiteCategory(article?.category ?? '', article?.cluster, article?.contentType)
+    () => getWebsiteCategory(article?.category ?? '')
   );
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);

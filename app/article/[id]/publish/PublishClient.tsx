@@ -24,7 +24,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
     ? (() => { try { return JSON.parse(localStorage.getItem(`outline-${id}`) ?? '{}'); } catch { return {}; } })()
     : {};
   const websiteCategory = savedOutline.websiteCategory
-    ?? getWebsiteCategory(article?.category ?? '', article?.cluster, article?.contentType);
+    ?? getWebsiteCategory(article?.category ?? '');
 
   const updateStep = (i: number, patch: Partial<Step>) =>
     setSteps(prev => prev.map((s, j) => j === i ? { ...s, ...patch } : s));
