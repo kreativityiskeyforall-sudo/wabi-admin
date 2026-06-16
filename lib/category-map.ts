@@ -1,9 +1,9 @@
 export const TAB_TO_CATEGORY: Record<string, string> = {
   // ── Japandi ──
-  'Living Room':              'japandi',
-  'Bedroom':                  'japandi',
-  'Kitchen':                  'japandi',
-  'Bathroom':                 'japandi',
+  'Japandi — Living Room':    'japandi',
+  'Japandi — Bedroom':        'japandi',
+  'Japandi — Kitchen':        'japandi',
+  'Japandi — Bathroom':       'japandi',
   'Japandi — Small Rooms':    'japandi',
   // ── Coastal ──
   'Coastal — Bedroom':        'coastal',

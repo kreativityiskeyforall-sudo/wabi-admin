@@ -3,12 +3,11 @@ import { google } from 'googleapis';
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
 
 export const CONTENT_TABS = [
-  // ── Japandi core tabs (existing articles kept) ──
-  'Living Room',
-  'Bedroom',
-  'Kitchen',
-  'Bathroom',
-  // ── Japandi small rooms (new) ──
+  // ── Japandi ──
+  'Japandi — Living Room',
+  'Japandi — Bedroom',
+  'Japandi — Kitchen',
+  'Japandi — Bathroom',
   'Japandi — Small Rooms',
   // ── Coastal ──
   'Coastal — Bedroom',
