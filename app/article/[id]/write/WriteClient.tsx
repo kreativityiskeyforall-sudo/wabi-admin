@@ -170,6 +170,12 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
             {!writing && !done && (
               <button className="btn btn-sage" onClick={handleWrite}>✍ Write article</button>
             )}
+            {done && (
+              <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
+            )}
+            {done && (
+              <Link href={`/article/${id}/images`} className="btn btn-sage">Images →</Link>
+            )}
           </div>
         </div>
 
