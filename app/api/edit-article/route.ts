@@ -115,15 +115,19 @@ export async function GET(req: NextRequest) {
   if (!article) return NextResponse.json({ error: 'Article not found' }, { status: 404 });
 
   // Extract existing images (to preserve them on save)
-  const existingImages: Array<{ headingText: string; assetRef: string; alt: string }> = [];
+  // Track both H2 and H3 so images stay after their correct heading level
+  const existingImages: Array<{ headingText: string; headingStyle: string; assetRef: string; alt: string }> = [];
   let lastHeading = '';
+  let lastHeadingStyle = 'h2';
   for (const block of article.body ?? []) {
-    if (block._type === 'block' && block.style === 'h2') {
+    if (block._type === 'block' && (block.style === 'h2' || block.style === 'h3')) {
       lastHeading = block.children?.[0]?.text ?? '';
+      lastHeadingStyle = block.style;
     }
     if (block._type === 'image' && lastHeading) {
       existingImages.push({
         headingText: lastHeading,
+        headingStyle: lastHeadingStyle,
         assetRef: block.asset?._ref ?? '',
         alt: block.alt ?? '',
       });
@@ -151,12 +155,14 @@ export async function POST(req: NextRequest) {
 
   const newBlocks = markdownToPT(markdown);
 
-  // Re-insert existing images after their matching H2 headings
+  // Re-insert existing images after their matching H2 or H3 headings
   if (existingImages?.length) {
     for (const img of existingImages) {
       if (!img.assetRef) continue;
+      const style = img.headingStyle ?? 'h2';
       const idx = newBlocks.findIndex(
-        b => b.style === 'h2' && b.children?.[0]?.text === img.headingText
+        b => (b.style === style || b.style === 'h2' || b.style === 'h3') &&
+             b.children?.[0]?.text === img.headingText
       );
       if (idx !== -1) {
         newBlocks.splice(idx + 1, 0, {
