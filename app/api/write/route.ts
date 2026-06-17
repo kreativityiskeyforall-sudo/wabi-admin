@@ -241,11 +241,6 @@ ${isListicle ? '- For listicle items (H3): one tight paragraph per idea. Lead wi
 - After FAQ, one closing paragraph (no heading). 2 sentences maximum.
 - Do NOT end with a summary of what you just said.
 
-IMAGE ALT TEXT — include one per H2 section:
-After the first sentence of each H2 section, insert:
-[IMAGE: descriptive scene in 8–12 words, using a phrase from the H2 heading]
-Example: [IMAGE: low oak platform bed with linen bedding — japandi bedroom ideas]
-
 AFFILIATE LINKS:
 - Format: [product name](AFFILIATE_LINK_PLACEHOLDER) — leave placeholder, editor adds real URL.
 - Only mention products you can describe specifically: material, finish, approximate price. No invented names.
