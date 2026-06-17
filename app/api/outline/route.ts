@@ -70,7 +70,9 @@ export async function POST(req: NextRequest) {
     .map(([, v]) => `- ${v.title}`)
     .join('\n') || 'None yet';
 
-  const isListicle = ['ideas', 'decor', 'hacks', 'diy guide'].includes((contentType ?? '').toLowerCase());
+  const isListicle =
+    ['ideas', 'decor', 'hacks', 'diy guide', 'roundup'].includes((contentType ?? '').toLowerCase()) ||
+    /\d+/.test(title ?? '');
   const categoryTone = CATEGORY_TONE[catKey] ?? CATEGORY_TONE['general'];
 
   const prompt = `You are the content writer for decoreixy.com, a home decor site covering 12 style categories (Japandi, Coastal, Modern Farmhouse, Boho, Scandinavian, Cottagecore, Mid-Century Modern, Room Ideas, Garden, Global Styles, Seasonal, Style Guides).
