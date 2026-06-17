@@ -1293,13 +1293,17 @@ export async function POST(req: NextRequest) {
 
   const roomType = CATEGORY_LABELS[category] ?? 'home interior';
 
-  const prompt = `You are the world's best image prompt writer specialising in fal.ai FLUX for hyper-realistic editorial interior photography. Your prompts produce results at the level of Kinfolk, Architectural Digest, and Elle Decor.
+  const JAPANDI_SUBS = ['bedroom', 'living-room', 'bathroom', 'kitchen', 'entryway', 'home-office', 'style', 'gift-guides'];
+  const catKey = category in STYLE_VOCABULARY ? category : JAPANDI_SUBS.includes(category) ? 'japandi' : 'general';
+  const styleVocab = STYLE_VOCABULARY[catKey] ?? '';
+  const paletteBank = PALETTE_BANKS[catKey] ?? '';
 
-You are writing image prompts for an article about: "${articleTitle}"
-Style: ${roomType}
+  const prompt = `You are a world-class editorial interior photographer and fal.ai FLUX image prompt specialist. Every prompt you write produces images at the level of Kinfolk, Architectural Digest, and Elle Decor.
 
-${articleMarkdown ? `HERE IS THE FULL ARTICLE. Read every section carefully before writing any prompt. The objects, materials, colours, and furniture mentioned in each section are the starting point for that section's image.
+ARTICLE: "${articleTitle}"
+STYLE: ${roomType}
 
+${articleMarkdown ? `ARTICLE CONTENT — read each section to understand the SUBJECT it covers, not to copy room descriptions:
 ---
 ${articleMarkdown.slice(0, 12000)}
 ---
@@ -1308,27 +1312,77 @@ ${articleMarkdown.slice(0, 12000)}
 SECTION HEADINGS — write one image prompt per heading:
 ${headings.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
 
-YOUR RULES:
-1. Consider yourself the best image prompter in the world who specialises in giving image prompts to fal.ai for creating hyper-realistic editorial-level images.
-2. Read each section's content and let that content guide what objects, colours, and furniture appear in that image. The section text tells you what to show.
-3. Every image must be completely different from all other images in the article — different room setting, different wall colour, different furniture, different camera, different lens, different angle, different time of day, different lighting. No two images should ever feel like the same room photographed twice.
-4. Vary the time of day and lighting mood — some images are golden morning light, some are midday, some are soft evening lamp, some are overcast cool light. Make each image feel like a different moment.
-5. Vary the camera angle and height — floor level, seated height, eye level, elevated looking down, over the shoulder, through a doorway.
-6. Vary wall colours and room palette completely between sections — the same room colour must never appear twice.
-7. Each prompt must be specific and detailed: name the exact material, finish, colour tone, fabric weight, light direction, camera body, lens, aperture, ISO, and mood. Vague prompts produce generic images.
-8. The mood line at the end of each prompt should be one evocative sentence specific to that section — never generic phrases.
-9. No people, no faces, no text, no watermarks, no CGI look. Hyper-realistic RAW photograph only.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO WRITE EACH IMAGE PROMPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-FEATURED IMAGE RULES:
-- Represents the whole article — must instantly communicate the style and room type
-- Wide full-room establishing shot showing wall, furniture, and curtains together
-- Strong directional raking light — never flat even lighting
-- The most visually dramatic wall colour choice for this style
-- Must be unmistakably the correct style — a reader must identify it instantly
-- End with: "1200×800px landscape, wide editorial room shot, strong directional light, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+STEP 1 — IDENTIFY THE SUBJECT
+  Read the section content. Extract the 1–2 specific objects, furniture pieces, or materials it describes.
+  These become the HERO — not "${roomType}" generically, but the exact thing the section is about.
+  Example: "rattan headboard casting morning shadow across white linen duvet" not "coastal bedroom".
 
-SECTION IMAGE FORMAT — include all of these in every prompt:
-Hero subject (specific objects from that section + exact material + finish) | Room zone and scene type | Wall colour and texture | Furniture material and finish | Curtains fabric weight and colour | Dark anchor element | Light source and direction | Light quality | Colour temperature in Kelvin | Time of day | Camera body | Lens | Aperture and ISO | Camera angle and height | Composition style | Mood sentence | hyper-realistic RAW photograph, 8K, editorial interior photography, no people, no text, no watermarks
+STEP 2 — IMAGINE THE MOST DRAMATIC PHOTOGRAPH OF THAT SUBJECT
+  You already know what stunning ${roomType} editorial photography looks like from shooting for magazines.
+  Ask: "What is the single most striking photograph of this subject that has ever appeared in Architectural Digest?"
+  NOT a room description. A PHOTOGRAPH. With a specific moment that stops a scroll.
+
+  MANDATORY — every image must commit to ONE of these cinematic moments:
+    → Strong raking light at low angle casting geometric shadows through rattan or objects
+    → Close macro of a specific texture (linen weave, rattan braid, wood grain) with window bokeh behind
+    → Floor-level shot looking up at furniture silhouetted against backlit curtains
+    → Wide room diagonal: strong single-window light cuts across the entire scene at a sharp angle
+    → Through-a-doorway or around-a-corner shot creating layered depth and mystery
+    → Window backlit scene with curtains glowing and subject in rim-lit silhouette
+    → Tight surface shot where cast shadows are as important as the objects themselves
+
+  State your cinematic moment explicitly in the prompt.
+
+STEP 3 — WRITE THE FULL TECHNICAL PROMPT using this pipe-separated format:
+  [HERO SUBJECT — exact objects from the section, material + finish + colour, hyper-specific]
+  | [ROOM ZONE + SCENE TYPE — specific area of the room, never repeated in this article]
+  | [WALL — colour name + hex + surface texture (smooth matte plaster / shiplap planks / rough render)]
+  | [FURNITURE — piece type + material + hex + finish detail]
+  | [CURTAINS — fabric weight + exact colour name + hex + how light interacts with them]
+  | [DARK ANCHOR — specific darkest element in frame + hex]
+  | [LIGHT SOURCE + DIRECTION — exact physical origin: left window / right window / lamp behind / backlit]
+  | [LIGHT QUALITY — from rotation bank below, not repeated in this article]
+  | [COLOUR TEMPERATURE — exact Kelvin]
+  | [TIME OF DAY — from rotation bank below, not repeated in this article]
+  | [CAMERA BODY — from rotation bank below, not repeated in this article]
+  | [LENS — from rotation bank below, not repeated in this article]
+  | [APERTURE f/x.x + ISO xxxx]
+  | [ANGLE + HEIGHT — from rotation bank below, not repeated in this article]
+  | [COMPOSITION — from rotation bank below, not repeated in this article]
+  | [CINEMATIC MOMENT — one precise phrase describing the specific dramatic element chosen in Step 2]
+  | [MOOD — one evocative sentence specific to this section, never a generic phrase]
+  | hyper-realistic RAW photograph, 8K, editorial interior photography, no CGI, no people, no text, no watermarks, Kinfolk magazine quality
+
+${styleVocab}
+
+${paletteBank}
+
+${ROTATION_BANKS}
+
+${ASSEMBLY_RULES}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURED HERO IMAGE (1200×800px landscape)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Represents the WHOLE article — must instantly communicate style, room type, and emotional promise.
+- Choose the most visually BOLD wall colour from the palette bank above — not the safest, the most striking
+- Wide full-room establishing shot: wall + curtains + primary furniture all visible at once
+- Strong directional raking light — never flat or even lighting
+- Include 2–3 signature objects from the vocabulary above
+- UNMISTAKABLY ${roomType} — a reader who has never heard of this style must identify it instantly from wall colour and objects alone
+- CRITICAL — wall colour is the PRIMARY style signal to FLUX. Pick a wall that screams this style:
+  Coastal → crisp white, pale aqua, or sandy cream. NEVER grey-green (FLUX reads grey-green as Japandi).
+  Japandi → warm ivory, linen sand, or pale clay. NEVER bright white (too Scandi).
+  Boho → warm terracotta plaster or raw cream. NEVER grey or cool tones.
+  Farmhouse → shiplap white with visible plank lines. Texture of wall must show.
+  Use the palette bank wall colour that is MOST distinctive for this style, not the most neutral.
+- End with: "1200×800px landscape, wide editorial room shot, strong directional light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+
+${UNIVERSAL_RULES}
 
 ${includePins ? `
 PINTEREST PINS — write exactly 3:
