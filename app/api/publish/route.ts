@@ -100,12 +100,40 @@ function extractIntro(markdown: string): string {
   const lines = markdown.split('\n');
   const paraLines: string[] = [];
   for (const line of lines) {
-    if (line.startsWith('#')) break; // stop at first heading
+    if (line.startsWith('#')) break;
     const trimmed = line.trim();
     if (trimmed) paraLines.push(trimmed);
-    if (paraLines.length >= 3) break; // take up to 3 sentences
+    if (paraLines.length >= 3) break;
   }
   return paraLines.join(' ').slice(0, 320).trim();
+}
+
+function extractPullQuote(markdown: string): string {
+  // Find a short, punchy sentence from the body (not intro, not headings)
+  const lines = markdown.split('\n');
+  let pastIntro = false;
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t.startsWith('#')) { pastIntro = true; continue; }
+    if (!pastIntro) continue;
+    // Strip bold markers, pick sentences 15–120 chars
+    const plain = t.replace(/\*\*/g, '').replace(/\*/g, '');
+    const sentences = plain.split(/(?<=[.!?])\s+/);
+    for (const s of sentences) {
+      const len = s.length;
+      if (len >= 30 && len <= 120 && !s.startsWith('-') && !s.startsWith('[')) {
+        return s.trim();
+      }
+    }
+  }
+  return '';
+}
+
+function mapContentType(sheetType: string): string {
+  if (sheetType === 'roundup') return 'roundup';
+  if (sheetType === 'gift-guide') return 'gift-guide';
+  return 'info'; // editorial, product-review → info/guide
 }
 
 function buildKicker(category: string, wordCount: number): string {
@@ -197,6 +225,7 @@ export async function POST(req: NextRequest) {
   }
 
   const intro = extractIntro(body);
+  const pullQuote = extractPullQuote(body);
   const wordCount = body.split(/\s+/).length;
   const kicker = buildKicker(category, wordCount);
 
@@ -206,13 +235,14 @@ export async function POST(req: NextRequest) {
     slug: { _type: 'slug', current: slug },
     body: portableBody,
     intro: intro || null,
+    pullQuote: pullQuote || null,
     kicker,
     category,
-    articleType: type,
+    type: mapContentType(type ?? ''),
+    articleType: 'editorial',
     cluster: cluster ?? null,
     isMother: isMother ?? false,
     featuredImage,
-    pinterestPins: savedPins.filter(Boolean),
     publishedAt: publishedAt ?? new Date().toISOString(),
   };
 
