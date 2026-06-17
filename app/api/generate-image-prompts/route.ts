@@ -1292,79 +1292,62 @@ export async function POST(req: NextRequest) {
   if (!headings?.length) return NextResponse.json({ error: 'No headings provided' }, { status: 400 });
 
   const roomType = CATEGORY_LABELS[category] ?? 'home interior';
-  const paletteBank = PALETTE_BANKS[category] ?? PALETTE_BANKS['japandi'];
-  const styleVocab = STYLE_VOCABULARY[category] ?? STYLE_VOCABULARY['japandi'];
 
-  const articleContext = articleMarkdown
-    ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FULL ARTICLE — READ EVERY SECTION BEFORE WRITING ANY PROMPT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This is the complete article. Before writing each section's image prompt, re-read that section and extract the specific objects, materials, and furniture pieces mentioned. The hero subject of each image must come from the actual content of that section — not from generic style assumptions.
+  const prompt = `You are the world's best image prompt writer specialising in fal.ai FLUX for hyper-realistic editorial interior photography. Your prompts produce results at the level of Kinfolk, Architectural Digest, and Elle Decor.
 
-${articleMarkdown.slice(0, 10000)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`
-    : '';
+You are writing image prompts for an article about: "${articleTitle}"
+Style: ${roomType}
 
-  const prompt = `You are the world's best editorial interior photographer and fal.ai FLUX image prompt specialist. You write prompts for decoreixy.com, a home decor inspiration site covering 12 style categories.
+${articleMarkdown ? `HERE IS THE FULL ARTICLE. Read every section carefully before writing any prompt. The objects, materials, colours, and furniture mentioned in each section are the starting point for that section's image.
 
-Your prompts produce hyper-realistic, editorial-grade interior photographs — the level of Kinfolk, Architectural Digest, and Elle Decor. Every prompt you write is unique: different room area, different camera, different lens, different angle, different time of day, different wall colour, different furniture. No two images in the same article ever look like the same room photographed twice.
-
-You read the article carefully before writing prompts. Each section image is about what THAT SECTION describes — the hero subject always comes from the actual content, not from generic style assumptions.
-${articleContext}
-Article: "${articleTitle}"
-Space type: ${roomType}
-Number of sections: ${headings.length}
-
-${styleVocab}
-
-${paletteBank}
-
-${ASSEMBLY_RULES}
-
-${ROTATION_BANKS}
-
-${UNIVERSAL_RULES}
-
-${PROMPT_STRUCTURE}
-
-${includePins ? `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PINTEREST PIN PROMPTS — exactly 3 pins
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PIN 1 — 4-PANEL COLLAGE (1000×1500px portrait 2:3):
-Four equal panels in 2×2 grid, 3px white dividers.
-Each panel uses a completely different wall colour from the bank — four distinct colour worlds of ${roomType}.
-End with: "2×2 collage grid, 3px white dividers, four distinct colour worlds, editorial Pinterest pin, portrait 2:3 format, hyper-realistic composite"
-
-PIN 2 — HERO + 2 DETAIL PANELS (1000×1500px portrait 2:3):
-Large hero top 60% — wide full room scene using a dark dramatic wall colour.
-Two square detail panels bottom 40%, 3px dividers.
-End with: "three-panel Pinterest layout, hero top 60%, two detail panels bottom 40%, 3px white dividers, portrait 2:3, editorial"
-
-PIN 3 — FULL SCENE WITH TEXT SPACE (1000×1500px portrait 2:3):
-Complete scene. Bottom 25–30% intentionally uncluttered for text overlay.
-End with: "full scene portrait, clean minimal bottom 25% for text overlay, portrait 2:3, hyper-realistic Kinfolk editorial"
+---
+${articleMarkdown.slice(0, 12000)}
+---
 ` : ''}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SECTION HEADINGS (write one image prompt per heading):
+SECTION HEADINGS — write one image prompt per heading:
 ${headings.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}
 
-IMPORTANT: Before writing each section prompt, state "Wall: [name #hex]" to track which wall colours you have used. Never reuse a wall colour.
+YOUR RULES:
+1. Consider yourself the best image prompter in the world who specialises in giving image prompts to fal.ai for creating hyper-realistic editorial-level images.
+2. Read each section's content and let that content guide what objects, colours, and furniture appear in that image. The section text tells you what to show.
+3. Every image must be completely different from all other images in the article — different room setting, different wall colour, different furniture, different camera, different lens, different angle, different time of day, different lighting. No two images should ever feel like the same room photographed twice.
+4. Vary the room zone per section — the featured image gets the full wide room. Section images should zoom into different areas: bedside table, window and curtains, dresser, floor level looking across, shelf or wall detail, corner sitting area, doorway frame, close macro of a single object, etc.
+5. Vary the time of day and lighting mood — some images are golden morning light, some are midday, some are soft evening lamp, some are overcast cool light. Make each image feel like a different moment.
+6. Vary the camera angle and height — floor level, seated height, eye level, elevated looking down, over the shoulder, through a doorway.
+7. Vary wall colours and room palette completely between sections — the same room colour must never appear twice.
+8. Each prompt must be specific and detailed: name the exact material, finish, colour tone, fabric weight, light direction, camera body, lens, aperture, ISO, and mood. Vague prompts produce generic images.
+9. The mood line at the end of each prompt should be one evocative sentence specific to that section — never generic phrases.
+10. No people, no faces, no text, no watermarks, no CGI look. Hyper-realistic RAW photograph only.
 
-Return ONLY valid JSON:
+FEATURED IMAGE RULES:
+- Represents the whole article — must instantly communicate the style and room type
+- Wide full-room establishing shot showing wall, furniture, and curtains together
+- Strong directional raking light — never flat even lighting
+- The most visually dramatic wall colour choice for this style
+- Must be unmistakably the correct style — a reader must identify it instantly
+- End with: "1200×800px landscape, wide editorial room shot, strong directional light, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+
+SECTION IMAGE FORMAT — include all of these in every prompt:
+Hero subject (specific objects from that section + exact material + finish) | Room zone and scene type | Wall colour and texture | Furniture material and finish | Curtains fabric weight and colour | Dark anchor element | Light source and direction | Light quality | Colour temperature in Kelvin | Time of day | Camera body | Lens | Aperture and ISO | Camera angle and height | Composition style | Mood sentence | hyper-realistic RAW photograph, 8K, editorial interior photography, no people, no text, no watermarks
+
+${includePins ? `
+PINTEREST PINS — write exactly 3:
+PIN 1 — 4-panel collage (1000×1500px portrait 2:3): Four equal panels in a 2×2 grid with 3px white dividers. Each panel shows a completely different colour world of the same style. End: "2×2 collage grid, 3px white dividers, editorial Pinterest pin, portrait 2:3, hyper-realistic composite"
+PIN 2 — Hero + 2 detail panels (1000×1500px portrait 2:3): Large hero scene top 60%, two detail panels bottom 40% with 3px dividers. End: "three-panel layout, hero top 60%, two details bottom 40%, 3px dividers, portrait 2:3, editorial"
+PIN 3 — Full scene with text space (1000×1500px portrait 2:3): Complete room scene, bottom 25% intentionally clear for text overlay. End: "full scene portrait, clean bottom 25% for text overlay, portrait 2:3, hyper-realistic Kinfolk editorial"
+` : ''}
+
+Return ONLY valid JSON, no markdown:
 {
   "featuredPrompt": "...",
-  "sectionPrompts": ["...", "..."],
+  "sectionPrompts": ["...", "..."]${includePins ? `,
   "pinPrompts": [
     { "layout": "collage4", "textPosition": "center", "prompt": "..." },
     { "layout": "hero3panel", "textPosition": "center", "prompt": "..." },
     { "layout": "complete", "textPosition": "bottom", "prompt": "..." }
-  ]
-}
-${!includePins ? '(omit pinPrompts from JSON)' : ''}`;
+  ]` : ''}
+}`;
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
