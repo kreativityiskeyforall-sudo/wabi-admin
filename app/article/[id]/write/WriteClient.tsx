@@ -280,7 +280,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
-              <button className="btn btn-out btn-sm" onClick={() => { setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
+              <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
               <Link href={`/article/${id}/images`} className="btn btn-sage">Article done — go to images →</Link>
             </div>
           </div>

@@ -20,7 +20,8 @@ WRITING RULES — FOLLOW EXACTLY:
 3. Bold: Use **bold** for the single most important 2–4 word phrase in each paragraph. Never bold a full sentence.
 4. Simple English: write at a reading age of 14. No jargon without explanation. Anyone should understand it.
 5. Specificity: always name the material, finish, measurement, or price range. Vague descriptions are useless.
-6. UK English: colour, favour, grey, cosy, whilst, matte, centre, whilst.
+6. UK English spelling: colour, favour, grey, cosy, whilst, matte, centre.
+   PRICES: Always use $ USD. Never £. Write "$40–$90", not "£40–£90".
 7. SEO — keyword usage:
    - Use the primary keyword naturally in the first 100 words.
    - Use it again 3–5 times total in the body. Never force it — only where it reads naturally.
@@ -377,7 +378,7 @@ Format: [descriptive anchor text](root url). Place naturally in the prose.`;
   }
 
   const message = await client.messages.create({
-    model: 'claude-opus-4-8',
+    model: 'claude-sonnet-4-6',
     max_tokens: 8192,
     messages: [{ role: 'user', content: prompt }],
   });

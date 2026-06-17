@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
@@ -31,6 +31,19 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const stored = localStorage.getItem(`outline-${id}`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.headings?.length) { setHeadings(parsed.headings); setGenerated(true); }
+        if (parsed.seoTitle) setSeoTitle(parsed.seoTitle);
+        if (parsed.metaDescription) setMetaDescription(parsed.metaDescription);
+        if (parsed.websiteCategory) setWebsiteCategory(parsed.websiteCategory);
+      } catch {}
+    }
+  }, [id]);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
