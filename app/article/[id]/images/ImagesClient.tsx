@@ -228,9 +228,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           })
             .then(r => r.json())
             .then(data => {
-              const improved = data.sectionPrompts
-                ? built.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }))
-                : built;
+              const improved = data.sectionPromptsMap
+                ? built.map((s) => ({ ...s, prompt: data.sectionPromptsMap[s.headingText] ?? s.prompt }))
+                : data.sectionPrompts
+                  ? built.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }))
+                  : built;
               setSections(improved);
               const newFeatured: FeaturedImg = { prompt: data.featuredPrompt ?? buildFeaturedPrompt(category), url: null };
               setFeatured(newFeatured);
@@ -334,7 +336,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         setFeatured(newF);
         persistFeatured(newF);
       }
-      if (data.sectionPrompts) {
+      if (data.sectionPromptsMap) {
+        const newSec = sections.map(s => ({ ...s, prompt: data.sectionPromptsMap[s.headingText] ?? s.prompt }));
+        setSections(newSec);
+        persistSections(newSec);
+      } else if (data.sectionPrompts) {
         const promptMap = Object.fromEntries(
           headings.map((h, i) => [h, data.sectionPrompts[i] ?? ''])
         );

@@ -1391,10 +1391,14 @@ PIN 2 — Hero + 2 detail panels (1000×1500px portrait 2:3): Large hero scene t
 PIN 3 — Full scene with text space (1000×1500px portrait 2:3): Complete room scene, bottom 25% intentionally clear for text overlay. End: "full scene portrait, clean bottom 25% for text overlay, portrait 2:3, hyper-realistic Kinfolk editorial"
 ` : ''}
 
-Return ONLY valid JSON, no markdown:
+Return ONLY valid JSON, no markdown.
+CRITICAL: sectionPromptsMap must be an object keyed by the EXACT heading text, one entry per heading:
 {
   "featuredPrompt": "...",
-  "sectionPrompts": ["...", "..."]${includePins ? `,
+  "sectionPromptsMap": {
+    "exact heading text 1": "prompt for heading 1",
+    "exact heading text 2": "prompt for heading 2"
+  }${includePins ? `,
   "pinPrompts": [
     { "layout": "collage4", "textPosition": "center", "prompt": "..." },
     { "layout": "hero3panel", "textPosition": "center", "prompt": "..." },
