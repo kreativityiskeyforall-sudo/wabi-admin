@@ -8,13 +8,11 @@ import type { SheetArticle } from '@/lib/sheets';
 type Heading = { level: string; text: string; note: string };
 
 type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null; level?: 'H2' | 'H3' };
-type PinImg     = { prompt: string; enabled: boolean; titleOverlay: boolean; url: string | null; layout: 'collage4' | 'hero3panel' | 'complete' };
 type FeaturedImg = { prompt: string; url: string | null };
 
 export type ImageStore = {
   featured: FeaturedImg;
   sections: SectionImg[];
-  pins: PinImg[];
 };
 
 // ─── prompt builders ────────────────────────────────────────────────────────
@@ -51,16 +49,6 @@ function buildSectionPrompt(heading: string, category: string, index: number): s
   const clean = heading.replace(/^(idea\s+\d+[:.]\s*|tip\s+\d+[:.]\s*|#\d+\s*[:.]\s*|\d+[:.]\s*)/i, '').trim();
   const room = ROOM_CTX[category] ?? 'Japandi interior, natural materials, wabi-sabi aesthetic';
   return `${clean}, ${room}, ${LIGHTINGS[index % LIGHTINGS.length]}, ${ANGLES[index % ANGLES.length]}, ${MOODS[index % MOODS.length]}, editorial interior photography, high quality`;
-}
-
-function buildPinPrompt(category: string, index: number): string {
-  const styles = [
-    'serene overview of a complete well-styled room',
-    'close-up of key decorative elements and natural textures',
-    'ambient lifestyle scene with organic props and negative space',
-  ];
-  const room = ROOM_CTX[category] ?? 'Japandi interior';
-  return `${room}, ${styles[index % styles.length]}, warm neutral palette, soft diffused light, wabi-sabi aesthetic, editorial interior photography, portrait format`;
 }
 
 function buildFeaturedPrompt(category: string): string {
@@ -194,15 +182,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const [featured, setFeatured] = useState<FeaturedImg>({ prompt: buildFeaturedPrompt(category), url: null });
   const [sections, setSections] = useState<SectionImg[]>([]);
   const [generatingPrompts, setGeneratingPrompts] = useState(false);
-  const [pins, setPins] = useState<PinImg[]>([
-    { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null, layout: 'collage4' },
-    { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null, layout: 'hero3panel' },
-    { prompt: buildPinPrompt(category, 2), enabled: true, titleOverlay: false, url: null, layout: 'complete' },
-  ]);
 
   const [genFeatured, setGenFeatured] = useState(false);
   const [genSections, setGenSections] = useState(false);
-  const [genPins, setGenPins] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [uploadingSectionIdx, setUploadingSectionIdx] = useState<number | null>(null);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
@@ -216,7 +198,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         const store: ImageStore = JSON.parse(saved);
         setFeatured(store.featured);
         setSections(store.sections);
-        setPins(store.pins);
         return;
       } catch { /* corrupt — rebuild */ }
     }
@@ -243,7 +224,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           fetch('/api/generate-image-prompts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ articleTitle, category, headings, articleMarkdown, includePins: true }),
+            body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
           })
             .then(r => r.json())
             .then(data => {
@@ -253,19 +234,9 @@ export default function ImagesClient({ id, article }: { id: string; article: She
               setSections(improved);
               const newFeatured: FeaturedImg = { prompt: data.featuredPrompt ?? buildFeaturedPrompt(category), url: null };
               setFeatured(newFeatured);
-              const defaultPins: PinImg[] = [
-                { prompt: buildPinPrompt(category, 0), enabled: true, titleOverlay: false, url: null, layout: 'collage4' },
-                { prompt: buildPinPrompt(category, 1), enabled: true, titleOverlay: false, url: null, layout: 'hero3panel' },
-                { prompt: buildPinPrompt(category, 2), enabled: true, titleOverlay: false, url: null, layout: 'complete' },
-              ];
-              const improvedPins = data.pinPrompts?.length
-                ? defaultPins.map((p, i) => ({ ...p, prompt: data.pinPrompts[i]?.prompt ?? p.prompt, layout: (data.pinPrompts[i]?.layout ?? p.layout) as PinImg['layout'] }))
-                : defaultPins;
-              setPins(improvedPins);
               localStorage.setItem(`images-${id}`, JSON.stringify({
                 featured: newFeatured,
                 sections: improved,
-                pins: improvedPins,
               }));
             })
             .catch(() => {})
@@ -278,18 +249,13 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   // Each function reads current localStorage first so sequential calls don't clobber each other
   const persistFeatured = (newF: FeaturedImg) => {
     const raw = localStorage.getItem(`images-${id}`);
-    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections, pins };
+    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
     localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, featured: newF }));
   };
   const persistSections = (newSec: SectionImg[]) => {
     const raw = localStorage.getItem(`images-${id}`);
-    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections, pins };
+    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
     localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, sections: newSec }));
-  };
-  const persistPins = (newPins: PinImg[]) => {
-    const raw = localStorage.getItem(`images-${id}`);
-    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections, pins };
-    localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, pins: newPins }));
   };
 
   // ── upload helpers ────────────────────────────────────────────────────────
@@ -359,7 +325,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       const res = await fetch('/api/generate-image-prompts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleTitle, category, headings, articleMarkdown, includePins: true }),
+        body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
@@ -375,15 +341,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         const newSec = sections.map(s => ({ ...s, prompt: promptMap[s.headingText] ?? s.prompt }));
         setSections(newSec);
         persistSections(newSec);
-      }
-      if (data.pinPrompts?.length) {
-        const newPins = pins.map((p, i) => ({
-          ...p,
-          prompt: data.pinPrompts[i]?.prompt ?? p.prompt,
-          layout: (data.pinPrompts[i]?.layout ?? p.layout) as PinImg['layout'],
-        }));
-        setPins(newPins);
-        persistPins(newPins);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Prompt generation failed');
@@ -407,26 +364,10 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     finally { setGenSections(false); }
   };
 
-  const generatePins = async () => {
-    setGenPins(true); setError('');
-    try {
-      const enabled = pins.map((p, i) => ({ ...p, idx: i })).filter(p => p.enabled);
-      if (!enabled.length) { setGenPins(false); return; }
-      const prompts = enabled.map(p => ({ prompt: p.prompt, model: 'dev' as const, label: String(p.idx), width: 1000, height: 1500 }));
-      const imgs = await callGenerate(prompts);
-      const urlMap = Object.fromEntries(imgs.map(img => [img.label, img.url]));
-      const newPins = pins.map((p, i) => urlMap[String(i)] ? { ...p, url: urlMap[String(i)] } : p);
-      setPins(newPins);
-      persistPins(newPins);
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed'); }
-    finally { setGenPins(false); }
-  };
-
   const generateAll = async () => {
     setError('');
     await generateFeatured();
     await generateSections();
-    await generatePins();
   };
 
   const resetAndRebuild = () => {
@@ -437,18 +378,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   // ── download handlers ────────────────────────────────────────────────────
 
-  const handleDownload = async (url: string, label: string, withOverlay = false) => {
-    const key = label;
-    setDownloading(key);
+  const handleDownload = async (url: string, label: string) => {
+    setDownloading(label);
     try {
       const filename = `wabi-${id}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`;
-      if (withOverlay && articleTitle) {
-        const pin = label.startsWith('pin-') ? pins[parseInt(label.split('-')[1]) - 1] : null;
-        const textPos = pin?.layout === 'complete' ? 'bottom' : 'center';
-        await downloadPinWithOverlay(url, articleTitle, filename, textPos);
-      } else {
-        await downloadImage(url, filename);
-      }
+      await downloadImage(url, filename);
     } catch { setError('Download failed — try again'); }
     finally { setDownloading(null); }
   };
@@ -456,12 +390,10 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   // ── cost calc ─────────────────────────────────────────────────────────────
 
   const enabledSections = sections.filter(s => s.enabled).length;
-  const enabledPins = pins.filter(p => p.enabled).length;
-  const devCost = ((enabledPins + 1) * 0.025).toFixed(3);
   const schnellCost = (enabledSections * 0.003).toFixed(3);
-  const totalCost = ((enabledPins + 1) * 0.025 + enabledSections * 0.003).toFixed(3);
+  const totalCost = (0.025 + enabledSections * 0.003).toFixed(3);
 
-  const anyGenerating = genFeatured || genSections || genPins;
+  const anyGenerating = genFeatured || genSections;
 
   return (
     <>
@@ -478,7 +410,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
               {article?.title ?? 'Article'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 3 }}>
-              {enabledSections} section images · {enabledPins} pins · 1 featured · est. <strong>${totalCost}</strong>
+              {enabledSections} section images · 1 featured · est. <strong>${totalCost}</strong>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -618,89 +550,10 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           </div>
         </div>
 
-        {/* ── PINTEREST PINS ────────────────────────────────────────────── */}
-        <div className="img-card" style={{ marginBottom: 14 }}>
-          <div className="img-card-hd" style={{ borderColor: 'var(--pin)' }}>
-            <div className="img-card-title" style={{ color: 'var(--pin)' }}>
-              📌 Pinterest Pins <span className="img-tag" style={{ color: 'var(--pin)' }}>1000×1500 portrait · FLUX Dev · {enabledPins} enabled</span>
-            </div>
-            <button className="btn btn-out btn-sm" style={{ borderColor: 'var(--pin)', color: 'var(--pin)' }} onClick={generatePins} disabled={genPins}>
-              {genPins ? '⟳' : '⚡'} Generate pins
-            </button>
-          </div>
-          <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {pins.map((p, i) => (
-              <div key={i} className="sec-row" style={{ opacity: p.enabled ? 1 : 0.45 }}>
-                <div className="sec-row-top">
-                  <input
-                    type="checkbox"
-                    checked={p.enabled}
-                    onChange={e => {
-                      const next = pins.map((pp, j) => j === i ? { ...pp, enabled: e.target.checked } : pp);
-                      setPins(next); persistPins(next);
-                    }}
-                    style={{ marginRight: 8, flexShrink: 0 }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--pin)' }}>
-                    Pin {i + 1} · <span style={{ fontWeight: 400, fontSize: 10 }}>
-                      {p.layout === 'collage4' ? '4-panel collage' : p.layout === 'hero3panel' ? 'hero + 2 panels' : 'complete scene'}
-                    </span>
-                  </span>
-
-                  {/* Title overlay toggle */}
-                  <label className="overlay-toggle" style={{ marginLeft: 'auto' }}>
-                    <input
-                      type="checkbox"
-                      checked={p.titleOverlay}
-                      onChange={e => {
-                        const next = pins.map((pp, j) => j === i ? { ...pp, titleOverlay: e.target.checked } : pp);
-                        setPins(next); persistPins(next);
-                      }}
-                    />
-                    <span>Add title text to image</span>
-                  </label>
-
-                  {p.url && (
-                    <button
-                      className="dl-btn dl-btn--pin"
-                      onClick={() => handleDownload(p.url!, `pin-${i + 1}`, p.titleOverlay)}
-                      disabled={downloading === `pin-${i + 1}`}
-                    >
-                      {downloading === `pin-${i + 1}` ? '⟳' : '↓'} {p.titleOverlay ? 'Download with title' : 'Download'}
-                    </button>
-                  )}
-                </div>
-                <textarea
-                  className="prompt-ta"
-                  style={{ marginTop: 6 }}
-                  value={p.prompt}
-                  onChange={e => {
-                    const next = pins.map((pp, j) => j === i ? { ...pp, prompt: e.target.value } : pp);
-                    setPins(next); persistPins(next);
-                  }}
-                  disabled={!p.enabled}
-                />
-                {p.url && (
-                  <div style={{ marginTop: 8, position: 'relative', display: 'inline-block' }}>
-                    <div className="gen-thumb-sm" style={{ aspectRatio: '2/3' }}>
-                      <img src={p.url} alt={`Pin ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
-                    </div>
-                    {p.titleOverlay && (
-                      <div className="pin-overlay-preview">
-                        <div className="pin-overlay-text">{articleTitle}</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Cost summary */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-            1 featured (Dev ${(0.025).toFixed(3)}) + {enabledSections} sections (Schnell ${schnellCost}) + {enabledPins} pins (Dev ${((enabledPins) * 0.025).toFixed(3)}) = <strong>${totalCost}</strong>
+            1 featured (Dev ${(0.025).toFixed(3)}) + {enabledSections} sections (Schnell ${schnellCost}) = <strong>${totalCost}</strong>
           </div>
           <button className="btn btn-dark" onClick={generateAll} disabled={anyGenerating}>
             ⚡ {anyGenerating ? 'Generating…' : 'Generate all'}

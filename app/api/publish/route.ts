@@ -48,6 +48,7 @@ function markdownToPortableText(markdown: string): PTBlock[] {
     const line = lines[i];
 
     if (!line.trim()) { i++; continue; }
+    if (line.trim() === '---' || line.trim() === '***') { i++; continue; }
 
     if (line.startsWith('### ')) {
       const { children, markDefs } = parseInline(line.slice(4).trim());

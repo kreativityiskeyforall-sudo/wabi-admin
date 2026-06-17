@@ -155,9 +155,9 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: next }));
   };
 
-  const handleApprove = (dest: 'pinterest' | 'publish') => {
+  const handleApprove = () => {
     save(sections);
-    router.push(`/article/${id}/${dest}`);
+    router.push(`/article/${id}/publish`);
   };
 
   // Drag images between section slots (only swaps imageUrl/altText, heading+body stay fixed)
@@ -197,11 +197,8 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Link href={`/article/${id}/images`} className="btn btn-out btn-sm">← Images</Link>
-            <button className="btn btn-out btn-sm" onClick={() => handleApprove('pinterest')} disabled={!loaded}>
-              → Pinterest
-            </button>
-            <button className="btn btn-sage" onClick={() => handleApprove('publish')} disabled={!loaded}>
-              Skip Pinterest — Publish →
+            <button className="btn btn-sage" onClick={handleApprove} disabled={!loaded}>
+              Publish →
             </button>
           </div>
         </div>
@@ -302,12 +299,9 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
                 ))}
               </div>
 
-              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="btn btn-sage" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleApprove('pinterest')}>
-                  Approve — go to Pinterest →
-                </button>
-                <button className="btn btn-dark" style={{ width: '100%', justifyContent: 'center' }} onClick={() => handleApprove('publish')}>
-                  Skip Pinterest — publish now →
+              <div style={{ marginTop: 20 }}>
+                <button className="btn btn-sage" style={{ width: '100%', justifyContent: 'center' }} onClick={handleApprove}>
+                  Approve layout — Publish →
                 </button>
               </div>
             </div>

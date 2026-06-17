@@ -22,14 +22,13 @@ WRITING RULES — FOLLOW EXACTLY:
 5. Specificity: always name the material, finish, measurement, or price range. Vague descriptions are useless.
 6. UK English spelling: colour, favour, grey, cosy, whilst, matte, centre.
    PRICES: Always use $ USD. Never £. Write "$40–$90", not "£40–£90".
-7. SEO — keyword usage:
+7. Never use --- or *** as section dividers. Use headings instead.
+8. SEO — keyword usage:
    - Use the primary keyword naturally in the first 100 words.
    - Use it again 3–5 times total in the body. Never force it — only where it reads naturally.
    - Use related semantic terms (LSI keywords) throughout: variants, synonyms, related concepts.
    - Never keyword-stuff. One keyword per sentence maximum.
    - Use keywords in H2 headings where natural — not every H2, but 2–3 of them.
-8. Image alt text: for every image placeholder write: [IMAGE: alt text describing the scene using words from the nearest heading]
-   Example: [IMAGE: low oak platform bed with undyed linen bedding — japandi bedroom ideas]
 9. Entities and structured content:
    - Where listing products, use H3 for each item.
    - Where comparing options, use a simple comparison structure.
