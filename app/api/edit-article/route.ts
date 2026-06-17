@@ -40,7 +40,8 @@ type PTBlock = { _type: 'block'; _key: string; style: string; markDefs: any[]; c
 
 function parseInline(text: string): { children: PTSpan[]; markDefs: any[] } {
   const children: PTSpan[] = [];
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/);
+  const markDefs: any[] = [];
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/);
   for (const part of parts) {
     if (!part) continue;
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -48,10 +49,17 @@ function parseInline(text: string): { children: PTSpan[]; markDefs: any[] } {
     } else if (part.startsWith('*') && part.endsWith('*')) {
       children.push({ _type: 'span', _key: key(), text: part.slice(1, -1), marks: ['em'] });
     } else {
-      children.push({ _type: 'span', _key: key(), text: part, marks: [] });
+      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        const mk = key();
+        markDefs.push({ _type: 'link', _key: mk, href: linkMatch[2] });
+        children.push({ _type: 'span', _key: key(), text: linkMatch[1], marks: [mk] });
+      } else {
+        children.push({ _type: 'span', _key: key(), text: part, marks: [] });
+      }
     }
   }
-  return { children, markDefs: [] };
+  return { children, markDefs };
 }
 
 function markdownToPT(markdown: string): PTBlock[] {
