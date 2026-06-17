@@ -32,10 +32,23 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
 
   useEffect(() => {
     const stored = localStorage.getItem(`outline-${id}`);
-    if (stored) setOutline(JSON.parse(stored));
-    const savedArticle = localStorage.getItem(`article-${id}`);
-    if (savedArticle) { setArticleText(savedArticle); setDone(true); setStep(5); }
-  }, [id]);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.articleTitle && article?.title && parsed.articleTitle !== article.title) {
+          // Stale cache from a different article — IDs shifted, discard both
+          localStorage.removeItem(`outline-${id}`);
+          localStorage.removeItem(`article-${id}`);
+        } else {
+          setOutline(parsed);
+          const savedArticle = localStorage.getItem(`article-${id}`);
+          if (savedArticle) { setArticleText(savedArticle); setDone(true); setStep(5); }
+        }
+      } catch {
+        localStorage.removeItem(`outline-${id}`);
+      }
+    }
+  }, [id, article?.title]);
 
   const steps = isProduct
     ? ['Reading product brief', 'Writing introduction', 'Writing design & features', 'Writing pros/cons', 'Writing verdict', 'SEO check']

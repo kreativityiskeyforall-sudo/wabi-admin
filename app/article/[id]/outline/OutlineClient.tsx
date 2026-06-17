@@ -82,7 +82,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   };
 
   const handleApprove = () => {
-    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle }));
+    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle, articleTitle: article?.title }));
     localStorage.removeItem(`article-${id}`);
     router.push(`/article/${id}/write`);
   };
