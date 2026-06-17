@@ -121,48 +121,64 @@ export async function getArticleById(id: string): Promise<SheetArticle | null> {
   return all.find(a => a.id === id) ?? null;
 }
 
+// Module-level cache — avoids repeat Google Sheets calls within the same server process
+let _sheetsCache: { data: SheetArticle[]; ts: number } | null = null;
+const CACHE_TTL = 60_000; // 60 seconds
+
+export function invalidateSheetsCache() {
+  _sheetsCache = null;
+}
+
 export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) return [];
 
+  // Return cached data if fresh
+  if (_sheetsCache && Date.now() - _sheetsCache.ts < CACHE_TTL) {
+    return _sheetsCache.data;
+  }
+
   const auth = getAuth();
   const sheets = google.sheets({ version: 'v4', auth });
+
+  // Fetch all tabs in ONE request instead of 51 sequential calls
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId: SHEET_ID,
+    ranges: CONTENT_TABS.map(tab => `'${tab}'!A:J`),
+  });
+
   const allArticles: SheetArticle[] = [];
   let globalId = 1;
 
-  for (const tab of CONTENT_TABS) {
-    try {
-      const res = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: `${tab}!A:J`,
+  for (let tabIdx = 0; tabIdx < CONTENT_TABS.length; tabIdx++) {
+    const tab = CONTENT_TABS[tabIdx];
+    const rows = res.data.valueRanges?.[tabIdx]?.values ?? [];
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      const row = rows[rowIdx];
+      if (!row[0] || isNaN(Number(row[0].toString().trim()))) continue;
+      const title = row[3]?.toString().trim();
+      if (!title) continue;
+      const status = mapStatus(row[8]?.toString().trim() ?? '');
+      if (status === 'delete') continue;
+      allArticles.push({
+        id: String(globalId++),
+        title,
+        type: mapType(row[5]?.toString().trim() ?? ''),
+        category: tab,
+        cluster: row[2]?.toString().trim() ?? '',
+        articleType: row[1]?.toString().trim() ?? '',
+        pinterestTitle: row[4]?.toString().trim() ?? '',
+        contentType: row[5]?.toString().trim() ?? '',
+        uniqueAngle: row[6]?.toString().trim() ?? '',
+        competition: row[7]?.toString().trim() ?? '',
+        status,
+        priority: row[9]?.toString().trim() ?? '',
+        slug: '',
+        publishedAt: '',
+        rowNumber: rowIdx + 1,
       });
-      const rows = res.data.values ?? [];
-      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-        const row = rows[rowIdx];
-        if (!row[0] || isNaN(Number(row[0].toString().trim()))) continue;
-        const title = row[3]?.toString().trim();
-        if (!title) continue;
-        const status = mapStatus(row[8]?.toString().trim() ?? '');
-        if (status === 'delete') continue;
-        allArticles.push({
-          id: String(globalId++),
-          title,
-          type: mapType(row[5]?.toString().trim() ?? ''),
-          category: tab,
-          cluster: row[2]?.toString().trim() ?? '',
-          articleType: row[1]?.toString().trim() ?? '',
-          pinterestTitle: row[4]?.toString().trim() ?? '',
-          contentType: row[5]?.toString().trim() ?? '',
-          uniqueAngle: row[6]?.toString().trim() ?? '',
-          competition: row[7]?.toString().trim() ?? '',
-          status,
-          priority: row[9]?.toString().trim() ?? '',
-          slug: '',
-          publishedAt: '',
-          rowNumber: rowIdx + 1,
-        });
-      }
-    } catch { /* tab missing — skip */ }
+    }
   }
 
+  _sheetsCache = { data: allArticles, ts: Date.now() };
   return allArticles;
 }

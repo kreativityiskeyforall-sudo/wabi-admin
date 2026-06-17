@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getArticlesFromSheets, CONTENT_TABS } from '@/lib/sheets';
+import { getArticlesFromSheets, invalidateSheetsCache, CONTENT_TABS } from '@/lib/sheets';
 import { google } from 'googleapis';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
@@ -57,5 +57,6 @@ export async function PATCH(req: NextRequest) {
     });
   }
 
+  invalidateSheetsCache();
   return NextResponse.json({ ok: true });
 }
