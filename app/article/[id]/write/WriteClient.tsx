@@ -17,7 +17,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
   const [articleText, setArticleText] = useState('');
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
-  const [outline, setOutline] = useState<{ headings: Heading[] } | null>(null);
+  const [outline, setOutline] = useState<{ headings: Heading[]; uniqueAngle?: string } | null>(null);
   const [wordCount, setWordCount] = useState(1800);
 
   // Link tool state
@@ -58,7 +58,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
           headings: outline?.headings ?? [],
           productBrief: undefined,
           wordCount,
-          uniqueAngle: article?.uniqueAngle,
+          uniqueAngle: outline?.uniqueAngle ?? article?.uniqueAngle,
           category: article?.category,
           cluster: article?.cluster,
           competition: article?.competition,

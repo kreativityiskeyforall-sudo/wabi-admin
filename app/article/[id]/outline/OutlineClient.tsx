@@ -28,6 +28,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [websiteCategory, setWebsiteCategory] = useState(
     () => getWebsiteCategory(article?.category ?? '')
   );
+  const [uniqueAngle, setUniqueAngle] = useState(article?.uniqueAngle ?? '');
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +42,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
         if (parsed.seoTitle) setSeoTitle(parsed.seoTitle);
         if (parsed.metaDescription) setMetaDescription(parsed.metaDescription);
         if (parsed.websiteCategory) setWebsiteCategory(parsed.websiteCategory);
+        if (parsed.uniqueAngle !== undefined) setUniqueAngle(parsed.uniqueAngle);
       } catch {}
     }
   }, [id]);
@@ -60,7 +62,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
           contentType: article?.contentType ?? article?.type,
           category: article?.category,
           cluster: article?.cluster,
-          uniqueAngle: article?.uniqueAngle,
+          uniqueAngle,
           competition: article?.competition,
           priority: article?.priority,
         }),
@@ -80,7 +82,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   };
 
   const handleApprove = () => {
-    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory }));
+    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle }));
     router.push(`/article/${id}/write`);
   };
 
@@ -129,12 +131,23 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
                 {article.category} · {article.contentType} · {article.competition} competition · {article.priority}
               </div>
             )}
-            {article?.uniqueAngle && (
-              <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 6, maxWidth: 560, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '6px 10px' }}>
-                <span style={{ fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', fontSize: 9, letterSpacing: '.08em' }}>Unique Angle · </span>
-                {article.uniqueAngle}
+            <div style={{ marginTop: 6, maxWidth: 560 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 3 }}>
+                Unique Angle <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(editable — override before generating)</span>
               </div>
-            )}
+              <textarea
+                value={uniqueAngle}
+                onChange={e => setUniqueAngle(e.target.value)}
+                placeholder="Leave blank for no unique angle constraint…"
+                rows={2}
+                style={{
+                  width: '100%', fontSize: 11, fontFamily: 'inherit', color: 'var(--t1)',
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)',
+                  padding: '6px 10px', resize: 'vertical', outline: 'none', lineHeight: 1.5,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)' }}>Publishes to</span>
               <select
