@@ -317,7 +317,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   const improvePrompts = async () => {
     const enabledSecs = sections.filter(s => s.enabled);
-    const headings = enabledSecs.map(s => (s.level === 'H3' ? `  ↳ ${s.headingText}` : s.headingText));
+    const headings = enabledSecs.map(s => s.headingText);
     if (!headings.length) return;
     setGeneratingPrompts(true); setError('');
     try {
@@ -336,7 +336,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       }
       if (data.sectionPrompts) {
         const promptMap = Object.fromEntries(
-          headings.map((h, i) => [h.replace(/^\s*↳\s*/, ''), data.sectionPrompts[i] ?? ''])
+          headings.map((h, i) => [h, data.sectionPrompts[i] ?? ''])
         );
         const newSec = sections.map(s => ({ ...s, prompt: promptMap[s.headingText] ?? s.prompt }));
         setSections(newSec);
