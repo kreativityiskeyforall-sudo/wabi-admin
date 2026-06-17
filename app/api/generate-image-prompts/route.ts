@@ -457,34 +457,57 @@ SCENE TYPES:
 
 const PROMPT_STRUCTURE = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-HOW TO WRITE EACH PROMPT
+HOW TO WRITE EACH PROMPT — READ THIS FIRST
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-For EVERY section image, write ALL of these elements comma-separated:
 
-[HERO SUBJECT — specific object(s) from that article section, exact material + finish]
-[WALL — colour name + hex code + surface texture (plaster grain / shiplap / smooth paint / rough render)]
-[FURNITURE — wood/material name + hex code + piece type + leg style if relevant]
-[CURTAINS — fabric weight (sheer/mid/heavy) + colour name + hex + contrast role described]
-[DARK ANCHOR — specific element + hex code (lamp base, frame, ceramic, trim, hardware)]
-[SCENE TYPE — from rotation bank, unused in this article]
-[LIGHT SOURCE + DIRECTION — specific and physical]
-[LIGHT QUALITY — from rotation bank]
+STEP 1 — EXTRACT FROM SECTION CONTENT (do this before writing the prompt):
+  Read the article section carefully.
+  Identify the 2–3 most visually interesting objects, materials, or furniture pieces mentioned.
+  These become the HERO SUBJECT of that image — not generic style objects, but the SPECIFIC things described.
+  Example: if the section talks about rattan headboards → hero subject is a rattan headboard, not just "coastal bedroom".
+  Example: if the section talks about linen bedding in washed oat → hero subject is washed oat linen duvet with visible texture.
+
+STEP 2 — CHOOSE A DIFFERENT ROOM AREA per section (never show the same area twice):
+  Section 1 → full room wide shot
+  Section 2 → bedside table vignette close
+  Section 3 → window seat / curtain area
+  Section 4 → dresser / wardrobe area
+  Section 5 → floor / rug level looking across
+  Section 6 → shelf or wall styling close
+  Section 7+ → rotate through: corner sitting area / doorway frame / overhead flat lay / macro single object
+  NEVER show the full wide room twice. Only the featured image gets the full wide shot.
+
+STEP 3 — WRITE THE PROMPT with ALL of these elements in order, comma-separated:
+
+[HERO SUBJECT — exact objects from that section, material name + finish + colour, hyper specific]
+[ROOM AREA + SCENE TYPE — specific zone of the room, from rotation bank, not repeated in article]
+[WALL — colour name + hex code + surface texture (smooth matte plaster / shiplap planks / rough render)]
+[FURNITURE — piece type + material + hex code + finish detail (e.g. whitewashed limed oak, chalky matte)]
+[CURTAINS — fabric weight (sheer/mid/heavy) + exact colour name + hex + how they interact with light]
+[DARK ANCHOR — specific darkest element + hex (lamp base, ceramic, frame, hardware, trim)]
+[LIGHT SOURCE — exact physical origin: left window / right window / backlit from behind curtain / lamp]
+[LIGHT QUALITY — from rotation bank, not repeated in article]
 [COLOUR TEMPERATURE — exact Kelvin]
-[TIME OF DAY — from rotation bank, unused in this article]
-[CAMERA BODY — from rotation bank, unused in this article]
-[LENS — from rotation bank, unused in this article]
+[TIME OF DAY — from rotation bank, not repeated in article]
+[CAMERA BODY — from rotation bank, not repeated in article]
+[LENS — from rotation bank, not repeated in article]
 [APERTURE f/x.x + ISO xxxx]
-[CAMERA ANGLE + HEIGHT — from rotation bank, unused in this article]
-[COMPOSITION — from rotation bank, unused in this article]
-[MOOD — one precise evocative phrase, never generic]
-hyper-realistic RAW photograph, editorial quality, 8K resolution, photorealistic, no CGI, no people, no text, no watermarks
+[CAMERA ANGLE + HEIGHT — from rotation bank, not repeated in article]
+[COMPOSITION — from rotation bank, not repeated in article]
+[MOOD — one precise evocative sentence that captures the feeling of THAT specific section, never generic]
+hyper-realistic RAW photograph, 8K, editorial interior photography, no CGI, no people, no text, no watermarks, Kinfolk magazine quality
 
-FEATURED HERO IMAGE (1200×800px landscape):
-  Use the most visually dramatic wall colour from the bank (a dark or richly saturated option).
-  Wide full-room shot showing wall colour + curtains + furniture simultaneously.
-  Strong directional light — not flat even lighting.
-  CRITICAL: Well-exposed and fully legible. Dark walls show their colour, never black.
-  Append: "1200×800px landscape hero, wide editorial room shot, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURED HERO IMAGE (1200×800px landscape)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The featured image represents the WHOLE article — it must instantly communicate the style, the room type, and the emotional promise of the article.
+  - Use the most visually dramatic wall colour from the category bank (richly saturated or deep tone)
+  - Wide full-room establishing shot — show wall + curtains + primary furniture all at once
+  - Strong directional raking light — never flat even lighting
+  - Include ALL style signature objects (2–3 from the vocabulary list)
+  - The room must be UNMISTAKABLY the correct style — a reader who doesn't know the style must be able to identify it from this image alone
+  - CRITICAL: Well-exposed and fully legible. Dark walls show their colour at minimum 15% luminosity, never pitch black
+  Append: "1200×800px landscape hero, wide editorial establishing room shot, strong directional light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1273,11 +1296,22 @@ export async function POST(req: NextRequest) {
   const styleVocab = STYLE_VOCABULARY[category] ?? STYLE_VOCABULARY['japandi'];
 
   const articleContext = articleMarkdown
-    ? `\nFull article content — READ THIS CAREFULLY. Each section prompt must reflect the specific objects described in that section:\n---\n${articleMarkdown.slice(0, 8000)}\n---\n`
+    ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FULL ARTICLE — READ EVERY SECTION BEFORE WRITING ANY PROMPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This is the complete article. Before writing each section's image prompt, re-read that section and extract the specific objects, materials, and furniture pieces mentioned. The hero subject of each image must come from the actual content of that section — not from generic style assumptions.
+
+${articleMarkdown.slice(0, 10000)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`
     : '';
 
-  const prompt = `You are the world's best AI image prompt writer for FLUX (hyper-realistic photographic model).
-You write prompts for decoreixy.com, a home decor inspiration site.
+  const prompt = `You are the world's best editorial interior photographer and fal.ai FLUX image prompt specialist. You write prompts for decoreixy.com, a home decor inspiration site covering 12 style categories.
+
+Your prompts produce hyper-realistic, editorial-grade interior photographs — the level of Kinfolk, Architectural Digest, and Elle Decor. Every prompt you write is unique: different room area, different camera, different lens, different angle, different time of day, different wall colour, different furniture. No two images in the same article ever look like the same room photographed twice.
+
+You read the article carefully before writing prompts. Each section image is about what THAT SECTION describes — the hero subject always comes from the actual content, not from generic style assumptions.
 ${articleContext}
 Article: "${articleTitle}"
 Space type: ${roomType}
