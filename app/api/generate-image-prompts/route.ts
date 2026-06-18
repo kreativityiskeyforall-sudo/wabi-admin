@@ -1373,19 +1373,42 @@ STEP 3 — WRITE THE FULL TECHNICAL PROMPT using this pipe-separated format:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEATURED HERO IMAGE (1200×800px landscape)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Represents the WHOLE article — must instantly communicate style, room type, and emotional promise.
-- Choose the most visually BOLD wall colour from the palette bank — not the safest, the most striking
-- Wide full-room establishing shot: wall + curtains + primary furniture all visible at once
-- Strong directional raking light — never flat or even lighting
-- Include 2–3 signature objects from the style vocabulary
-- UNMISTAKABLY ${roomType} — a reader who has never heard of this style must identify it instantly from wall colour and objects alone
-- CRITICAL — wall colour is the PRIMARY style signal to FLUX. Pick a wall that screams this style:
-  Coastal → crisp white, pale aqua, or sandy cream. NEVER grey-green (FLUX reads grey-green as Japandi).
-  Japandi → warm ivory, linen sand, or pale clay. NEVER bright white (too Scandi).
-  Boho → warm terracotta plaster or raw cream. NEVER grey or cool tones.
-  Farmhouse → shiplap white with visible plank lines. Texture of wall must show.
-  Use the palette bank wall colour that is MOST distinctive for this style, not the most neutral.
-- End with: "1200×800px landscape, wide editorial room shot, strong directional light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+This image must look DISTINCT from every other article in this category. The article TITLE is your brief — read it before writing a single word.
+
+STEP A — DECODE THE TITLE TO SET YOUR BRIEF:
+  Title contains a COLOUR word (Blue, Navy, Sky, Pink, Sage, Green, White, Sand, Beige, Dark, Charcoal, Black):
+    → That colour DOMINATES 60%+ of the frame. Walls + bedding + accents all pull from that one colour world.
+    → A "Blue Coastal Bedroom" has a blue wall. A "Pink" article has pink walls or pink bedding as the undeniable hero. Do NOT swap in sage green because it looks nice.
+  Title contains "Small" / "Compact" / "Apartment" / "Tiny":
+    → Tight intimate angle. 85mm+ lens. Close crop on a corner or bedside detail. NOT a wide room shot.
+  Title contains "Decor" / "Accessories" / "Details" / "Ideas That Make":
+    → Hero is a styled SURFACE — a nightstand, a windowsill, a shelf. Close editorial detail, NOT the full room.
+  Title contains "Budget" / "Affordable" / "Cheap":
+    → Warm and approachable. Modest-scale objects. No luxury aspirational furniture.
+  Title contains "Spa" / "Luxury" / "Hotel" / "Sanctuary":
+    → Pristine white bedding, extreme negative space, very pale walls, ultra-clean. Minimal objects.
+  Title contains "Dark" / "Moody" / "Cave" / "Rich":
+    → Dark dramatic wall (forest green, navy, charcoal). Lamp or candlelight only. NO daylight.
+  Title contains "Modern" / "Contemporary" / "Minimalist" / "Clean":
+    → Architectural lines, no rattan, crisp shadows, geometric composition, cool palette.
+  All other titles:
+    → Wide full-room establishing shot — but still pick a camera angle that is NOT eye-level from the foot of the bed.
+
+STEP B — CHOOSE A NON-DEFAULT CAMERA ANGLE:
+  FLUX always defaults to: eye-level 95cm, bed centred, window behind-left, rattan headboard.
+  This is FORBIDDEN for featured images — it makes every article look identical.
+  Choose from rotation bank: floor-level 20cm / low angle 40cm / doorway frame shot from corridor / high angle 145cm / window exterior looking in / over-the-shoulder 110cm
+  State the chosen angle explicitly at the end of your prompt.
+
+STEP C — WALL COLOUR IS THE STYLE SIGNAL:
+  If the title names a colour → that IS the wall colour. Override everything else.
+  If no colour in title → choose the MOST VISUALLY DISTINCTIVE wall colour from the palette bank. Not the safest, the most recognisable.
+  Coastal → deep aqua / driftwood white / sandy cream. NEVER grey-green (FLUX reads grey-green as Japandi).
+  Japandi → warm ivory / linen sand / pale clay. NEVER bright white (too Scandi).
+  Boho → warm terracotta plaster / raw cream. NEVER grey or cool tones.
+  Farmhouse → shiplap white with visible plank lines. Wall texture must show.
+
+End with: "1200×800px landscape, [chosen camera angle from rotation bank], strong directional raking light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
 
 ${includePins ? `
 PINTEREST PINS — write exactly 3:
