@@ -109,25 +109,26 @@ function extractIntro(markdown: string): string {
 }
 
 function extractPullQuote(markdown: string): string {
-  // Find a short, punchy sentence from the body (not intro, not headings)
   const lines = markdown.split('\n');
   let pastIntro = false;
+  let fallback = '';
   for (const line of lines) {
     const t = line.trim();
     if (!t) continue;
     if (t.startsWith('#')) { pastIntro = true; continue; }
     if (!pastIntro) continue;
-    // Strip bold markers, pick sentences 15–120 chars
-    const plain = t.replace(/\*\*/g, '').replace(/\*/g, '');
+    const plain = t.replace(/\*\*/g, '').replace(/\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     const sentences = plain.split(/(?<=[.!?])\s+/);
     for (const s of sentences) {
       const len = s.length;
-      if (len >= 30 && len <= 120 && !s.startsWith('-') && !s.startsWith('[')) {
-        return s.trim();
-      }
+      if (s.startsWith('-') || s.startsWith('[') || s.startsWith('!')) continue;
+      // Ideal: punchy sentence 40–160 chars
+      if (len >= 40 && len <= 160) return s.trim();
+      // Keep a fallback: anything 25–200 chars
+      if (len >= 25 && len <= 200 && !fallback) fallback = s.trim();
     }
   }
-  return '';
+  return fallback;
 }
 
 function mapContentType(sheetType: string): string {
