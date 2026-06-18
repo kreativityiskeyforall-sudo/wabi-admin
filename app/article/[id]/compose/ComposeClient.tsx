@@ -177,6 +177,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
         });
         setSections(merged);
         setLoaded(true);
+        localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: merged }));
         return;
       } catch { /* rebuild */ }
     }
@@ -192,6 +193,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
 
     setSections(built);
     setLoaded(true);
+    localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: built }));
   }, [id, category, articleTitle]);
 
   const save = (next: Section[]) => {
