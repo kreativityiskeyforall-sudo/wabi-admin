@@ -1300,9 +1300,20 @@ export async function POST(req: NextRequest) {
   const styleVocab = STYLE_VOCABULARY[catKey] ?? '';
   const paletteBank = PALETTE_BANKS[catKey] ?? '';
 
-  const prompt = `You are a world-class editorial interior photographer and fal.ai FLUX image prompt specialist. Every prompt you write produces images at the level of Kinfolk, Architectural Digest, and Elle Decor.
+  // Static expert instructions cached on Anthropic's servers — saves ~90% on these tokens for subsequent articles
+  const systemContent = `You are a world-class editorial interior photographer and fal.ai FLUX image prompt specialist. Every prompt you write produces images at the level of Kinfolk, Architectural Digest, and Elle Decor.
 
-ARTICLE: "${articleTitle}"
+${styleVocab}
+
+${paletteBank}
+
+${ROTATION_BANKS}
+
+${ASSEMBLY_RULES}
+
+${UNIVERSAL_RULES}`;
+
+  const prompt = `ARTICLE: "${articleTitle}"
 STYLE: ${roomType}
 
 ${articleMarkdown ? `ARTICLE CONTENT — read each section to understand the SUBJECT it covers, not to copy room descriptions:
@@ -1347,34 +1358,26 @@ STEP 3 — WRITE THE FULL TECHNICAL PROMPT using this pipe-separated format:
   | [CURTAINS — fabric weight + exact colour name + hex + how light interacts with them]
   | [DARK ANCHOR — specific darkest element in frame + hex]
   | [LIGHT SOURCE + DIRECTION — exact physical origin: left window / right window / lamp behind / backlit]
-  | [LIGHT QUALITY — from rotation bank below, not repeated in this article]
+  | [LIGHT QUALITY — from rotation bank, not repeated in this article]
   | [COLOUR TEMPERATURE — exact Kelvin]
-  | [TIME OF DAY — from rotation bank below, not repeated in this article]
-  | [CAMERA BODY — from rotation bank below, not repeated in this article]
-  | [LENS — from rotation bank below, not repeated in this article]
+  | [TIME OF DAY — from rotation bank, not repeated in this article]
+  | [CAMERA BODY — from rotation bank, not repeated in this article]
+  | [LENS — from rotation bank, not repeated in this article]
   | [APERTURE f/x.x + ISO xxxx]
-  | [ANGLE + HEIGHT — from rotation bank below, not repeated in this article]
-  | [COMPOSITION — from rotation bank below, not repeated in this article]
+  | [ANGLE + HEIGHT — from rotation bank, not repeated in this article]
+  | [COMPOSITION — from rotation bank, not repeated in this article]
   | [CINEMATIC MOMENT — one precise phrase describing the specific dramatic element chosen in Step 2]
   | [MOOD — one evocative sentence specific to this section, never a generic phrase]
   | hyper-realistic RAW photograph, 8K, editorial interior photography, no CGI, no people, no text, no watermarks, Kinfolk magazine quality
-
-${styleVocab}
-
-${paletteBank}
-
-${ROTATION_BANKS}
-
-${ASSEMBLY_RULES}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEATURED HERO IMAGE (1200×800px landscape)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Represents the WHOLE article — must instantly communicate style, room type, and emotional promise.
-- Choose the most visually BOLD wall colour from the palette bank above — not the safest, the most striking
+- Choose the most visually BOLD wall colour from the palette bank — not the safest, the most striking
 - Wide full-room establishing shot: wall + curtains + primary furniture all visible at once
 - Strong directional raking light — never flat or even lighting
-- Include 2–3 signature objects from the vocabulary above
+- Include 2–3 signature objects from the style vocabulary
 - UNMISTAKABLY ${roomType} — a reader who has never heard of this style must identify it instantly from wall colour and objects alone
 - CRITICAL — wall colour is the PRIMARY style signal to FLUX. Pick a wall that screams this style:
   Coastal → crisp white, pale aqua, or sandy cream. NEVER grey-green (FLUX reads grey-green as Japandi).
@@ -1383,8 +1386,6 @@ Represents the WHOLE article — must instantly communicate style, room type, an
   Farmhouse → shiplap white with visible plank lines. Texture of wall must show.
   Use the palette bank wall colour that is MOST distinctive for this style, not the most neutral.
 - End with: "1200×800px landscape, wide editorial room shot, strong directional light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
-
-${UNIVERSAL_RULES}
 
 ${includePins ? `
 PINTEREST PINS — write exactly 3:
@@ -1411,6 +1412,8 @@ CRITICAL: sectionPromptsMap must be an object keyed by the EXACT heading text, o
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4096,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    system: [{ type: 'text', text: systemContent, cache_control: { type: 'ephemeral' } }] as any,
     messages: [{ role: 'user', content: prompt }],
   });
 
