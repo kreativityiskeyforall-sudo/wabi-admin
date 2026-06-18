@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { getWebsiteCategory } from '@/lib/category-map';
 
 type Heading = { level: string; text: string; note: string };
 
@@ -18,10 +19,28 @@ export type ImageStore = {
 // ─── prompt builders ────────────────────────────────────────────────────────
 
 const ROOM_CTX: Record<string, string> = {
-  bedroom:     'Japandi bedroom, pale oak furniture, linen bedding, ceramic bedside accessories',
+  // Japandi
+  bedroom:       'Japandi bedroom, pale oak furniture, linen bedding, ceramic bedside accessories',
   'living-room': 'Japandi living room, low wooden sofa, natural rattan, wabi-sabi ceramics on shelf',
-  bathroom:    'Japandi bathroom, stone basin, bamboo accessories, matte neutral tiles',
-  kitchen:     'Japandi kitchen, pale oak cabinets, handmade clay ceramics, open shelf',
+  bathroom:      'Japandi bathroom, stone basin, bamboo accessories, matte neutral tiles',
+  kitchen:       'Japandi kitchen, pale oak cabinets, handmade clay ceramics, open shelf',
+  japandi:       'Japandi interior, natural materials, wabi-sabi aesthetic, warm neutral palette',
+  // Coastal
+  coastal:       'Coastal bedroom, whitewashed rattan headboard, linen bedding, sea glass colours, breezy light',
+  // Modern Farmhouse
+  'modern-farmhouse': 'Modern Farmhouse interior, shiplap wall, matte black hardware, reclaimed oak, cosy lived-in feel',
+  // Boho
+  boho:          'Boho interior, layered textiles, rattan furniture, terracotta tones, macramé wall art',
+  // Scandinavian
+  scandinavian:  'Scandinavian interior, pale birch furniture, sheepskin throw, candles, clean lines',
+  // Cottagecore
+  cottagecore:   'Cottagecore interior, painted wood furniture, floral cotton, dried flowers, vintage ceramics',
+  // Mid-Century Modern
+  'mid-century-modern': 'Mid-Century Modern interior, walnut credenza, tapered legs, boucle chair, warm amber tones',
+  // General / color rooms
+  general:       'modern home interior, neutral palette, layered textures, lifestyle photography',
+  // Garden
+  garden:        'outdoor garden space, natural stone, lush greenery, weather-resistant furniture, warm sunlight',
 };
 const LIGHTINGS = [
   'soft morning light filtering through sheer curtains',
@@ -53,12 +72,21 @@ function buildSectionPrompt(heading: string, category: string, index: number): s
 
 function buildFeaturedPrompt(category: string): string {
   const opens: Record<string, string> = {
-    bedroom:     'bright airy Japandi bedroom, pale oak platform bed, white linen bedding, large window',
-    'living-room': 'bright airy Japandi living room, low wooden sofa, rattan accent chair, ceramic vases, large window',
-    bathroom:    'clean Japandi bathroom, stone basin, bamboo bath mat, neutral stone tiles, sheer frosted window',
-    kitchen:     'minimal Japandi kitchen, pale oak cabinets, handmade clay ceramics on open shelf, natural light',
+    bedroom:            'bright airy Japandi bedroom, pale oak platform bed, white linen bedding, large window',
+    'living-room':      'bright airy Japandi living room, low wooden sofa, rattan accent chair, ceramic vases, large window',
+    bathroom:           'clean Japandi bathroom, stone basin, bamboo bath mat, neutral stone tiles, sheer frosted window',
+    kitchen:            'minimal Japandi kitchen, pale oak cabinets, handmade clay ceramics on open shelf, natural light',
+    japandi:            'bright airy Japandi interior, natural materials, minimal decor, large window',
+    coastal:            'bright airy Coastal bedroom, whitewashed rattan headboard, crisp white linen, sea glass aqua accents, large window, sun-bleached wood floor',
+    'modern-farmhouse': 'warm Modern Farmhouse interior, shiplap wall, matte black accents, reclaimed oak furniture, large window with cotton drapes',
+    boho:               'warm Boho living room, layered rattan and textiles, terracotta pot plant, kilim rug, warm afternoon light',
+    scandinavian:       'bright Scandinavian interior, pale birch furniture, white walls, sheepskin throws, large window, candles',
+    cottagecore:        'romantic Cottagecore bedroom, painted antique white furniture, floral cotton bedding, dried flower wreath, natural light',
+    'mid-century-modern': 'elegant Mid-Century Modern living room, walnut credenza, tapered legs sofa, arc lamp, warm amber afternoon light',
+    general:            'bright modern bedroom interior, layered neutral textiles, warm natural light, large window',
+    garden:             'bright outdoor patio space, lush greenery, natural stone paving, wicker furniture, warm sunlight',
   };
-  const base = opens[category] ?? 'bright airy Japandi interior, natural materials, minimal decor, large window';
+  const base = opens[category] ?? opens['general']!;
   return `${base}, sheer curtains, warm afternoon light, negative space, landscape orientation, editorial interior photography`;
 }
 
@@ -174,9 +202,31 @@ async function downloadPinWithOverlay(imageUrl: string, titleText: string, filen
 
 // ─── component ───────────────────────────────────────────────────────────────
 
+// Helper to fetch prompts for a batch of headings, returns sectionPromptsMap + featuredPrompt
+async function fetchPromptBatch(
+  articleTitle: string, category: string, headings: string[], articleMarkdown: string, includeFeatured: boolean
+): Promise<{ sectionPromptsMap?: Record<string, string>; featuredPrompt?: string }> {
+  const res = await fetch('/api/generate-image-prompts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
+  });
+  return res.json();
+}
+
 export default function ImagesClient({ id, article }: { id: string; article: SheetArticle | null }) {
   const isProduct = article?.type === 'product-review';
-  const category = article?.category?.toLowerCase().replace(/ /g, '-') ?? 'living-room';
+
+  // Use websiteCategory from outline localStorage (same approach as PublishClient)
+  // Falls back to deriving from article.category tab name
+  const savedOutline = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem(`outline-${id}`) ?? '{}'); } catch { return {}; } })()
+    : {};
+  const category = savedOutline.websiteCategory
+    ?? getWebsiteCategory(article?.category ?? '')
+    ?? article?.category?.toLowerCase().replace(/ /g, '-')
+    ?? 'general';
+
   const articleTitle = article?.title ?? '';
 
   const [featured, setFeatured] = useState<FeaturedImg>({ prompt: buildFeaturedPrompt(category), url: null });
@@ -216,30 +266,29 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         }));
         setSections(built);
 
-        // Auto-improve prompts using article content on first load
+        // Auto-improve prompts: split into batches of 5 and run in parallel
         const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
         if (articleMarkdown && built.length > 0) {
           setGeneratingPrompts(true);
-          const headings = built.map(s => s.headingText);
-          fetch('/api/generate-image-prompts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
-          })
-            .then(r => r.json())
-            .then(data => {
-              const improved = data.sectionPromptsMap
-                ? built.map((s) => ({ ...s, prompt: data.sectionPromptsMap[s.headingText] ?? s.prompt }))
-                : data.sectionPrompts
-                  ? built.map((s, i) => ({ ...s, prompt: data.sectionPrompts[i] ?? s.prompt }))
-                  : built;
+          const allHeadingTexts = built.map(s => s.headingText);
+          const BATCH = 5;
+          const batches: string[][] = [];
+          for (let i = 0; i < allHeadingTexts.length; i += BATCH) {
+            batches.push(allHeadingTexts.slice(i, i + BATCH));
+          }
+          Promise.all(batches.map(b => fetchPromptBatch(articleTitle, category, b, articleMarkdown, false)))
+            .then(results => {
+              const merged: Record<string, string> = {};
+              let featuredPrompt = '';
+              for (const data of results) {
+                if (data.featuredPrompt && !featuredPrompt) featuredPrompt = data.featuredPrompt;
+                if (data.sectionPromptsMap) Object.assign(merged, data.sectionPromptsMap);
+              }
+              const improved = built.map(s => ({ ...s, prompt: merged[s.headingText] ?? s.prompt }));
               setSections(improved);
-              const newFeatured: FeaturedImg = { prompt: data.featuredPrompt ?? buildFeaturedPrompt(category), url: null };
+              const newFeatured: FeaturedImg = { prompt: featuredPrompt || buildFeaturedPrompt(category), url: null };
               setFeatured(newFeatured);
-              localStorage.setItem(`images-${id}`, JSON.stringify({
-                featured: newFeatured,
-                sections: improved,
-              }));
+              localStorage.setItem(`images-${id}`, JSON.stringify({ featured: newFeatured, sections: improved }));
             })
             .catch(() => {})
             .finally(() => setGeneratingPrompts(false));
@@ -324,27 +373,24 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     setGeneratingPrompts(true); setError('');
     try {
       const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
-      const res = await fetch('/api/generate-image-prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
-      if (data.featuredPrompt) {
-        const newF = { ...featured, prompt: data.featuredPrompt };
+      // Batch into groups of 5 and run in parallel
+      const BATCH = 5;
+      const batches: string[][] = [];
+      for (let i = 0; i < headings.length; i += BATCH) batches.push(headings.slice(i, i + BATCH));
+      const results = await Promise.all(batches.map(b => fetchPromptBatch(articleTitle, category, b, articleMarkdown, false)));
+      const merged: Record<string, string> = {};
+      let featuredPrompt = '';
+      for (const data of results) {
+        if (data.featuredPrompt && !featuredPrompt) featuredPrompt = data.featuredPrompt;
+        if (data.sectionPromptsMap) Object.assign(merged, data.sectionPromptsMap);
+      }
+      if (featuredPrompt) {
+        const newF = { ...featured, prompt: featuredPrompt };
         setFeatured(newF);
         persistFeatured(newF);
       }
-      if (data.sectionPromptsMap) {
-        const newSec = sections.map(s => ({ ...s, prompt: data.sectionPromptsMap[s.headingText] ?? s.prompt }));
-        setSections(newSec);
-        persistSections(newSec);
-      } else if (data.sectionPrompts) {
-        const promptMap = Object.fromEntries(
-          headings.map((h, i) => [h, data.sectionPrompts[i] ?? ''])
-        );
-        const newSec = sections.map(s => ({ ...s, prompt: promptMap[s.headingText] ?? s.prompt }));
+      if (Object.keys(merged).length) {
+        const newSec = sections.map(s => ({ ...s, prompt: merged[s.headingText] ?? s.prompt }));
         setSections(newSec);
         persistSections(newSec);
       }

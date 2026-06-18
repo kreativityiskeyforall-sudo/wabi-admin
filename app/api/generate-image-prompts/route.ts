@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
+export const maxDuration = 300;
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -1408,7 +1410,7 @@ CRITICAL: sectionPromptsMap must be an object keyed by the EXACT heading text, o
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 16000,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   });
 

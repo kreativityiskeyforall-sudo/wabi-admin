@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
@@ -58,20 +58,55 @@ function parseArticle(markdown: string): { intro: string; sections: Array<{ head
   return { intro: introLines.join('\n').trim(), sections };
 }
 
-// Render a block of markdown text into simple paragraphs (strip markdown syntax)
+// Normalize heading for fuzzy matching (strip leading numbers, lowercase, strip punctuation)
+function normalizeHeading(text: string): string {
+  return text
+    .replace(/^(idea\s+\d+[:.]\s*|tip\s+\d+[:.]\s*|#\d+\s*[:.]\s*|\d+[:.]\s*)/i, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Render inline markdown (bold, italic, links) as React nodes
+function renderInline(text: string, paraKey: number): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/);
+  return parts.map((part, j) => {
+    if (!part) return null;
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={`${paraKey}-${j}`}>{part.slice(2, -2)}</strong>;
+    if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**'))
+      return <em key={`${paraKey}-${j}`}>{part.slice(1, -1)}</em>;
+    const lm = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (lm)
+      return <a key={`${paraKey}-${j}`} href={lm[2]} target="_blank" rel="noopener" style={{ color: 'var(--sage)', textDecoration: 'underline' }}>{lm[1]}</a>;
+    return <span key={`${paraKey}-${j}`}>{part}</span>;
+  });
+}
+
+// Render a block of markdown text into paragraphs with working links
 function renderBody(text: string) {
   if (!text) return null;
   return text.split(/\n\n+/).filter(Boolean).map((para, i) => {
     if (para.startsWith('### ')) return <h3 key={i} className="preview-h3">{para.slice(4)}</h3>;
-    const clean = para.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/^[-*] /, '').trim();
-    if (!clean) return null;
-    return <p key={i} className="preview-p">{clean}</p>;
+    const stripped = para.replace(/^[-*] /, '').trim();
+    if (!stripped) return null;
+    return <p key={i} className="preview-p">{renderInline(stripped, i)}</p>;
   });
 }
 
+const STYLE_LABELS: Record<string, string> = {
+  japandi: 'Japandi', coastal: 'Coastal', 'modern-farmhouse': 'Modern Farmhouse',
+  boho: 'Boho', scandinavian: 'Scandinavian', cottagecore: 'Cottagecore',
+  'mid-century-modern': 'Mid-Century Modern', general: 'home', garden: 'garden',
+  'global-styles': 'global styles', seasonal: 'seasonal', guides: 'home',
+  bedroom: 'Japandi', 'living-room': 'Japandi', bathroom: 'Japandi', kitchen: 'Japandi',
+};
+
 function buildAltText(headingText: string, category: string, articleTitle: string): string {
   const clean = headingText.replace(/^(idea\s+\d+[:.]\s*|tip\s+\d+[:.]\s*|\d+[:.]\s*)/i, '').trim();
-  return `${clean} – Japandi ${category.replace('-', ' ')} decor · ${articleTitle}`;
+  const styleLabel = STYLE_LABELS[category] ?? category.replace(/-/g, ' ');
+  return `${clean} – ${styleLabel} ${category.replace(/-/g, ' ')} decor · ${articleTitle}`;
 }
 
 export default function ComposeClient({ id, article }: { id: string; article: SheetArticle | null }) {
@@ -103,16 +138,24 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
       } catch { /* ignore */ }
     }
 
-    // Build image URL map by heading text for reliable matching
-    let imgMap: Record<string, string | null> = {};
+    // Build image URL maps — exact, normalized, and positional fallback
+    let imgMapExact: Record<string, string | null> = {};
+    let imgMapNorm: Record<string, string | null> = {};
+    let imgByIndex: (string | null)[] = [];
     if (imagesRaw) {
       try {
         const imgStore: ImageStore = JSON.parse(imagesRaw);
         for (const s of imgStore.sections ?? []) {
-          if (s.headingText) imgMap[s.headingText] = s.url ?? null;
+          if (s.headingText) {
+            imgMapExact[s.headingText] = s.url ?? null;
+            imgMapNorm[normalizeHeading(s.headingText)] = s.url ?? null;
+          }
+          imgByIndex.push(s.url ?? null);
         }
       } catch { /* ignore */ }
     }
+    const resolveImg = (heading: string, idx: number): string | null =>
+      imgMapExact[heading] ?? imgMapNorm[normalizeHeading(heading)] ?? imgByIndex[idx] ?? null;
 
     // Try to restore saved compose layout first
     if (savedCompose) {
@@ -122,13 +165,13 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
         const savedMap = Object.fromEntries(
           (saved.sections ?? []).map((s: Section) => [s.headingText, s])
         );
-        const merged: Section[] = parsedSections.map(p => {
+        const merged: Section[] = parsedSections.map((p, idx) => {
           const existing = savedMap[p.heading];
           return {
             headingText: p.heading,
             bodyText: p.body,
             level: p.level,
-            imageUrl: existing?.imageUrl ?? imgMap[p.heading] ?? null,
+            imageUrl: existing?.imageUrl ?? resolveImg(p.heading, idx),
             altText: existing?.altText ?? buildAltText(p.heading, category, articleTitle),
           };
         });
@@ -139,11 +182,11 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     }
 
     // Build fresh from images store
-    const built: Section[] = parsedSections.map(p => ({
+    const built: Section[] = parsedSections.map((p, idx) => ({
       headingText: p.heading,
       bodyText: p.body,
       level: p.level,
-      imageUrl: imgMap[p.heading] ?? null,
+      imageUrl: resolveImg(p.heading, idx),
       altText: buildAltText(p.heading, category, articleTitle),
     }));
 

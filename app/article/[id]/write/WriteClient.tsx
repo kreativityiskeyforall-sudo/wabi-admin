@@ -98,6 +98,13 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
     localStorage.setItem(`article-${id}`, val);
   };
 
+  const countLinks = (text: string) => {
+    const matches = text.match(/\[[^\]]+\]\(https?:\/\/[^)]+\)/g) ?? [];
+    const internal = matches.filter(m => m.includes('decoreixy.com')).length;
+    const external = matches.length - internal;
+    return { internal, external, total: matches.length };
+  };
+
   const handleSelectionChange = () => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -222,6 +229,33 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
             ✕ {error}
           </div>
         )}
+
+        {articleText && done && (() => {
+          const { internal, external } = countLinks(articleText);
+          const missingInternal = internal === 0;
+          const missingExternal = external === 0;
+          return (
+            <div style={{
+              background: missingInternal || missingExternal ? '#FEF9C3' : 'var(--sbg)',
+              border: `1px solid ${missingInternal || missingExternal ? '#FDE047' : 'var(--border)'}`,
+              borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 12, fontSize: 12,
+              display: 'flex', gap: 16, alignItems: 'center',
+            }}>
+              <span style={{ fontWeight: 700, color: 'var(--t2)' }}>Links in article:</span>
+              <span style={{ color: internal > 0 ? 'var(--sage)' : '#B45309' }}>
+                {internal > 0 ? `✓ ${internal} internal` : '✕ 0 internal links'}
+              </span>
+              <span style={{ color: external > 0 ? 'var(--sage)' : '#B45309' }}>
+                {external > 0 ? `✓ ${external} external` : '✕ 0 external links'}
+              </span>
+              {(missingInternal || missingExternal) && (
+                <span style={{ fontSize: 11, color: '#92400E' }}>
+                  Links are in the markdown as [text](url) — select text to add more manually
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {articleText && (
           <div className="art-preview">
