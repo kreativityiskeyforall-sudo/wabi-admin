@@ -17,7 +17,7 @@ const UNIVERSAL_RULES = `
 WRITING RULES — FOLLOW EXACTLY:
 1. Sentences: 20 words maximum. Short and direct. No compound sentences joined with "and" or "but".
 2. Paragraphs: 2–3 sentences only. Start a new paragraph every 2–3 sentences. White space is essential.
-3. Bold: Use **bold** for the single most important 2–4 word phrase in each paragraph. Never bold a full sentence.
+3. Bold: Use **bold** on 1–2 complete sentences per section — the single most insightful, actionable, or memorable sentence. Bold the full sentence, not just a phrase. Never bold more than 2 sentences per section. Never bold headings or product names.
 4. Simple English: write at a reading age of 14. No jargon without explanation. Anyone should understand it.
 5. Specificity: always name the material, finish, measurement, or price range. Vague descriptions are useless.
 6. UK English spelling: colour, favour, grey, cosy, whilst, matte, centre.
