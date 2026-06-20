@@ -49,6 +49,7 @@ export const TAB_TO_CATEGORY: Record<string, string> = {
   'General — Bedroom (Color)':    'general',
   'General — Bedroom (Styles)':   'general',
   'Bedroom — Demographics':       'general',
+  'Dorm Room + College':          'general',
   'General — Living Room':        'general',
   'General — Kitchen':            'general',
   'General — Bathroom':           'general',

@@ -51,6 +51,7 @@ export const CONTENT_TABS = [
   'General — Bedroom (Color)',
   'General — Bedroom (Styles)',
   'Bedroom — Demographics',
+  'Dorm Room + College',
   'General — Living Room',
   'General — Kitchen',
   'General — Bathroom',
