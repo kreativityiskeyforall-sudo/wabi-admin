@@ -118,7 +118,8 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <Link href={`/edit/${sanityId}/images`} className="btn btn-out btn-sm">+ Add images</Link>
+          <Link href={`/edit/${sanityId}/images`} className="btn btn-out btn-sm">+ Images</Link>
+          <Link href={`/edit/${sanityId}/shop`} className="btn btn-out btn-sm">✦ Shop The Look</Link>
           <button className="btn btn-sage" onClick={handleSave} disabled={saving}>
             {saving ? '⟳ Saving…' : saved ? '✓ Saved' : '↑ Save to Sanity'}
           </button>
