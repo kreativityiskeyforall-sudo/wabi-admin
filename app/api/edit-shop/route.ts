@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const doc = await sanity.fetch(
       `*[_id == $id || _id == "drafts." + $id][0]{
         title,
-        "body": body[]{style, children[]{text}},
+        "body": body[]{_type, style, children[]{text}},
         "shopBlocks": shopBlocks[]{
           afterHeading, headingLevel,
           "products": products[]{
