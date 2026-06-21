@@ -18,7 +18,7 @@ function extractHeadings(body: any[]): Array<{ text: string; level: 'H2' | 'H3' 
     .filter(b => b._type === 'block' && (b.style === 'h2' || b.style === 'h3'))
     .map(b => ({
       text: (b.children ?? []).map((c: any) => c.text ?? '').join('').trim(),
-      level: b.style === 'h3' ? 'H3' : 'H2',
+      level: (b.style === 'h3' ? 'H3' : 'H2') as 'H2' | 'H3',
     }))
     .filter(h => h.text);
 }
