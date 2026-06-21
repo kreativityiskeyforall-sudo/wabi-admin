@@ -64,6 +64,7 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
   const [headings, setHeadings] = useState<Array<{ text: string; level: 'H2' | 'H3' }>>([]);
   const [activeHeadings, setActiveHeadings] = useState<Set<string>>(new Set());
   const [blocks, setBlocks] = useState<Record<string, ShopBlock>>({});
+  const [dragOver, setDragOver] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/edit-shop?id=${sanityId}`)
@@ -317,13 +318,29 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
                             ref={el => { fileInputRefs.current[`${text}-${pi}`] = el; }}
                             onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(text, pi, f); e.target.value = ''; }}
                           />
-                          <button
-                            className="btn btn-out btn-sm"
-                            onClick={() => fileInputRefs.current[`${text}-${pi}`]?.click()}
-                            disabled={!product.price || product.generating}
+                          <div
+                            onDragOver={e => { e.preventDefault(); if (!product.price || product.generating) return; setDragOver(`${text}-${pi}`); }}
+                            onDragLeave={() => setDragOver(null)}
+                            onDrop={e => { e.preventDefault(); setDragOver(null); if (!product.price || product.generating) return; const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(text, pi, f); }}
+                            onClick={() => { if (!product.price || product.generating) return; fileInputRefs.current[`${text}-${pi}`]?.click(); }}
+                            style={{
+                              border: `1.5px dashed ${dragOver === `${text}-${pi}` ? 'var(--sage)' : 'var(--border)'}`,
+                              borderRadius: 'var(--r)',
+                              padding: '6px 12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              cursor: product.price && !product.generating ? 'pointer' : 'not-allowed',
+                              background: dragOver === `${text}-${pi}` ? 'var(--sbg)' : 'transparent',
+                              transition: 'border-color .15s, background .15s',
+                              fontSize: 11,
+                              color: 'var(--t2)',
+                              opacity: product.price && !product.generating ? 1 : 0.45,
+                              userSelect: 'none',
+                            }}
                           >
-                            📷 Upload Amazon chart
-                          </button>
+                            📷 <span>Drop here or <span style={{ color: 'var(--sage)', textDecoration: 'underline' }}>browse</span></span>
+                          </div>
                           {product.badge && (
                             <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>→ {BADGE_LABELS[product.badge]}</span>
                           )}
