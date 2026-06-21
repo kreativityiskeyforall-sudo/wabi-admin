@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 interface Props {
   articleId: string;
-  currentStage: 'outline' | 'brief' | 'roundup' | 'write' | 'images' | 'compose' | 'publish';
+  currentStage: 'outline' | 'brief' | 'roundup' | 'write' | 'images' | 'shop' | 'compose' | 'publish';
   articleTitle?: string;
   isProduct?: boolean;
 }
@@ -13,11 +13,12 @@ const STAGES = [
   { key: 'outline',   label: 'Outline',   productLabel: 'Brief', num: 1 },
   { key: 'write',     label: 'Write',     num: 2 },
   { key: 'images',    label: 'Images',    num: 3 },
-  { key: 'compose',   label: 'Compose',   num: 4 },
-  { key: 'publish',   label: 'Publish',   num: 5 },
+  { key: 'shop',      label: 'Shop',      num: 4 },
+  { key: 'compose',   label: 'Compose',   num: 5 },
+  { key: 'publish',   label: 'Publish',   num: 6 },
 ] as const;
 
-const stageOrder = ['outline', 'brief', 'roundup', 'write', 'images', 'compose', 'publish'];
+const stageOrder = ['outline', 'brief', 'roundup', 'write', 'images', 'shop', 'compose', 'publish'];
 
 export default function StageBar({ articleId, currentStage, articleTitle, isProduct }: Props) {
   const stageHref = (key: string) => {
@@ -30,8 +31,9 @@ export default function StageBar({ articleId, currentStage, articleTitle, isProd
       outline: 1, brief: 1, roundup: 1,
       write: 2,
       images: 3,
-      compose: 4,
-      publish: 5,
+      shop: 4,
+      compose: 5,
+      publish: 6,
     };
     return map[key] ?? 0;
   };

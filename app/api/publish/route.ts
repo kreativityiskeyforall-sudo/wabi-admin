@@ -149,7 +149,7 @@ function buildKicker(category: string, wordCount: number): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, publishedAt } = await req.json();
+  const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, shopBlocks, publishedAt } = await req.json();
 
   if (!title || !slug || !body) {
     return NextResponse.json({ error: 'title, slug, and body are required' }, { status: 400 });
@@ -245,6 +245,29 @@ export async function POST(req: NextRequest) {
     isMother: isMother ?? false,
     featuredImage,
     publishedAt: publishedAt ?? new Date().toISOString(),
+    shopBlocks: Array.isArray(shopBlocks) && shopBlocks.length > 0
+      ? shopBlocks.map((block: any) => ({
+          _type: 'shopBlock',
+          _key: key(),
+          afterHeading: block.afterHeading,
+          headingLevel: block.headingLevel ?? 'H2',
+          products: (block.products ?? []).map((p: any) => ({
+            _type: 'shopProduct',
+            _key: key(),
+            name: p.name ?? '',
+            amazonUrl: p.amazonUrl ?? '',
+            imageUrl: p.imageUrl ?? '',
+            price: p.price ?? 0,
+            highPrice: p.highPrice ?? null,
+            stars: p.stars ?? 0,
+            reviews: p.reviews ?? 0,
+            low: p.low ?? p.price ?? 0,
+            high: p.high ?? p.price ?? 0,
+            priceHistory: Array.isArray(p.priceHistory) ? p.priceHistory : [],
+            badge: p.badge ?? 'pick',
+          })),
+        }))
+      : [],
   };
 
   const created = await sanity.create(doc);

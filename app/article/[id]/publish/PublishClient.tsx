@@ -59,6 +59,13 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
         sectionImages = (compose.sections ?? []).filter((s: any) => s.imageUrl);
       } catch { /* ignore */ }
 
+      // Shop The Look blocks
+      let shopBlocks: Array<{ afterHeading: string; products: any[] }> = [];
+      try {
+        const shopData = JSON.parse(localStorage.getItem(`shop-${id}`) ?? '{}');
+        shopBlocks = (shopData.blocks ?? []).filter((b: any) => b.afterHeading && b.products?.length > 0);
+      } catch { /* ignore */ }
+
       // Pinterest pins from images store
       let pinterestPins: Array<{ url: string; layout: string }> = [];
       try {
@@ -85,6 +92,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           featuredImageUrl,
           sectionImages,
           pinterestPins,
+          shopBlocks,
           publishedAt,
         }),
       });
@@ -195,7 +203,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
       <StageBar articleId={id} currentStage="publish" articleTitle={article?.title} isProduct={isProduct} />
       <div className="wsbody">
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--sage)', marginBottom: 4 }}>Stage 5 — Ready to publish</div>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--sage)', marginBottom: 4 }}>Stage 6 — Ready to publish</div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 400 }}>{article?.title ?? 'Article'}</div>
         </div>
 

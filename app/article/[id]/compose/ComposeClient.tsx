@@ -121,6 +121,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [shopBlockMap, setShopBlockMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const articleRaw = localStorage.getItem(`article-${id}`) ?? '';
@@ -137,6 +138,16 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
         setFeaturedUrl(imgStore.featured?.url ?? null);
       } catch { /* ignore */ }
     }
+
+    // Load shop blocks
+    let shopBlockMapBuilt: Record<string, boolean> = {};
+    try {
+      const shopData = JSON.parse(localStorage.getItem(`shop-${id}`) ?? '{}');
+      for (const b of shopData.blocks ?? []) {
+        if (b.afterHeading) shopBlockMapBuilt[b.afterHeading] = true;
+      }
+    } catch { /* ignore */ }
+    setShopBlockMap(shopBlockMapBuilt);
 
     // Build image URL maps — exact, normalized, and positional fallback
     let imgMapExact: Record<string, string | null> = {};
@@ -233,7 +244,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--sage)', marginBottom: 4 }}>
-              Stage 4 — Compose layout
+              Stage 5 — Compose layout
             </div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 400 }}>{articleTitle}</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 3 }}>
@@ -241,7 +252,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <Link href={`/article/${id}/images`} className="btn btn-out btn-sm">← Images</Link>
+            <Link href={`/article/${id}/shop`} className="btn btn-out btn-sm">← Shop</Link>
             <button className="btn btn-sage" onClick={handleApprove} disabled={!loaded}>
               Publish →
             </button>
@@ -294,6 +305,12 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
                       <div className="preview-img-empty">No image assigned for this section</div>
                     )}
                     {renderBody(s.bodyText)}
+                    {shopBlockMap[s.headingText] && (
+                      <div style={{ background: '#eef2ef', border: '2px solid #5a9e8a', borderRadius: 8, padding: '14px 16px', margin: '16px 0', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#3d7a68', marginBottom: 4 }}>✦ Shop The Look</div>
+                        <div style={{ fontSize: 11, color: '#888' }}>Product cards will appear here</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

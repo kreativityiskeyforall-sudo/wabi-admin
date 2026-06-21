@@ -471,7 +471,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             <button className="btn btn-amber" onClick={generateAll} disabled={anyGenerating}>
               {anyGenerating ? '⟳ Generating…' : '⚡ Generate all'}
             </button>
-            <Link href={`/article/${id}/compose`} className="btn btn-sage">Compose layout →</Link>
+            <Link href={`/article/${id}/shop`} className="btn btn-sage">Shop The Look →</Link>
           </div>
         </div>
 
@@ -613,7 +613,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Link href={`/article/${id}/compose`} className="btn btn-sage">Images done — arrange layout →</Link>
+          <Link href={`/article/${id}/shop`} className="btn btn-sage">Images done — Shop The Look →</Link>
         </div>
 
       </div>
