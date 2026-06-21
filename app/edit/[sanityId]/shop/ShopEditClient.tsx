@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -55,6 +55,7 @@ const CTA_BG: Record<string, string> = { low: '#5a9e8a', rising: '#c17a5a', pick
 
 export default function ShopEditClient({ sanityId }: { sanityId: string }) {
   const router = useRouter();
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -142,6 +143,30 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
         body: JSON.stringify({ name: product.name, price: Number(product.price), highPrice: product.highPrice ? Number(product.highPrice) : undefined }),
       });
       const data = await res.json();
+      updateProduct(heading, pi, { priceHistory: data.history ?? [], low: data.low ?? null, high: data.high ?? null, badge: data.badge ?? 'pick', generating: false });
+    } catch {
+      updateProduct(heading, pi, { generating: false });
+    }
+  };
+
+  const readChartFromImage = async (heading: string, pi: number, file: File) => {
+    const product = blocks[heading]?.products[pi];
+    if (!product?.price) return;
+    updateProduct(heading, pi, { generating: true });
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/read-price-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(product.price), name: product.name }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
       updateProduct(heading, pi, { priceHistory: data.history ?? [], low: data.low ?? null, high: data.high ?? null, badge: data.badge ?? 'pick', generating: false });
     } catch {
       updateProduct(heading, pi, { generating: false });
@@ -274,17 +299,35 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                        <button
-                          className="btn btn-sage btn-sm"
-                          onClick={() => generateCurve(text, pi)}
-                          disabled={!product.price || product.generating}
-                        >
-                          {product.generating ? '⟳ Generating…' : '✦ Generate price curve'}
-                        </button>
-                        {product.badge && (
-                          <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>Badge: {BADGE_LABELS[product.badge]}</span>
-                        )}
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 6 }}>Price curve</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <button
+                            className="btn btn-sage btn-sm"
+                            onClick={() => generateCurve(text, pi)}
+                            disabled={!product.price || product.generating}
+                          >
+                            {product.generating ? '⟳ Reading…' : '✦ Generate (AI)'}
+                          </button>
+                          <span style={{ fontSize: 11, color: 'var(--t3)' }}>or</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            ref={el => { fileInputRefs.current[`${text}-${pi}`] = el; }}
+                            onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(text, pi, f); e.target.value = ''; }}
+                          />
+                          <button
+                            className="btn btn-out btn-sm"
+                            onClick={() => fileInputRefs.current[`${text}-${pi}`]?.click()}
+                            disabled={!product.price || product.generating}
+                          >
+                            📷 Upload Amazon chart
+                          </button>
+                          {product.badge && (
+                            <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>→ {BADGE_LABELS[product.badge]}</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Mini preview */}

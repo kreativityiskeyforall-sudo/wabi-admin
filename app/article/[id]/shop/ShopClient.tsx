@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
@@ -72,6 +72,7 @@ const BADGE_LABELS: Record<string, string> = {
 
 export default function ShopClient({ id, article }: { id: string; article: SheetArticle | null }) {
   const router = useRouter();
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [headings, setHeadings] = useState<Array<{ text: string; level: 'H2' | 'H3' }>>([]);
   const [activeHeadings, setActiveHeadings] = useState<Set<string>>(new Set());
   const [blocks, setBlocks] = useState<Record<string, ShopBlock>>({});
@@ -185,6 +186,30 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
     }
   };
 
+  const readChartFromImage = async (heading: string, pi: number, file: File) => {
+    const product = blocks[heading]?.products[pi];
+    if (!product?.price) return;
+    updateProduct(heading, pi, { generating: true });
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/read-price-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(product.price), name: product.name }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      updateProduct(heading, pi, { priceHistory: data.history ?? [], low: data.low ?? null, high: data.high ?? null, badge: data.badge ?? 'pick', generating: false });
+    } catch {
+      updateProduct(heading, pi, { generating: false });
+    }
+  };
+
   const handleContinue = () => {
     save(blocks, activeHeadings);
     router.push(`/article/${id}/compose`);
@@ -287,20 +312,35 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                            <button
-                              className="btn btn-sage btn-sm"
-                              onClick={() => generateCurve(text, pi)}
-                              disabled={!product.price || product.generating}
-                              style={{ flexShrink: 0 }}
-                            >
-                              {product.generating ? '⟳ Generating…' : '✦ Generate price curve'}
-                            </button>
-                            {product.badge && (
-                              <div style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>
-                                Badge: {BADGE_LABELS[product.badge]}
-                              </div>
-                            )}
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 6 }}>Price curve</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <button
+                                className="btn btn-sage btn-sm"
+                                onClick={() => generateCurve(text, pi)}
+                                disabled={!product.price || product.generating}
+                              >
+                                {product.generating ? '⟳ Reading…' : '✦ Generate (AI)'}
+                              </button>
+                              <span style={{ fontSize: 11, color: 'var(--t3)' }}>or</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                ref={el => { fileInputRefs.current[`${text}-${pi}`] = el; }}
+                                onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(text, pi, f); e.target.value = ''; }}
+                              />
+                              <button
+                                className="btn btn-out btn-sm"
+                                onClick={() => fileInputRefs.current[`${text}-${pi}`]?.click()}
+                                disabled={!product.price || product.generating}
+                              >
+                                📷 Upload Amazon chart
+                              </button>
+                              {product.badge && (
+                                <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>→ {BADGE_LABELS[product.badge]}</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* Mini card preview */}
