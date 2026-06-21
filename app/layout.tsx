@@ -3,8 +3,9 @@ import './globals.css';
 import ConditionalSidebar from '@/components/ConditionalSidebar';
 
 export const metadata: Metadata = {
-  title: 'wabi-decore. Content Studio',
-  description: 'Content production pipeline for wabi-decore.com',
+  title: 'decoreixy. Content Studio',
+  description: 'Content production pipeline for decoreixy.com',
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
