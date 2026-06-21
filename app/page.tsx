@@ -124,7 +124,10 @@ export default async function OverviewPage() {
                       {href ? (
                         <Link href={href} className="btn btn-dark btn-sm">Open →</Link>
                       ) : (
-                        <a href={`https://decoreixy.com/${art.slug}`} target="_blank" rel="noopener" className="btn btn-out btn-sm">↗ View live</a>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <a href={`https://decoreixy.com/${art.slug}`} target="_blank" rel="noopener" className="btn btn-out btn-sm">↗ Live</a>
+                          <Link href={`/edit/by-slug?slug=${encodeURIComponent(art.slug)}`} className="btn btn-dark btn-sm">Edit →</Link>
+                        </div>
                       )}
                     </td>
                   </tr>
