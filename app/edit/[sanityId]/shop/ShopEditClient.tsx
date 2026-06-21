@@ -341,10 +341,30 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
                           >
                             📷 <span>Drop here or <span style={{ color: 'var(--sage)', textDecoration: 'underline' }}>browse</span></span>
                           </div>
-                          {product.badge && (
-                            <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 600 }}>→ {BADGE_LABELS[product.badge]}</span>
-                          )}
                         </div>
+                        {product.badge && (
+                          <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
+                            {(['low', 'rising', 'pick'] as const).map(b => (
+                              <button
+                                key={b}
+                                onClick={() => updateProduct(text, pi, { badge: b })}
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: '4px 10px',
+                                  borderRadius: 20,
+                                  border: `1.5px solid ${product.badge === b ? 'var(--sage)' : 'var(--border)'}`,
+                                  background: product.badge === b ? 'var(--sage)' : 'transparent',
+                                  color: product.badge === b ? 'white' : 'var(--t2)',
+                                  cursor: 'pointer',
+                                  transition: 'all .15s',
+                                }}
+                              >
+                                {BADGE_LABELS[b]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Mini preview */}
