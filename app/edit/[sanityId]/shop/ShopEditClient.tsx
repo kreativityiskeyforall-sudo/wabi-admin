@@ -15,7 +15,7 @@ interface ShopProduct {
   low: number | null;
   high: number | null;
   priceHistory: number[];
-  badge: 'low' | 'rising' | 'pick' | '';
+  badge: 'low' | 'rising' | 'pick' | 'stable' | '';
   generating: boolean;
 }
 
@@ -49,9 +49,9 @@ function buildStepSvg(history: number[], badge: string): string {
   return `<svg viewBox="0 0 ${W} ${H}" height="${H}" width="100%" preserveAspectRatio="none"><path d="${fillPath}" fill="${fc}"/><path d="${line}" fill="none" stroke="${lc}" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"/><circle cx="${dotX}" cy="${dotY}" r="3" fill="${lc}"/></svg>`;
 }
 
-const BADGE_LABELS: Record<string, string> = { low: '✦ All-time low', rising: '↑ Price rising', pick: "✦ Editor's pick" };
-const CTA_COPY: Record<string, string> = { low: "Grab It — This Is the Lowest We've Seen →", rising: "It's Going Up — See Today's Price →", pick: "The One We'd Actually Buy →" };
-const CTA_BG: Record<string, string> = { low: '#5a9e8a', rising: '#c17a5a', pick: '#333' };
+const BADGE_LABELS: Record<string, string> = { low: '✦ All-time low', rising: '↑ Price rising', pick: "✦ Editor's pick", stable: '= Price stable' };
+const CTA_COPY: Record<string, string> = { low: "Grab It — This Is the Lowest We've Seen →", rising: "It's Going Up — See Today's Price →", pick: "The One We'd Actually Buy — See Today's Price →", stable: "Price Is Holding Steady — See Today's Price →" };
+const CTA_BG: Record<string, string> = { low: '#5a9e8a', rising: '#c17a5a', pick: '#333', stable: '#7a94a0' };
 
 export default function ShopEditClient({ sanityId }: { sanityId: string }) {
   const router = useRouter();
@@ -344,7 +344,7 @@ export default function ShopEditClient({ sanityId }: { sanityId: string }) {
                         </div>
                         {product.badge && (
                           <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
-                            {(['low', 'rising', 'pick'] as const).map(b => (
+                            {(['low', 'rising', 'pick', 'stable'] as const).map(b => (
                               <button
                                 key={b}
                                 onClick={() => updateProduct(text, pi, { badge: b })}

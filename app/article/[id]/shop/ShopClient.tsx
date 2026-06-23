@@ -17,7 +17,7 @@ interface ShopProduct {
   low: number | null;
   high: number | null;
   priceHistory: number[];
-  badge: 'low' | 'rising' | 'pick' | '';
+  badge: 'low' | 'rising' | 'pick' | 'stable' | '';
   generating: boolean;
 }
 
@@ -68,6 +68,7 @@ const BADGE_LABELS: Record<string, string> = {
   low: '✦ All-time low',
   rising: '↑ Price rising',
   pick: "✦ Editor's pick",
+  stable: '= Price stable',
 };
 
 export default function ShopClient({ id, article }: { id: string; article: SheetArticle | null }) {
@@ -357,7 +358,7 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
                             </div>
                             {product.badge && (
                               <div style={{ display: 'flex', gap: 5, marginTop: 8, flexWrap: 'wrap' }}>
-                                {(['low', 'rising', 'pick'] as const).map(b => (
+                                {(['low', 'rising', 'pick', 'stable'] as const).map(b => (
                                   <button
                                     key={b}
                                     onClick={() => updateProduct(text, pi, { badge: b })}
@@ -394,8 +395,8 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
                                 <div style={{ fontSize: 10, color: '#888', marginBottom: 8 }}>Low ${product.low} · High ${product.high}</div>
                               )}
                               <div dangerouslySetInnerHTML={{ __html: buildStepSvg(product.priceHistory, product.badge) }} style={{ marginBottom: 8 }} />
-                              <div style={{ padding: '8px 10px', background: product.badge === 'low' ? '#5a9e8a' : product.badge === 'rising' ? '#c17a5a' : '#333', borderRadius: 6, color: 'white', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>
-                                {product.badge === 'low' ? "Grab It — This Is the Lowest We've Seen →" : product.badge === 'rising' ? "It's Going Up — See Today's Price →" : "The One We'd Actually Buy →"}
+                              <div style={{ padding: '8px 10px', background: ({ low: '#5a9e8a', rising: '#c17a5a', stable: '#7a94a0' } as Record<string,string>)[product.badge] ?? '#333', borderRadius: 6, color: 'white', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>
+                                {({ low: "Grab It — This Is the Lowest We've Seen →", rising: "It's Going Up — See Today's Price →", pick: "The One We'd Actually Buy — See Today's Price →", stable: "Price Is Holding Steady — See Today's Price →" } as Record<string,string>)[product.badge] ?? "The One We'd Actually Buy — See Today's Price →"}
                               </div>
                             </div>
                           )}
