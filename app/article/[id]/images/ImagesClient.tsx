@@ -235,6 +235,8 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   const [genFeatured, setGenFeatured] = useState(false);
   const [genSections, setGenSections] = useState(false);
+  const [regenPromptIdx, setRegenPromptIdx] = useState<number | null>(null);
+  const [regenImageIdx, setRegenImageIdx] = useState<number | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [uploadingSectionIdx, setUploadingSectionIdx] = useState<number | null>(null);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
@@ -428,6 +430,34 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     window.location.reload();
   };
 
+  const regenSectionPrompt = async (idx: number) => {
+    setRegenPromptIdx(idx); setError('');
+    try {
+      const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
+      const heading = sections[idx].headingText;
+      const data = await fetchPromptBatch(articleTitle, category, [heading], articleMarkdown, false);
+      const newPrompt = data.sectionPromptsMap?.[heading];
+      if (newPrompt) {
+        const newSec = sections.map((s, j) => j === idx ? { ...s, prompt: newPrompt } : s);
+        setSections(newSec);
+        persistSections(newSec);
+      }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Prompt regen failed'); }
+    finally { setRegenPromptIdx(null); }
+  };
+
+  const regenSectionImage = async (idx: number) => {
+    setRegenImageIdx(idx); setError('');
+    try {
+      const s = sections[idx];
+      const imgs = await callGenerate([{ prompt: s.prompt, model: 'schnell', label: s.headingText, width: 1000, height: 1500 }]);
+      const newSec = sections.map((ss, j) => j === idx ? { ...ss, url: imgs[0].url } : ss);
+      setSections(newSec);
+      persistSections(newSec);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Image regen failed'); }
+    finally { setRegenImageIdx(null); }
+  };
+
   // ── download handlers ────────────────────────────────────────────────────
 
   const handleDownload = async (url: string, label: string) => {
@@ -445,7 +475,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const schnellCost = (enabledSections * 0.003).toFixed(3);
   const totalCost = (0.025 + enabledSections * 0.003).toFixed(3);
 
-  const anyGenerating = genFeatured || genSections;
+  const anyGenerating = genFeatured || genSections || regenImageIdx !== null;
 
   return (
     <>
@@ -572,6 +602,22 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                       disabled={uploadingSectionIdx === i}
                     />
                   </label>
+                  <button
+                    className="dl-btn dl-btn--sm"
+                    onClick={() => regenSectionPrompt(i)}
+                    disabled={regenPromptIdx === i || !s.enabled}
+                    title="Regenerate prompt for this section only"
+                  >
+                    {regenPromptIdx === i ? '⟳' : '✦'} Prompt
+                  </button>
+                  <button
+                    className="dl-btn dl-btn--sm"
+                    onClick={() => regenSectionImage(i)}
+                    disabled={regenImageIdx === i || !s.enabled}
+                    title="Regenerate image for this section only"
+                  >
+                    {regenImageIdx === i ? '⟳' : '⚡'} Image
+                  </button>
                   {s.url && (
                     <button
                       className="dl-btn dl-btn--sm"
