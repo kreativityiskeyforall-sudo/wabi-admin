@@ -20,6 +20,8 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
   const [outline, setOutline] = useState<{ headings: Heading[]; uniqueAngle?: string } | null>(null);
   const [wordCount, setWordCount] = useState(1800);
   const [productBriefData, setProductBriefData] = useState<{ products: any[]; angle: string } | null>(null);
+  const [linksOpen, setLinksOpen] = useState(true);
+  const [urlEdits, setUrlEdits] = useState<Record<number, string>>({});
 
   // Link tool state
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -110,6 +112,23 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
     const internal = matches.filter(m => m.includes('decoreixy.com')).length;
     const external = matches.length - internal;
     return { internal, external, total: matches.length };
+  };
+
+  const extractAllLinks = (text: string) => {
+    const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const links: Array<{ text: string; url: string; fullMatch: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      links.push({ text: m[1], url: m[2], fullMatch: m[0] });
+    }
+    return links;
+  };
+
+  const applyUrlEdit = (link: { text: string; url: string; fullMatch: string }, newUrl: string) => {
+    if (!newUrl.trim() || newUrl === link.url) return;
+    const newMatch = `[${link.text}](${newUrl.trim()})`;
+    handleTextChange(articleText.replace(link.fullMatch, newMatch));
+    setUrlEdits(e => { const n = { ...e }; delete n[articleText.indexOf(link.fullMatch)]; return n; });
   };
 
   const handleSelectionChange = () => {
@@ -259,6 +278,93 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
                 <span style={{ fontSize: 11, color: '#92400E' }}>
                   Links are in the markdown as [text](url) — select text to add more manually
                 </span>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Links Inspector ── */}
+        {articleText && done && (() => {
+          const allLinks = extractAllLinks(articleText);
+          const external = allLinks.filter(l => l.url.startsWith('http') && !l.url.includes('decoreixy.com'));
+          const internal = allLinks.filter(l => !l.url.startsWith('http') || l.url.includes('decoreixy.com'));
+          const hasPlaceholders = external.some(l => l.url.includes('PLACEHOLDER') || l.url === '#' || l.url === '');
+          return (
+            <div style={{ border: `1px solid ${hasPlaceholders ? '#F59E0B' : 'var(--border)'}`, borderRadius: 'var(--r)', marginBottom: 12, overflow: 'hidden' }}>
+              <button
+                style={{ width: '100%', background: hasPlaceholders ? '#FFFBEB' : 'var(--surface)', border: 'none', padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: 'inherit' }}
+                onClick={() => setLinksOpen(o => !o)}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>
+                  🔗 Links inspector
+                  <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--amber)' }}>{external.length} external</span>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--sage)' }}>{internal.length} internal</span>
+                  {hasPlaceholders && <span style={{ fontSize: 10, background: '#FEF3C7', color: '#92400E', padding: '1px 7px', borderRadius: 10, fontWeight: 700 }}>⚠ fix URLs</span>}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--t3)' }}>{linksOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {linksOpen && (
+                <div style={{ padding: '0 14px 12px', background: 'var(--sbg)' }}>
+
+                  {/* External links */}
+                  {external.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: '#B45309', marginBottom: 6 }}>
+                        External links — check &amp; fix URLs
+                      </div>
+                      {external.map((link, i) => {
+                        const key = `ext-${i}`;
+                        const editVal = urlEdits[i] ?? link.url;
+                        const isBad = link.url.includes('PLACEHOLDER') || link.url === '#' || link.url === '';
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, padding: '6px 10px', background: isBad ? '#FEF9C3' : '#FFF7ED', border: `1px solid ${isBad ? '#FDE047' : '#FED7AA'}`, borderRadius: 6 }}>
+                            <span style={{ fontSize: 11, color: '#92400E', fontWeight: 600, minWidth: 0, flex: '0 0 auto', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              "{link.text}"
+                            </span>
+                            <span style={{ color: '#D97706', fontSize: 11, flexShrink: 0 }}>→</span>
+                            <input
+                              style={{ flex: 1, fontSize: 11, padding: '4px 8px', border: `1px solid ${isBad ? '#F59E0B' : '#E5E7EB'}`, borderRadius: 4, fontFamily: 'inherit', color: isBad ? '#92400E' : 'var(--t1)', background: 'white', minWidth: 0 }}
+                              value={editVal}
+                              onChange={e => setUrlEdits(eds => ({ ...eds, [i]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') applyUrlEdit(link, editVal); }}
+                              placeholder="https://..."
+                            />
+                            <button
+                              style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'inherit', border: '1px solid #D97706', borderRadius: 4, background: editVal !== link.url ? '#D97706' : '#E5E7EB', color: editVal !== link.url ? 'white' : 'var(--t3)', cursor: editVal !== link.url ? 'pointer' : 'default', flexShrink: 0, fontWeight: 600 }}
+                              onClick={() => applyUrlEdit(link, editVal)}
+                              disabled={editVal === link.url}
+                            >
+                              Update
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Internal links */}
+                  {internal.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--sage)', marginBottom: 6 }}>
+                        Internal links — decoreixy.com
+                      </div>
+                      {internal.map((link, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, padding: '5px 10px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6 }}>
+                          <span style={{ fontSize: 11, color: '#166534', fontWeight: 600, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            "{link.text}"
+                          </span>
+                          <span style={{ color: 'var(--sage)', fontSize: 11 }}>→</span>
+                          <span style={{ fontSize: 11, color: '#166534', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{link.url}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {allLinks.length === 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--t3)', padding: '8px 0' }}>No links found in article yet.</div>
+                  )}
+                </div>
               )}
             </div>
           );
