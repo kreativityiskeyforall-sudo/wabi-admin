@@ -19,6 +19,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
   const [step, setStep] = useState(0);
   const [outline, setOutline] = useState<{ headings: Heading[]; uniqueAngle?: string } | null>(null);
   const [wordCount, setWordCount] = useState(1800);
+  const [productBriefData, setProductBriefData] = useState<{ products: any[]; angle: string } | null>(null);
 
   // Link tool state
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -36,7 +37,6 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
       try {
         const parsed = JSON.parse(stored);
         if (parsed.articleTitle && article?.title && parsed.articleTitle !== article.title) {
-          // Stale cache from a different article — IDs shifted, discard both
           localStorage.removeItem(`outline-${id}`);
           localStorage.removeItem(`article-${id}`);
         } else {
@@ -48,7 +48,14 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
         localStorage.removeItem(`outline-${id}`);
       }
     }
-  }, [id, article?.title]);
+    // Load product brief (only for product-review articles)
+    if (article?.type === 'product-review') {
+      const brief = localStorage.getItem(`brief-${id}`);
+      if (brief) {
+        try { setProductBriefData(JSON.parse(brief)); } catch { /* ignore */ }
+      }
+    }
+  }, [id, article?.title, article?.type]);
 
   const steps = isProduct
     ? ['Reading product brief', 'Writing introduction', 'Writing design & features', 'Writing pros/cons', 'Writing verdict', 'SEO check']
@@ -69,7 +76,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
           type: article?.type ?? 'editorial',
           title: article?.title,
           headings: outline?.headings ?? [],
-          productBrief: undefined,
+          productBrief: productBriefData ?? undefined,
           wordCount,
           uniqueAngle: outline?.uniqueAngle ?? article?.uniqueAngle,
           category: article?.category,

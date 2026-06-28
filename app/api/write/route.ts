@@ -248,8 +248,68 @@ AFFILIATE LINKS:
 Return ONLY the article in markdown. No preamble, no "Here is the article", no commentary.`;
 
   } else if (type === 'product-review') {
-    const p = productBrief ?? {};
-    prompt = `You are the content writer for decoreixy.com, a home decor site.
+    const briefProducts = (productBrief?.products ?? []) as Array<{
+      name: string; amazonUrl: string; brief: string; review: string;
+      priceNow: string; price90Low: string; price90High: string;
+      stars: string; reviewCount: string;
+    }>;
+    const overallAngle = productBrief?.angle ?? uniqueAngle ?? '';
+
+    const multiProduct = briefProducts.length > 1;
+
+    const productBlocks = briefProducts.map((p, i) => {
+      const hasReview = p.review?.trim().length > 0;
+      return `PRODUCT ${i + 1}: ${p.name || `Product ${i + 1}`}
+Amazon URL: ${p.amazonUrl || 'N/A'}
+Current price: ${p.priceNow || 'N/A'}
+90-day low: ${p.price90Low || 'N/A'}
+90-day high: ${p.price90High || 'N/A'}
+Stars: ${p.stars || 'N/A'} (${p.reviewCount || 'N/A'} reviews)
+Agent brief: ${p.brief || 'Not specified'}${hasReview ? `\nPre-written review (use verbatim, do not rewrite): ${p.review}` : '\n[Agent writes a 50–70 word review for this product]'}`;
+    }).join('\n\n');
+
+    if (multiProduct) {
+      prompt = `You are the content writer for decoreixy.com, a home decor site.
+
+ARTICLE DETAILS:
+Title: ${title}
+${contextBlock}
+Target words: ~${targetWords}
+Overall angle: ${overallAngle}
+
+PRODUCTS TO REVIEW:
+${productBlocks}
+
+${UNIVERSAL_RULES}
+
+${categoryRules}
+
+STRUCTURE FOR EACH PRODUCT (use H3 for product names):
+### [Product Name]
+- 50–70 word review. Cover: design aesthetic, material quality, Japandi fit, value at current price vs 90-day range.
+- If a pre-written review is provided above, use it VERBATIM. Do not rewrite or paraphrase it.
+- If no pre-written review: write one that sounds natural, editorial, and honest.
+- End each product section with: **Price check:** [current price] — [state whether above/below 90-day average and if it's a good time to buy]
+
+OPENING (no H2 heading — straight into body):
+2 paragraphs introducing the article and selection criteria.
+
+CLOSING:
+## Our Top Pick
+One paragraph naming the best overall product and why.
+
+RULES:
+- Honest, balanced. Not promotional. Name specific weaknesses.
+- Use **bold** on one key insight per product.
+- Do not invent products. Only review the products listed above.
+
+Return ONLY the article in markdown. No preamble.`;
+
+    } else {
+      // Single product (legacy path or just one product entered)
+      const p = briefProducts[0] ?? {};
+      const hasReview = p?.review?.trim().length > 0;
+      prompt = `You are the content writer for decoreixy.com, a home decor site.
 
 ARTICLE DETAILS:
 Title: ${title}
@@ -257,11 +317,14 @@ ${contextBlock}
 Target words: ~${targetWords}
 
 PRODUCT DATA:
-Current price: ${p.currentPrice ?? 'N/A'}
-90-day low: ${p.low90 ?? 'N/A'}
-90-day high: ${p.high90 ?? 'N/A'}
-Amazon stars: ${p.stars ?? 'N/A'} (${p.reviewCount ?? 'N/A'} reviews)
-Editorial angle: ${p.angle ?? uniqueAngle ?? 'Not specified'}
+Name: ${p.name || title}
+Amazon URL: ${p.amazonUrl || 'N/A'}
+Current price: ${p.priceNow || 'N/A'}
+90-day low: ${p.price90Low || 'N/A'}
+90-day high: ${p.price90High || 'N/A'}
+Stars: ${p.stars || 'N/A'} (${p.reviewCount || 'N/A'} reviews)
+Editorial angle: ${p.brief || overallAngle || 'Not specified'}
+${hasReview ? `\nPre-written review section (use verbatim, do not rewrite):\n${p.review}` : ''}
 
 ${UNIVERSAL_RULES}
 
@@ -280,11 +343,13 @@ STRUCTURE:
 
 RULES:
 - Honest, balanced. Not promotional. Name specific flaws.
-- Price & Value section: state if it is above or below its 90-day average — tell the reader if now is a good time to buy.
-- Verdict: one clear recommendation sentence. "Buy if…" or "Wait if…".
+- Price & Value: state if price is above or below 90-day average — tell the reader if now is a good time to buy.
+- Verdict: one clear sentence. "Buy if…" or "Wait if…".
 - Use **bold** on the key finding in each section.
+${hasReview ? '- The pre-written review section must appear verbatim in the article.' : ''}
 
 Return ONLY the article in markdown. No preamble.`;
+    }
 
   } else if (type === 'roundup') {
     const products = (productBrief?.products ?? []) as { name: string; currentPrice: string; stars: string; angle: string }[];
