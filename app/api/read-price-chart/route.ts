@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
   const currentPrice = Number(price);
 
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 600,
     messages: [{
       role: 'user',
       content: [
@@ -27,17 +27,26 @@ export async function POST(req: NextRequest) {
         },
         {
           type: 'text',
-          text: `This is a price history chart from Amazon for "${name || 'a product'}" currently priced at $${currentPrice}.
+          text: `This is a 1-year Amazon price history chart for "${name || 'a product'}". The current price is ${currentPrice}.
 
-Extract exactly 16 price data points from this chart, reading left to right across the full time period shown.
+STEP 1 — Read the Y-axis:
+Look at the horizontal grid lines and their labels on the Y-axis. Note the exact dollar values (e.g. $90, $110, $130, $150, $170). These are your reference points.
 
-Rules:
-- Match the step-function pattern exactly (sudden vertical jumps, flat plateaus — NOT gradual curves)
-- The 16th (last) value MUST be exactly ${currentPrice}
-- Read the Y-axis labels to get accurate price values
-- Return ONLY valid JSON, nothing else
+STEP 2 — Read the chart left to right:
+The chart is a step-function (flat horizontal lines with sudden vertical drops/jumps). Trace every price level plateau carefully from left (oldest) to right (newest/today).
 
-{"history":[n1,n2,...,n16],"low":<lowest_price_visible>,"high":<highest_price_visible>}`,
+STEP 3 — Extract 20 price points:
+Sample 20 evenly-spaced points left to right. For each point, estimate the price by comparing its vertical position against the Y-axis labels. BE PRECISE — if a plateau sits halfway between $110 and $130 labels, write $120.
+
+CRITICAL RULES:
+- "low" = the LOWEST price the line ever touches in the chart. This is often NOT the current price. Look for the deepest dip.
+- "high" = the HIGHEST price the line ever reaches. Look for the tallest plateau.
+- The 20th (last) value MUST be exactly ${currentPrice}.
+- Never invent values — read directly from the chart's Y-axis scale.
+- Do NOT set low = current price unless the current price is genuinely the lowest point on the whole chart.
+
+Return ONLY this JSON, nothing else:
+{"history":[v1,v2,...,v20],"low":<true minimum seen>,"high":<true maximum seen>}`,
         },
       ],
     }],
@@ -61,21 +70,22 @@ Rules:
   // Enforce last value = current price
   history[history.length - 1] = currentPrice;
 
-  const low = parsed.low ?? Math.min(...history);
-  const high = parsed.high ?? Math.max(...history);
-  const minVal = Math.min(...history);
-  const maxVal = Math.max(...history);
+  // Use model-reported low/high but sanity-check against history
+  const histMin = Math.min(...history);
+  const histMax = Math.max(...history);
+  const low = Math.min(parsed.low ?? histMin, histMin);
+  const high = Math.max(parsed.high ?? histMax, histMax);
 
   // Badge logic
+  const pct = (currentPrice - low) / (high - low || 1);
   let badge: 'low' | 'rising' | 'pick' = 'pick';
-  const pct = (currentPrice - minVal) / (maxVal - minVal || 1);
-  if (pct <= 0.10) {
+  if (pct <= 0.15) {
     badge = 'low';
   } else {
-    const last3 = history.slice(-3);
+    const last4 = history.slice(-4);
     const sorted = [...history].sort((a, b) => b - a);
-    const secondHighest = sorted[1] ?? maxVal;
-    if (last3.every(v => v >= secondHighest * 0.97)) badge = 'rising';
+    const secondHighest = sorted[1] ?? high;
+    if (last4.every(v => v >= secondHighest * 0.97)) badge = 'rising';
   }
 
   return NextResponse.json({ history, low, high, badge });
