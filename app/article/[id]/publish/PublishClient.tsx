@@ -45,12 +45,36 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
     try {
       const storedArticle = localStorage.getItem(`article-${id}`) ?? '';
 
-      // Featured image from new ImageStore format
+      // Featured image — for product articles use first product image, else ImageStore
       let featuredImageUrl = '';
       try {
         const imgStore = JSON.parse(localStorage.getItem(`images-${id}`) ?? '{}');
         featuredImageUrl = imgStore.featured?.url ?? '';
       } catch { /* ignore */ }
+
+      // Product items from brief (product-review articles)
+      let productItems: any[] = [];
+      if (isProduct) {
+        try {
+          const brief = JSON.parse(localStorage.getItem(`brief-${id}`) ?? '{}');
+          const products = brief.products ?? [];
+          productItems = products.map((p: any) => ({
+            name: p.name ?? '',
+            amazonUrl: p.amazonUrl ?? '',
+            imageUrl: (p.imageUrls ?? '').split('\n').map((u: string) => u.trim()).filter(Boolean)[0] ?? '',
+            priceNow: p.priceNow ?? '',
+            price1yrLow: p.price90Low ?? '',
+            price1yrHigh: p.price90High ?? '',
+            stars: p.stars ?? '',
+            reviewCount: p.reviewCount ?? '',
+            priceHistory: Array.isArray(p.priceHistory) ? p.priceHistory : [],
+          }));
+          // Use first product image as featured image if no other image set
+          if (!featuredImageUrl && productItems[0]?.imageUrl) {
+            featuredImageUrl = productItems[0].imageUrl;
+          }
+        } catch { /* ignore */ }
+      }
 
       // Section images from compose layout
       let sectionImages: Array<{ headingText: string; imageUrl: string; altText: string }> = [];
@@ -93,6 +117,7 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
           sectionImages,
           pinterestPins,
           shopBlocks,
+          productItems,
           publishedAt,
         }),
       });

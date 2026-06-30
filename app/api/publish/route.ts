@@ -149,7 +149,7 @@ function buildKicker(category: string, wordCount: number): string {
 }
 
 export async function POST(req: NextRequest) {
-  const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, shopBlocks, publishedAt } = await req.json();
+  const { title, slug, body, category, type, cluster, isMother, featuredImageUrl, sectionImages, pinterestPins, shopBlocks, productItems, publishedAt } = await req.json();
 
   if (!title || !slug || !body) {
     return NextResponse.json({ error: 'title, slug, and body are required' }, { status: 400 });
@@ -245,6 +245,21 @@ export async function POST(req: NextRequest) {
     isMother: isMother ?? false,
     featuredImage,
     publishedAt: publishedAt ?? new Date().toISOString(),
+    productItems: Array.isArray(productItems) && productItems.length > 0
+      ? productItems.map((p: any) => ({
+          _type: 'productItem',
+          _key: key(),
+          name: p.name ?? '',
+          amazonUrl: p.amazonUrl ?? '',
+          imageUrl: p.imageUrl ?? '',
+          priceNow: p.priceNow ?? '',
+          price1yrLow: p.price1yrLow ?? '',
+          price1yrHigh: p.price1yrHigh ?? '',
+          stars: p.stars ?? '',
+          reviewCount: p.reviewCount ?? '',
+          priceHistory: Array.isArray(p.priceHistory) ? p.priceHistory : [],
+        }))
+      : [],
     shopBlocks: Array.isArray(shopBlocks) && shopBlocks.length > 0
       ? shopBlocks.map((block: any) => ({
           _type: 'shopBlock',
