@@ -17,6 +17,51 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
   const [markdown, setMarkdown] = useState('');
   const [existingImages, setExistingImages] = useState<any[]>([]);
 
+  // Product cards re-save
+  const [briefIdInput, setBriefIdInput] = useState('');
+  const [showBriefInput, setShowBriefInput] = useState(false);
+  const [savingCards, setSavingCards] = useState(false);
+  const [cardsSaved, setCardsSaved] = useState(false);
+  const [cardsError, setCardsError] = useState('');
+
+  const handleSaveProductCards = async () => {
+    const briefId = briefIdInput.trim();
+    if (!briefId) return;
+    setSavingCards(true); setCardsError(''); setCardsSaved(false);
+    try {
+      const stored = localStorage.getItem(`brief-${briefId}`);
+      if (!stored) throw new Error(`No brief found for article #${briefId}. Make sure you're on the same browser where you filled in the brief.`);
+      const brief = JSON.parse(stored);
+      const products = brief.products ?? [];
+      if (!products.length) throw new Error('Brief has no products.');
+      const productItems = products.map((p: any) => ({
+        name: p.name ?? '',
+        amazonUrl: p.amazonUrl ?? '',
+        imageUrl: (p.imageUrls ?? '').split('\n').map((u: string) => u.trim()).filter(Boolean)[0] ?? '',
+        priceNow: p.priceNow ?? '',
+        price1yrLow: p.price90Low ?? '',
+        price1yrHigh: p.price90High ?? '',
+        stars: p.stars ?? '',
+        reviewCount: p.reviewCount ?? '',
+        priceHistory: Array.isArray(p.priceHistory) ? p.priceHistory : [],
+      }));
+      const res = await fetch('/api/edit-product-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sanityId, productItems }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      setCardsSaved(true);
+      setShowBriefInput(false);
+      setTimeout(() => setCardsSaved(false), 4000);
+    } catch (e: unknown) {
+      setCardsError(e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setSavingCards(false);
+    }
+  };
+
   // Link tool
   const [selection, setSelection] = useState<Selection | null>(null);
   const [linkMode, setLinkMode] = useState<'external' | 'internal' | null>(null);
@@ -117,14 +162,48 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
             {existingImages.length > 0 && ` · ${existingImages.length} images preserved`}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Link href={`/edit/${sanityId}/images`} className="btn btn-out btn-sm">+ Images</Link>
           <Link href={`/edit/${sanityId}/shop`} className="btn btn-out btn-sm">✦ Shop The Look</Link>
+          <button className="btn btn-out btn-sm" onClick={() => { setShowBriefInput(v => !v); setCardsError(''); }}>
+            {cardsSaved ? '✓ Cards saved!' : '🛒 Save product cards'}
+          </button>
           <button className="btn btn-sage" onClick={handleSave} disabled={saving}>
             {saving ? '⟳ Saving…' : saved ? '✓ Saved' : '↑ Save to Sanity'}
           </button>
         </div>
       </div>
+
+      {/* Product cards re-save panel */}
+      {showBriefInput && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 8 }}>
+            🛒 Save product cards from brief
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 10 }}>
+            Enter the article number from the brief URL — e.g. if the brief was at <code>/article/7/brief</code>, enter <strong>7</strong>.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              className="field-inp"
+              type="number"
+              placeholder="e.g. 7"
+              value={briefIdInput}
+              onChange={e => setBriefIdInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSaveProductCards(); }}
+              style={{ width: 100, fontWeight: 700 }}
+              autoFocus
+            />
+            <button className="btn btn-amber" onClick={handleSaveProductCards} disabled={savingCards || !briefIdInput}>
+              {savingCards ? '⟳ Saving…' : '↑ Save to Sanity'}
+            </button>
+            <button className="btn btn-out btn-sm" onClick={() => { setShowBriefInput(false); setCardsError(''); }}>Cancel</button>
+          </div>
+          {cardsError && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#991B1B' }}>✕ {cardsError}</div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '10px 14px', color: '#991B1B', fontSize: 13, marginBottom: 14 }}>
