@@ -35,58 +35,85 @@ const emptyProduct = (n: number): ProductEntry => ({
 function MiniSparkline({ low, current, high, history, idx }: { low: string; current: string; high: string; history?: number[]; idx: number }) {
   const parse = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
   const gid = `spkGrad-${idx}`;
+  const fmt = (v: number) => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`;
+  // left margin for Y-axis labels
+  const L = 36, W = 280, H = 68;
+  const TW = W + L; // total SVG width
 
   if (history && history.length >= 2) {
-    const mn = Math.min(...history) * 0.97;
-    const mx = Math.max(...history) * 1.03;
-    const range = mx - mn || 1;
-    const W = 280, H = 55;
-    const yv = (v: number) => ((H - 10) - ((v - mn) / range) * (H - 18)).toFixed(1);
+    const mn = Math.min(...history);
+    const mx = Math.max(...history);
+    const pad = (mx - mn) * 0.08 || 5;
+    const yMin = mn - pad; const yMax = mx + pad;
+    const range = yMax - yMin || 1;
+    const yv = (v: number) => (8 + ((yMax - v) / range) * (H - 20)).toFixed(1);
+    const xv = (i: number) => (L + (i / (history.length - 1)) * W).toFixed(1);
     let d = '';
     history.forEach((v, i) => {
-      const x = ((i / (history.length - 1)) * W).toFixed(1);
-      if (i === 0) { d += `M${x},${yv(v)}`; }
-      else { d += ` H${x} V${yv(v)}`; }
+      if (i === 0) { d += `M${xv(i)},${yv(v)}`; }
+      else { d += ` H${xv(i)} V${yv(v)}`; }
     });
     const lastY = yv(history[history.length - 1]);
-    const fillPts = history.map((v, i) => `${((i / (history.length - 1)) * W).toFixed(1)},${yv(v)}`).join(' ');
+    const mid = (mn + mx) / 2;
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 44, display: 'block', marginTop: 4 }}>
+      <svg viewBox={`0 0 ${TW} ${H}`} style={{ width: '100%', height: 60, display: 'block', marginTop: 4 }}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#B87355" stopOpacity=".18" />
             <stop offset="100%" stopColor="#B87355" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polygon points={`0,${yv(history[0])} ${fillPts} ${W},${H} 0,${H}`} fill={`url(#${gid})`} />
-        <path d={d} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
-        <circle cx={W} cy={lastY} r="3" fill="#B87355" />
-        <text x="2" y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
-        <text x="220" y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
+        {/* Y-axis grid lines */}
+        {[mx, mid, mn].map((v, gi) => (
+          <line key={gi} x1={L} y1={yv(v)} x2={TW} y2={yv(v)} stroke="#E8D8C8" strokeWidth="1" strokeDasharray="3,3" />
+        ))}
+        {/* Y-axis labels */}
+        <text x={L - 3} y={parseFloat(yv(mx)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mx)}</text>
+        <text x={L - 3} y={parseFloat(yv(mid)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mid)}</text>
+        <text x={L - 3} y={parseFloat(yv(mn)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mn)}</text>
+        {/* Fill + line */}
+        <polygon
+          points={`${xv(0)},${yv(history[0])} ${history.map((v,i)=>`${xv(i)},${yv(v)}`).join(' ')} ${xv(history.length-1)},${H} ${L},${H}`}
+          fill={`url(#${gid})`}
+        />
+        <path d={d} fill="none" stroke="#B87355" strokeWidth="1.8" strokeLinejoin="round" />
+        <circle cx={xv(history.length - 1)} cy={lastY} r="3" fill="#B87355" />
+        {/* X-axis labels */}
+        <text x={L + 2} y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1 year ago</text>
+        <text x={TW - 26} y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
       </svg>
     );
   }
 
   const lo = parse(low); const cu = parse(current); const hi = parse(high);
   if (!lo && !cu && !hi) return null;
-  const mn = Math.min(lo, cu, hi) * 0.97;
-  const mx = Math.max(lo, cu, hi) * 1.03;
-  const range = mx - mn || 1;
-  const y = (v: number) => (55 - ((v - mn) / range) * 45).toFixed(1);
-  const pts = `0,${y(lo)} 140,${y(hi)} 280,${y(cu)}`;
+  const mn = Math.min(lo, cu, hi);
+  const mx = Math.max(lo, cu, hi);
+  const pad = (mx - mn) * 0.08 || 5;
+  const yMin = mn - pad; const yMax = mx + pad;
+  const range = yMax - yMin || 1;
+  const yv = (v: number) => (8 + ((yMax - v) / range) * (H - 20)).toFixed(1);
+  const mid = (mn + mx) / 2;
+  const pts = `${L},${yv(lo)} ${L + W/2},${yv(hi)} ${L + W},${yv(cu)}`;
   return (
-    <svg viewBox="0 0 280 55" style={{ width: '100%', height: 44, display: 'block', marginTop: 4 }}>
+    <svg viewBox={`0 0 ${TW} ${H}`} style={{ width: '100%', height: 60, display: 'block', marginTop: 4 }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#B87355" stopOpacity=".22" />
           <stop offset="100%" stopColor="#B87355" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={`0,${y(lo)} 140,${y(hi)} 280,${y(cu)} 280,55 0,55`} fill={`url(#${gid})`} />
-      <polyline points={pts} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
-      <circle cx="280" cy={y(cu)} r="3" fill="#B87355" />
-      <text x="2" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
-      <text x="220" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
+      {[mx, mid, mn].map((v, gi) => (
+        <line key={gi} x1={L} y1={yv(v)} x2={TW} y2={yv(v)} stroke="#E8D8C8" strokeWidth="1" strokeDasharray="3,3" />
+      ))}
+      <text x={L - 3} y={parseFloat(yv(mx)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mx)}</text>
+      <text x={L - 3} y={parseFloat(yv(mid)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mid)}</text>
+      <text x={L - 3} y={parseFloat(yv(mn)) + 3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mn)}</text>
+      <polygon points={`${L},${yv(lo)} ${L+W/2},${yv(hi)} ${L+W},${yv(cu)} ${L+W},${H} ${L},${H}`} fill={`url(#${gid})`} />
+      <polyline points={pts} fill="none" stroke="#B87355" strokeWidth="1.8" strokeLinejoin="round" />
+      <circle cx={L + W} cy={yv(cu)} r="3" fill="#B87355" />
+      <text x={L + 2} y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
+      <text x={TW - 26} y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
     </svg>
   );
 }
