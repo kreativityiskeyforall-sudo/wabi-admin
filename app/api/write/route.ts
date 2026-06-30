@@ -262,8 +262,8 @@ Return ONLY the article in markdown. No preamble, no "Here is the article", no c
       return `PRODUCT ${i + 1}: ${p.name || `Product ${i + 1}`}
 Amazon URL: ${p.amazonUrl || 'N/A'}
 Current price: ${p.priceNow || 'N/A'}
-90-day low: ${p.price90Low || 'N/A'}
-90-day high: ${p.price90High || 'N/A'}
+1-year low: ${p.price90Low || 'N/A'}
+1-year high: ${p.price90High || 'N/A'}
 Stars: ${p.stars || 'N/A'} (${p.reviewCount || 'N/A'} reviews)
 Agent brief: ${p.brief || 'Not specified'}${hasReview ? `\nPre-written review (use verbatim, do not rewrite): ${p.review}` : '\n[Agent writes a 50–70 word review for this product]'}`;
     }).join('\n\n');
@@ -286,10 +286,10 @@ ${categoryRules}
 
 STRUCTURE FOR EACH PRODUCT (use H3 for product names):
 ### [Product Name]
-- 50–70 word review. Cover: design aesthetic, material quality, Japandi fit, value at current price vs 90-day range.
+- 50–70 word review. Cover: design aesthetic, material quality, Japandi fit, value at current price vs 1-year range.
 - If a pre-written review is provided above, use it VERBATIM. Do not rewrite or paraphrase it.
 - If no pre-written review: write one that sounds natural, editorial, and honest.
-- End each product section with: **Price check:** [current price] — [state whether above/below 90-day average and if it's a good time to buy]
+- End each product section with: **Price check:** [current price] — [state whether above/below 1-year average and if it's a good time to buy]
 
 OPENING (no H2 heading — straight into body):
 2 paragraphs introducing the article and selection criteria.
@@ -320,8 +320,8 @@ PRODUCT DATA:
 Name: ${p.name || title}
 Amazon URL: ${p.amazonUrl || 'N/A'}
 Current price: ${p.priceNow || 'N/A'}
-90-day low: ${p.price90Low || 'N/A'}
-90-day high: ${p.price90High || 'N/A'}
+1-year low: ${p.price90Low || 'N/A'}
+1-year high: ${p.price90High || 'N/A'}
 Stars: ${p.stars || 'N/A'} (${p.reviewCount || 'N/A'} reviews)
 Editorial angle: ${p.brief || overallAngle || 'Not specified'}
 ${hasReview ? `\nPre-written review section (use verbatim, do not rewrite):\n${p.review}` : ''}
@@ -343,7 +343,7 @@ STRUCTURE:
 
 RULES:
 - Honest, balanced. Not promotional. Name specific flaws.
-- Price & Value: state if price is above or below 90-day average — tell the reader if now is a good time to buy.
+- Price & Value: state if price is above or below 1-year average — tell the reader if now is a good time to buy.
 - Verdict: one clear sentence. "Buy if…" or "Wait if…".
 - Use **bold** on the key finding in each section.
 ${hasReview ? '- The pre-written review section must appear verbatim in the article.' : ''}
@@ -361,7 +361,7 @@ ${contextBlock}
 Target words: ~${targetWords}
 
 PRODUCTS TO INCLUDE:
-${products.map((p, i) => `${i + 1}. ${p.name} — £${p.currentPrice} — ${p.stars}★ — ${p.angle}`).join('\n')}
+${products.map((p, i) => `${i + 1}. ${p.name} — $${p.currentPrice} — ${p.stars}★ — ${p.angle}`).join('\n')}
 
 ${UNIVERSAL_RULES}
 
