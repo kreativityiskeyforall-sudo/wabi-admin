@@ -99,8 +99,8 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const chartFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const readChartFromImage = async (i: number, file: File) => {
-    if (!products[i].priceNow) return;
+  const readChartFromImage = async (i: number, file: File, currentPrice: string, productName: string) => {
+    if (!currentPrice) return;
     setChartLoading(prev => { const next = [...prev]; next[i] = true; return next; });
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -112,7 +112,7 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
       const res = await fetch('/api/read-price-chart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(products[i].priceNow.replace(/[^0-9.]/g, '')), name: products[i].name }),
+        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(currentPrice.replace(/[^0-9.]/g, '')), name: productName }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -366,13 +366,13 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                       accept="image/*"
                       style={{ display: 'none' }}
                       ref={el => { chartFileRefs.current[i] = el; }}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(i, f); e.target.value = ''; }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(i, f, prod.priceNow, prod.name); e.target.value = ''; }}
                     />
                     <div
-                      onDragOver={e => { e.preventDefault(); if (!prod.priceNow || chartLoading[i]) return; setChartDragOver(i); }}
+                      onDragOver={e => { e.preventDefault(); setChartDragOver(i); }}
                       onDragLeave={() => setChartDragOver(null)}
-                      onDrop={e => { e.preventDefault(); setChartDragOver(null); if (!prod.priceNow || chartLoading[i]) return; const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(i, f); }}
-                      onClick={() => { if (!prod.priceNow || chartLoading[i]) return; chartFileRefs.current[i]?.click(); }}
+                      onDrop={e => { e.preventDefault(); setChartDragOver(null); const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(i, f, prod.priceNow, prod.name); }}
+                      onClick={() => { chartFileRefs.current[i]?.click(); }}
                       style={{
                         border: `1.5px dashed ${chartDragOver === i ? 'var(--sage)' : 'var(--border)'}`,
                         borderRadius: 'var(--r)',
@@ -380,12 +380,12 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                         display: 'flex',
                         alignItems: 'center',
                         gap: 5,
-                        cursor: prod.priceNow && !chartLoading[i] ? 'pointer' : 'not-allowed',
+                        cursor: chartLoading[i] ? 'wait' : 'pointer',
                         background: chartDragOver === i ? 'var(--sbg)' : 'transparent',
                         transition: 'border-color .15s, background .15s',
                         fontSize: 10,
                         color: 'var(--t2)',
-                        opacity: prod.priceNow && !chartLoading[i] ? 1 : 0.45,
+                        opacity: chartLoading[i] ? 0.5 : 1,
                         userSelect: 'none',
                         whiteSpace: 'nowrap',
                       }}
