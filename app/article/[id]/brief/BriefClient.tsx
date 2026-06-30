@@ -353,51 +353,49 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                 </div>
               </div>
 
-              {/* Chart upload + sparkline */}
-              {(prod.priceNow || prod.price90Low || prod.price90High) && (
-                <div style={{ background: 'var(--abg)', border: '1px solid #E8D8C8', borderRadius: 6, padding: '8px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)' }}>
-                      📊 {prod.priceHistory?.length ? '1-year chart (from Amazon screenshot)' : 'Sparkline preview — auto-generates in article'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {chartLoading[i] && <span style={{ fontSize: 10, color: 'var(--t3)' }}>⟳ Reading chart…</span>}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        ref={el => { chartFileRefs.current[i] = el; }}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(i, f); e.target.value = ''; }}
-                      />
-                      <div
-                        onDragOver={e => { e.preventDefault(); if (!prod.priceNow || chartLoading[i]) return; setChartDragOver(i); }}
-                        onDragLeave={() => setChartDragOver(null)}
-                        onDrop={e => { e.preventDefault(); setChartDragOver(null); if (!prod.priceNow || chartLoading[i]) return; const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(i, f); }}
-                        onClick={() => { if (!prod.priceNow || chartLoading[i]) return; chartFileRefs.current[i]?.click(); }}
-                        style={{
-                          border: `1.5px dashed ${chartDragOver === i ? 'var(--sage)' : 'var(--border)'}`,
-                          borderRadius: 'var(--r)',
-                          padding: '4px 10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          cursor: prod.priceNow && !chartLoading[i] ? 'pointer' : 'not-allowed',
-                          background: chartDragOver === i ? 'var(--sbg)' : 'transparent',
-                          transition: 'border-color .15s, background .15s',
-                          fontSize: 10,
-                          color: 'var(--t2)',
-                          opacity: prod.priceNow && !chartLoading[i] ? 1 : 0.45,
-                          userSelect: 'none',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        📷 <span>Drop Amazon chart or <span style={{ color: 'var(--sage)', textDecoration: 'underline' }}>browse</span></span>
-                      </div>
+              {/* Chart upload + sparkline — always visible */}
+              <div style={{ background: 'var(--abg)', border: '1px solid #E8D8C8', borderRadius: 6, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)' }}>
+                    📊 {prod.priceHistory?.length ? '1-year chart (from Amazon screenshot)' : 'Sparkline preview — auto-generates in article'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {chartLoading[i] && <span style={{ fontSize: 10, color: 'var(--t3)' }}>⟳ Reading chart…</span>}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      ref={el => { chartFileRefs.current[i] = el; }}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(i, f); e.target.value = ''; }}
+                    />
+                    <div
+                      onDragOver={e => { e.preventDefault(); if (!prod.priceNow || chartLoading[i]) return; setChartDragOver(i); }}
+                      onDragLeave={() => setChartDragOver(null)}
+                      onDrop={e => { e.preventDefault(); setChartDragOver(null); if (!prod.priceNow || chartLoading[i]) return; const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(i, f); }}
+                      onClick={() => { if (!prod.priceNow || chartLoading[i]) return; chartFileRefs.current[i]?.click(); }}
+                      style={{
+                        border: `1.5px dashed ${chartDragOver === i ? 'var(--sage)' : 'var(--border)'}`,
+                        borderRadius: 'var(--r)',
+                        padding: '4px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        cursor: prod.priceNow && !chartLoading[i] ? 'pointer' : 'not-allowed',
+                        background: chartDragOver === i ? 'var(--sbg)' : 'transparent',
+                        transition: 'border-color .15s, background .15s',
+                        fontSize: 10,
+                        color: 'var(--t2)',
+                        opacity: prod.priceNow && !chartLoading[i] ? 1 : 0.45,
+                        userSelect: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      📷 <span>Drop Amazon chart or <span style={{ color: 'var(--sage)', textDecoration: 'underline' }}>browse</span></span>
                     </div>
                   </div>
-                  <MiniSparkline low={prod.price90Low} current={prod.priceNow} high={prod.price90High} history={prod.priceHistory} idx={i} />
                 </div>
-              )}
+                <MiniSparkline low={prod.price90Low ?? ''} current={prod.priceNow ?? ''} high={prod.price90High ?? ''} history={prod.priceHistory} idx={i} />
+              </div>
             </div>
           </div>
         ))}
