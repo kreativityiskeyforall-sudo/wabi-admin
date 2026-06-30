@@ -32,8 +32,9 @@ const emptyProduct = (n: number): ProductEntry => ({
   reviewCount: '',
 });
 
-function MiniSparkline({ low, current, high, history }: { low: string; current: string; high: string; history?: number[] }) {
+function MiniSparkline({ low, current, high, history, idx }: { low: string; current: string; high: string; history?: number[]; idx: number }) {
   const parse = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+  const gid = `spkGrad-${idx}`;
 
   if (history && history.length >= 2) {
     const mn = Math.min(...history) * 0.97;
@@ -41,27 +42,23 @@ function MiniSparkline({ low, current, high, history }: { low: string; current: 
     const range = mx - mn || 1;
     const W = 280, H = 55;
     const yv = (v: number) => ((H - 10) - ((v - mn) / range) * (H - 18)).toFixed(1);
-    // Step-function path: H to next x, then V to next y
     let d = '';
-    history.forEach((v, idx) => {
-      const x = ((idx / (history.length - 1)) * W).toFixed(1);
-      if (idx === 0) { d += `M${x},${yv(v)}`; }
+    history.forEach((v, i) => {
+      const x = ((i / (history.length - 1)) * W).toFixed(1);
+      if (i === 0) { d += `M${x},${yv(v)}`; }
       else { d += ` H${x} V${yv(v)}`; }
     });
     const lastY = yv(history[history.length - 1]);
-    const fillPts = history.map((v, idx) => {
-      const x = ((idx / (history.length - 1)) * W).toFixed(1);
-      return `${x},${yv(v)}`;
-    }).join(' ');
+    const fillPts = history.map((v, i) => `${((i / (history.length - 1)) * W).toFixed(1)},${yv(v)}`).join(' ');
     return (
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 44, display: 'block', marginTop: 4 }}>
         <defs>
-          <linearGradient id="spkGrad2" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#B87355" stopOpacity=".18" />
             <stop offset="100%" stopColor="#B87355" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <polygon points={`0,${yv(history[0])} ${fillPts} ${W},${H} 0,${H}`} fill="url(#spkGrad2)" />
+        <polygon points={`0,${yv(history[0])} ${fillPts} ${W},${H} 0,${H}`} fill={`url(#${gid})`} />
         <path d={d} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
         <circle cx={W} cy={lastY} r="3" fill="#B87355" />
         <text x="2" y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
@@ -70,7 +67,6 @@ function MiniSparkline({ low, current, high, history }: { low: string; current: 
     );
   }
 
-  // Fallback: 3-point sparkline from low/current/high
   const lo = parse(low); const cu = parse(current); const hi = parse(high);
   if (!lo && !cu && !hi) return null;
   const mn = Math.min(lo, cu, hi) * 0.97;
@@ -81,12 +77,12 @@ function MiniSparkline({ low, current, high, history }: { low: string; current: 
   return (
     <svg viewBox="0 0 280 55" style={{ width: '100%', height: 44, display: 'block', marginTop: 4 }}>
       <defs>
-        <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#B87355" stopOpacity=".22" />
           <stop offset="100%" stopColor="#B87355" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={`0,${y(lo)} 140,${y(hi)} 280,${y(cu)} 280,55 0,55`} fill="url(#spkGrad)" />
+      <polygon points={`0,${y(lo)} 140,${y(hi)} 280,${y(cu)} 280,55 0,55`} fill={`url(#${gid})`} />
       <polyline points={pts} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
       <circle cx="280" cy={y(cu)} r="3" fill="#B87355" />
       <text x="2" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
@@ -399,7 +395,7 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                       </div>
                     </div>
                   </div>
-                  <MiniSparkline low={prod.price90Low} current={prod.priceNow} high={prod.price90High} history={prod.priceHistory} />
+                  <MiniSparkline low={prod.price90Low} current={prod.priceNow} high={prod.price90High} history={prod.priceHistory} idx={i} />
                 </div>
               )}
             </div>
