@@ -16,6 +16,7 @@ type ProductEntry = {
   price90High: string;
   stars: string;
   reviewCount: string;
+  priceHistory?: number[];
 };
 
 const emptyProduct = (n: number): ProductEntry => ({
@@ -31,9 +32,45 @@ const emptyProduct = (n: number): ProductEntry => ({
   reviewCount: '',
 });
 
-// Simple sparkline that maps 3 price values to a 280×55 SVG path
-function MiniSparkline({ low, current, high }: { low: string; current: string; high: string }) {
+function MiniSparkline({ low, current, high, history }: { low: string; current: string; high: string; history?: number[] }) {
   const parse = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+
+  if (history && history.length >= 2) {
+    const mn = Math.min(...history) * 0.97;
+    const mx = Math.max(...history) * 1.03;
+    const range = mx - mn || 1;
+    const W = 280, H = 55;
+    const yv = (v: number) => ((H - 10) - ((v - mn) / range) * (H - 18)).toFixed(1);
+    // Step-function path: H to next x, then V to next y
+    let d = '';
+    history.forEach((v, idx) => {
+      const x = ((idx / (history.length - 1)) * W).toFixed(1);
+      if (idx === 0) { d += `M${x},${yv(v)}`; }
+      else { d += ` H${x} V${yv(v)}`; }
+    });
+    const lastY = yv(history[history.length - 1]);
+    const fillPts = history.map((v, idx) => {
+      const x = ((idx / (history.length - 1)) * W).toFixed(1);
+      return `${x},${yv(v)}`;
+    }).join(' ');
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 44, display: 'block', marginTop: 4 }}>
+        <defs>
+          <linearGradient id="spkGrad2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#B87355" stopOpacity=".18" />
+            <stop offset="100%" stopColor="#B87355" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,${yv(history[0])} ${fillPts} ${W},${H} 0,${H}`} fill="url(#spkGrad2)" />
+        <path d={d} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
+        <circle cx={W} cy={lastY} r="3" fill="#B87355" />
+        <text x="2" y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
+        <text x="220" y={H - 1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
+      </svg>
+    );
+  }
+
+  // Fallback: 3-point sparkline from low/current/high
   const lo = parse(low); const cu = parse(current); const hi = parse(high);
   if (!lo && !cu && !hi) return null;
   const mn = Math.min(lo, cu, hi) * 0.97;
@@ -52,7 +89,7 @@ function MiniSparkline({ low, current, high }: { low: string; current: string; h
       <polygon points={`0,${y(lo)} 140,${y(hi)} 280,${y(cu)} 280,55 0,55`} fill="url(#spkGrad)" />
       <polyline points={pts} fill="none" stroke="#B87355" strokeWidth="2" strokeLinejoin="round" />
       <circle cx="280" cy={y(cu)} r="3" fill="#B87355" />
-      <text x="2" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">90-day low</text>
+      <text x="2" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
       <text x="220" y="53" fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
     </svg>
   );
@@ -61,7 +98,38 @@ function MiniSparkline({ low, current, high }: { low: string; current: string; h
 export default function BriefClient({ id, article }: { id: string; article: SheetArticle | null }) {
   const [products, setProducts] = useState<ProductEntry[]>([emptyProduct(1)]);
   const [angle, setAngle] = useState(article?.uniqueAngle ?? '');
+  const [chartLoading, setChartLoading] = useState<boolean[]>([]);
+  const [chartDragOver, setChartDragOver] = useState<number | null>(null);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const chartFileRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const readChartFromImage = async (i: number, file: File) => {
+    if (!products[i].priceNow) return;
+    setChartLoading(prev => { const next = [...prev]; next[i] = true; return next; });
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/read-price-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(products[i].priceNow.replace(/[^0-9.]/g, '')), name: products[i].name }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setProducts(p => p.map((pr, idx) => idx === i ? {
+        ...pr,
+        price90Low: String(data.low ?? pr.price90Low),
+        price90High: String(data.high ?? pr.price90High),
+        priceHistory: data.history ?? pr.priceHistory,
+      } : pr));
+    } catch { /* ignore */ } finally {
+      setChartLoading(prev => { const next = [...prev]; next[i] = false; return next; });
+    }
+  };
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -257,13 +325,13 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                     placeholder="£89" style={{ fontWeight: 700 }} />
                 </div>
                 <div>
-                  <span className="lbl" style={{ color: 'var(--sage)' }}>90-day low ↓</span>
+                  <span className="lbl" style={{ color: 'var(--sage)' }}>1-year low ↓</span>
                   <input className="field-inp" type="text" value={prod.price90Low}
                     onChange={e => update(i, 'price90Low', e.target.value)}
                     placeholder="£72" style={{ color: 'var(--sage)', fontWeight: 700 }} />
                 </div>
                 <div>
-                  <span className="lbl" style={{ color: 'var(--pin)' }}>90-day high ↑</span>
+                  <span className="lbl" style={{ color: 'var(--pin)' }}>1-year high ↑</span>
                   <input className="field-inp" type="text" value={prod.price90High}
                     onChange={e => update(i, 'price90High', e.target.value)}
                     placeholder="£119" style={{ color: 'var(--pin)', fontWeight: 700 }} />
@@ -289,13 +357,49 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
                 </div>
               </div>
 
-              {/* Mini sparkline */}
+              {/* Chart upload + sparkline */}
               {(prod.priceNow || prod.price90Low || prod.price90High) && (
                 <div style={{ background: 'var(--abg)', border: '1px solid #E8D8C8', borderRadius: 6, padding: '8px 12px' }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 2 }}>
-                    📊 Sparkline preview — auto-generates in article
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)' }}>
+                      📊 {prod.priceHistory?.length ? '1-year chart (from Amazon screenshot)' : 'Sparkline preview — auto-generates in article'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {chartLoading[i] && <span style={{ fontSize: 10, color: 'var(--t3)' }}>⟳ Reading chart…</span>}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        ref={el => { chartFileRefs.current[i] = el; }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) readChartFromImage(i, f); e.target.value = ''; }}
+                      />
+                      <div
+                        onDragOver={e => { e.preventDefault(); if (!prod.priceNow || chartLoading[i]) return; setChartDragOver(i); }}
+                        onDragLeave={() => setChartDragOver(null)}
+                        onDrop={e => { e.preventDefault(); setChartDragOver(null); if (!prod.priceNow || chartLoading[i]) return; const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) readChartFromImage(i, f); }}
+                        onClick={() => { if (!prod.priceNow || chartLoading[i]) return; chartFileRefs.current[i]?.click(); }}
+                        style={{
+                          border: `1.5px dashed ${chartDragOver === i ? 'var(--sage)' : 'var(--border)'}`,
+                          borderRadius: 'var(--r)',
+                          padding: '4px 10px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          cursor: prod.priceNow && !chartLoading[i] ? 'pointer' : 'not-allowed',
+                          background: chartDragOver === i ? 'var(--sbg)' : 'transparent',
+                          transition: 'border-color .15s, background .15s',
+                          fontSize: 10,
+                          color: 'var(--t2)',
+                          opacity: prod.priceNow && !chartLoading[i] ? 1 : 0.45,
+                          userSelect: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        📷 <span>Drop Amazon chart or <span style={{ color: 'var(--sage)', textDecoration: 'underline' }}>browse</span></span>
+                      </div>
+                    </div>
                   </div>
-                  <MiniSparkline low={prod.price90Low} current={prod.priceNow} high={prod.price90High} />
+                  <MiniSparkline low={prod.price90Low} current={prod.priceNow} high={prod.price90High} history={prod.priceHistory} />
                 </div>
               )}
             </div>
