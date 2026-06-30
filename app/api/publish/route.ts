@@ -134,7 +134,8 @@ function extractPullQuote(markdown: string): string {
 function mapContentType(sheetType: string): string {
   if (sheetType === 'roundup') return 'roundup';
   if (sheetType === 'gift-guide') return 'gift-guide';
-  return 'info'; // editorial, product-review → info/guide
+  if (sheetType === 'product-review') return 'roundup';
+  return 'info';
 }
 
 function buildKicker(category: string, wordCount: number): string {
