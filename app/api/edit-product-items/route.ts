@@ -34,7 +34,24 @@ export async function POST(req: NextRequest) {
   }));
 
   try {
-    await sanity.patch(cleanId).set({ productItems: mapped }).commit();
+    // Check if article already has a featured image
+    const existing = await sanity.fetch(`*[_id == $id][0]{ "hasFeatured": defined(featuredImage) }`, { id: cleanId });
+    const patch = sanity.patch(cleanId).set({ productItems: mapped });
+
+    // Upload first product image as featured image if none exists
+    if (!existing?.hasFeatured && mapped[0]?.imageUrl) {
+      try {
+        const imgRes = await fetch(mapped[0].imageUrl);
+        const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+        const asset = await sanity.assets.upload('image', imgBuffer, {
+          filename: `${cleanId}-featured.jpg`,
+          contentType: imgRes.headers.get('content-type') ?? 'image/jpeg',
+        });
+        patch.set({ featuredImage: { _type: 'image', asset: { _type: 'reference', _ref: asset._id } } });
+      } catch { /* skip if image upload fails */ }
+    }
+
+    await patch.commit();
     await sanity.request({
       uri: `/data/mutate/production`,
       method: 'POST',
