@@ -220,7 +220,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
               <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
             )}
             {done && (
-              <Link href={`/article/${id}/images`} className="btn btn-sage">Images →</Link>
+              <Link href={`/article/${id}/${isProduct ? 'compose' : 'images'}`} className="btn btn-sage">{isProduct ? 'Compose →' : 'Images →'}</Link>
             )}
           </div>
         </div>
@@ -447,7 +447,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
               <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
-              <Link href={`/article/${id}/images`} className="btn btn-sage">Article done — go to images →</Link>
+              <Link href={`/article/${id}/${isProduct ? 'compose' : 'images'}`} className="btn btn-sage">{isProduct ? 'Article done — go to compose →' : 'Article done — go to images →'}</Link>
             </div>
           </div>
         )}
