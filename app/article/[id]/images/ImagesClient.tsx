@@ -346,7 +346,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   // ── generate helpers ──────────────────────────────────────────────────────
 
-  const callGenerate = async (prompts: Array<{ prompt: string; model: 'dev' | 'schnell'; label: string; width?: number; height?: number }>) => {
+  const callGenerate = async (prompts: Array<{ prompt: string; model: 'dev' | 'schnell' | 'pro' | 'ultra'; label: string; width?: number; height?: number }>) => {
     const res = await fetch('/api/generate-images', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -360,7 +360,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const generateFeatured = async () => {
     setGenFeatured(true); setError('');
     try {
-      const imgs = await callGenerate([{ prompt: featured.prompt, model: 'dev', label: 'featured', width: 1200, height: 800 }]);
+      const imgs = await callGenerate([{ prompt: featured.prompt, model: 'ultra', label: 'featured', width: 1200, height: 800 }]);
       const newF = { ...featured, url: imgs[0].url };
       setFeatured(newF);
       persistFeatured(newF);
@@ -408,7 +408,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     try {
       const enabled = sections.filter(s => s.enabled);
       if (!enabled.length) { setGenSections(false); return; }
-      const prompts = enabled.map(s => ({ prompt: s.prompt, model: 'schnell' as const, label: s.headingText, width: 1000, height: 1500 }));
+      const prompts = enabled.map(s => ({ prompt: s.prompt, model: 'pro' as const, label: s.headingText, width: 1000, height: 1500 }));
       const imgs = await callGenerate(prompts);
       const urlMap = Object.fromEntries(imgs.map(img => [img.label, img.url]));
       const newSec = sections.map(s => s.enabled && urlMap[s.headingText] ? { ...s, url: urlMap[s.headingText] } : s);
@@ -450,7 +450,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     setRegenImageIdx(idx); setError('');
     try {
       const s = sections[idx];
-      const imgs = await callGenerate([{ prompt: s.prompt, model: 'schnell', label: s.headingText, width: 1000, height: 1500 }]);
+      const imgs = await callGenerate([{ prompt: s.prompt, model: 'pro', label: s.headingText, width: 1000, height: 1500 }]);
       const newSec = sections.map((ss, j) => j === idx ? { ...ss, url: imgs[0].url } : ss);
       setSections(newSec);
       persistSections(newSec);

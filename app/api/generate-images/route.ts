@@ -5,7 +5,7 @@ fal.config({ credentials: process.env.FAL_KEY! });
 
 type ImageRequest = {
   prompt: string;
-  model: 'dev' | 'schnell';
+  model: 'dev' | 'schnell' | 'pro' | 'ultra';
   label: string;
   width?: number;
   height?: number;
@@ -15,16 +15,56 @@ type FalResult = {
   images: Array<{ url: string }>;
 };
 
+function toAspectRatio(width: number, height: number): string {
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const d = gcd(width, height);
+  return `${width / d}:${height / d}`;
+}
+
 async function generateOne(item: ImageRequest): Promise<{ url: string; label: string }> {
-  const modelId = item.model === 'dev' ? 'fal-ai/flux/dev' : 'fal-ai/flux/schnell';
-  const result = await fal.run(modelId, {
-    input: {
+  const w = item.width ?? 1000;
+  const h = item.height ?? 1500;
+
+  let modelId: string;
+  let input: Record<string, unknown>;
+
+  if (item.model === 'ultra') {
+    modelId = 'fal-ai/flux-pro/v1.1-ultra';
+    input = {
       prompt: item.prompt,
-      image_size: { width: item.width ?? 1000, height: item.height ?? 1500 },
+      aspect_ratio: toAspectRatio(w, h),
       num_images: 1,
       enable_safety_checker: false,
-    },
-  }) as FalResult;
+      output_format: 'jpeg',
+    };
+  } else if (item.model === 'pro') {
+    modelId = 'fal-ai/flux-pro/v1.1';
+    input = {
+      prompt: item.prompt,
+      image_size: { width: w, height: h },
+      num_images: 1,
+      enable_safety_checker: false,
+      output_format: 'jpeg',
+    };
+  } else if (item.model === 'dev') {
+    modelId = 'fal-ai/flux/dev';
+    input = {
+      prompt: item.prompt,
+      image_size: { width: w, height: h },
+      num_images: 1,
+      enable_safety_checker: false,
+    };
+  } else {
+    modelId = 'fal-ai/flux/schnell';
+    input = {
+      prompt: item.prompt,
+      image_size: { width: w, height: h },
+      num_images: 1,
+      enable_safety_checker: false,
+    };
+  }
+
+  const result = await fal.run(modelId, { input }) as FalResult;
   return { url: result.images[0].url, label: item.label };
 }
 

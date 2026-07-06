@@ -146,7 +146,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           body: JSON.stringify({
             prompts: batch.map(s => ({
               prompt: s.prompt,
-              model: 'schnell',
+              model: 'pro',
               label: s.headingText,
               width: 1000,
               height: 1500,
