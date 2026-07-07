@@ -16,80 +16,6 @@ export type ImageStore = {
   sections: SectionImg[];
 };
 
-// ─── prompt builders ────────────────────────────────────────────────────────
-
-const ROOM_CTX: Record<string, string> = {
-  // Japandi
-  bedroom:       'Japandi bedroom, pale oak furniture, linen bedding, ceramic bedside accessories',
-  'living-room': 'Japandi living room, low wooden sofa, natural rattan, wabi-sabi ceramics on shelf',
-  bathroom:      'Japandi bathroom, stone basin, bamboo accessories, matte neutral tiles',
-  kitchen:       'Japandi kitchen, pale oak cabinets, handmade clay ceramics, open shelf',
-  japandi:       'Japandi interior, natural materials, wabi-sabi aesthetic, warm neutral palette',
-  // Coastal
-  coastal:       'Coastal bedroom, whitewashed rattan headboard, linen bedding, sea glass colours, breezy light',
-  // Modern Farmhouse
-  'modern-farmhouse': 'Modern Farmhouse interior, shiplap wall, matte black hardware, reclaimed oak, cosy lived-in feel',
-  // Boho
-  boho:          'Boho interior, layered textiles, rattan furniture, terracotta tones, macramé wall art',
-  // Scandinavian
-  scandinavian:  'Scandinavian interior, pale birch furniture, sheepskin throw, candles, clean lines',
-  // Cottagecore
-  cottagecore:   'Cottagecore interior, painted wood furniture, floral cotton, dried flowers, vintage ceramics',
-  // Mid-Century Modern
-  'mid-century-modern': 'Mid-Century Modern interior, walnut credenza, tapered legs, boucle chair, warm amber tones',
-  // General / color rooms
-  general:       'modern home interior, neutral palette, layered textures, lifestyle photography',
-  // Garden
-  garden:        'outdoor garden space, natural stone, lush greenery, weather-resistant furniture, warm sunlight',
-};
-const LIGHTINGS = [
-  'soft morning light filtering through sheer curtains',
-  'warm golden afternoon sunlight',
-  'diffused overcast daylight, cool and calm',
-  'gentle dappled light through bamboo blinds',
-  'quiet north-facing light, shadowless',
-];
-const ANGLES = [
-  'eye-level interior photography',
-  'slight low angle looking up',
-  'three-quarter room view',
-  'intimate close-up detail shot',
-  'wide environmental shot',
-];
-const MOODS = [
-  'serene and minimal',
-  'warm and inviting',
-  'airy and light-filled',
-  'calm and meditative',
-  'quiet and still',
-];
-
-function buildSectionPrompt(heading: string, category: string, index: number): string {
-  const clean = heading.replace(/^(idea\s+\d+[:.]\s*|tip\s+\d+[:.]\s*|#\d+\s*[:.]\s*|\d+[:.]\s*)/i, '').trim();
-  const room = ROOM_CTX[category] ?? 'Japandi interior, natural materials, wabi-sabi aesthetic';
-  return `${clean}, ${room}, ${LIGHTINGS[index % LIGHTINGS.length]}, ${ANGLES[index % ANGLES.length]}, ${MOODS[index % MOODS.length]}, editorial interior photography, high quality`;
-}
-
-function buildFeaturedPrompt(category: string): string {
-  const opens: Record<string, string> = {
-    bedroom:            'bright airy Japandi bedroom, pale oak platform bed, white linen bedding, large window',
-    'living-room':      'bright airy Japandi living room, low wooden sofa, rattan accent chair, ceramic vases, large window',
-    bathroom:           'clean Japandi bathroom, stone basin, bamboo bath mat, neutral stone tiles, sheer frosted window',
-    kitchen:            'minimal Japandi kitchen, pale oak cabinets, handmade clay ceramics on open shelf, natural light',
-    japandi:            'bright airy Japandi interior, natural materials, minimal decor, large window',
-    coastal:            'bright airy Coastal bedroom, whitewashed rattan headboard, crisp white linen, sea glass aqua accents, large window, sun-bleached wood floor',
-    'modern-farmhouse': 'warm Modern Farmhouse interior, shiplap wall, matte black accents, reclaimed oak furniture, large window with cotton drapes',
-    boho:               'warm Boho living room, layered rattan and textiles, terracotta pot plant, kilim rug, warm afternoon light',
-    scandinavian:       'bright Scandinavian interior, pale birch furniture, white walls, sheepskin throws, large window, candles',
-    cottagecore:        'romantic Cottagecore bedroom, painted antique white furniture, floral cotton bedding, dried flower wreath, natural light',
-    'mid-century-modern': 'elegant Mid-Century Modern living room, walnut credenza, tapered legs sofa, arc lamp, warm amber afternoon light',
-    general:            'bright modern bedroom interior, layered neutral textiles, warm natural light, large window',
-    garden:             'bright outdoor patio space, lush greenery, natural stone paving, wicker furniture, warm sunlight',
-  };
-  const base = opens[category] ?? opens['general']!;
-  return `${base}, sheer curtains, warm afternoon light, negative space, landscape orientation, editorial interior photography`;
-}
-
 // ─── download utils ──────────────────────────────────────────────────────────
 
 function fallbackDownload(blob: Blob, filename: string) {
@@ -202,18 +128,6 @@ async function downloadPinWithOverlay(imageUrl: string, titleText: string, filen
 
 // ─── component ───────────────────────────────────────────────────────────────
 
-// Helper to fetch prompts for a batch of headings, returns sectionPromptsMap + featuredPrompt
-async function fetchPromptBatch(
-  articleTitle: string, category: string, headings: string[], articleMarkdown: string, includeFeatured: boolean
-): Promise<{ sectionPromptsMap?: Record<string, string>; featuredPrompt?: string }> {
-  const res = await fetch('/api/generate-image-prompts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ articleTitle, category, headings, articleMarkdown }),
-  });
-  return res.json();
-}
-
 export default function ImagesClient({ id, article }: { id: string; article: SheetArticle | null }) {
   const isProduct = article?.type === 'product-review';
 
@@ -227,22 +141,18 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     ?? article?.category?.toLowerCase().replace(/ /g, '-')
     ?? 'general';
 
-  const articleTitle = article?.title ?? '';
-
-  const [featured, setFeatured] = useState<FeaturedImg>({ prompt: buildFeaturedPrompt(category), url: null });
+  const [featured, setFeatured] = useState<FeaturedImg>({ prompt: '', url: null });
   const [sections, setSections] = useState<SectionImg[]>([]);
-  const [generatingPrompts, setGeneratingPrompts] = useState(false);
 
   const [genFeatured, setGenFeatured] = useState(false);
   const [genSections, setGenSections] = useState(false);
-  const [regenPromptIdx, setRegenPromptIdx] = useState<number | null>(null);
   const [regenImageIdx, setRegenImageIdx] = useState<number | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [uploadingSectionIdx, setUploadingSectionIdx] = useState<number | null>(null);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
   const [error, setError] = useState('');
 
-  // Restore from localStorage + build section prompts from outline
+  // Restore from localStorage + build section rows from outline (prompts start blank)
   useEffect(() => {
     const saved = localStorage.getItem(`images-${id}`);
     if (saved) {
@@ -259,45 +169,17 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       try {
         const outline: { headings: Heading[] } = JSON.parse(outlineRaw);
         const allHeadings = outline.headings.filter(h => h.level === 'H2' || h.level === 'H3');
-        const built: SectionImg[] = allHeadings.map((h, i) => ({
+        const built: SectionImg[] = allHeadings.map(h => ({
           headingText: h.text,
-          prompt: buildSectionPrompt(h.text, category, i),
+          prompt: '',
           enabled: true,
           url: null,
           level: h.level as 'H2' | 'H3',
         }));
         setSections(built);
-
-        // Auto-improve prompts: split into batches of 5 and run in parallel
-        const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
-        if (articleMarkdown && built.length > 0) {
-          setGeneratingPrompts(true);
-          const allHeadingTexts = built.map(s => s.headingText);
-          const BATCH = 5;
-          const batches: string[][] = [];
-          for (let i = 0; i < allHeadingTexts.length; i += BATCH) {
-            batches.push(allHeadingTexts.slice(i, i + BATCH));
-          }
-          Promise.all(batches.map(b => fetchPromptBatch(articleTitle, category, b, articleMarkdown, false)))
-            .then(results => {
-              const merged: Record<string, string> = {};
-              let featuredPrompt = '';
-              for (const data of results) {
-                if (data.featuredPrompt && !featuredPrompt) featuredPrompt = data.featuredPrompt;
-                if (data.sectionPromptsMap) Object.assign(merged, data.sectionPromptsMap);
-              }
-              const improved = built.map(s => ({ ...s, prompt: merged[s.headingText] ?? s.prompt }));
-              setSections(improved);
-              const newFeatured: FeaturedImg = { prompt: featuredPrompt || buildFeaturedPrompt(category), url: null };
-              setFeatured(newFeatured);
-              localStorage.setItem(`images-${id}`, JSON.stringify({ featured: newFeatured, sections: improved }));
-            })
-            .catch(() => {})
-            .finally(() => setGeneratingPrompts(false));
-        }
       } catch { /* ignore */ }
     }
-  }, [id, category]);
+  }, [id]);
 
   // Each function reads current localStorage first so sequential calls don't clobber each other
   const persistFeatured = (newF: FeaturedImg) => {
@@ -368,41 +250,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     finally { setGenFeatured(false); }
   };
 
-  const improvePrompts = async () => {
-    const enabledSecs = sections.filter(s => s.enabled);
-    const headings = enabledSecs.map(s => s.headingText);
-    if (!headings.length) return;
-    setGeneratingPrompts(true); setError('');
-    try {
-      const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
-      // Batch into groups of 5 and run in parallel
-      const BATCH = 5;
-      const batches: string[][] = [];
-      for (let i = 0; i < headings.length; i += BATCH) batches.push(headings.slice(i, i + BATCH));
-      const results = await Promise.all(batches.map(b => fetchPromptBatch(articleTitle, category, b, articleMarkdown, false)));
-      const merged: Record<string, string> = {};
-      let featuredPrompt = '';
-      for (const data of results) {
-        if (data.featuredPrompt && !featuredPrompt) featuredPrompt = data.featuredPrompt;
-        if (data.sectionPromptsMap) Object.assign(merged, data.sectionPromptsMap);
-      }
-      if (featuredPrompt) {
-        const newF = { ...featured, prompt: featuredPrompt };
-        setFeatured(newF);
-        persistFeatured(newF);
-      }
-      if (Object.keys(merged).length) {
-        const newSec = sections.map(s => ({ ...s, prompt: merged[s.headingText] ?? s.prompt }));
-        setSections(newSec);
-        persistSections(newSec);
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Prompt generation failed');
-    } finally {
-      setGeneratingPrompts(false);
-    }
-  };
-
   const generateSections = async () => {
     setGenSections(true); setError('');
     try {
@@ -428,22 +275,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     if (!confirm('Clear all saved images and prompts for this article and rebuild from outline?')) return;
     localStorage.removeItem(`images-${id}`);
     window.location.reload();
-  };
-
-  const regenSectionPrompt = async (idx: number) => {
-    setRegenPromptIdx(idx); setError('');
-    try {
-      const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
-      const heading = sections[idx].headingText;
-      const data = await fetchPromptBatch(articleTitle, category, [heading], articleMarkdown, false);
-      const newPrompt = data.sectionPromptsMap?.[heading];
-      if (newPrompt) {
-        const newSec = sections.map((s, j) => j === idx ? { ...s, prompt: newPrompt } : s);
-        setSections(newSec);
-        persistSections(newSec);
-      }
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Prompt regen failed'); }
-    finally { setRegenPromptIdx(null); }
   };
 
   const regenSectionImage = async (idx: number) => {
@@ -516,9 +347,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           <div className="img-card-hd">
             <div className="img-card-title">Featured Image <span className="img-tag">1200×800 landscape · FLUX Dev</span></div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-out btn-sm" onClick={improvePrompts} disabled={generatingPrompts || sections.length === 0} title="Claude rewrites featured + all section prompts">
-                {generatingPrompts ? '⟳ Writing prompts…' : '✦ Improve prompt'}
-              </button>
               <label className="btn btn-out btn-sm" style={{ cursor: 'pointer' }}>
                 {uploadingFeatured ? '⟳ Uploading…' : '↑ Upload'}
                 <input type="file" accept="image/*" style={{ display: 'none' }}
@@ -532,11 +360,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             </div>
           </div>
           <div style={{ padding: '10px 14px' }}>
-            {generatingPrompts && (
-              <div style={{ fontSize: 11, color: 'var(--t3)', fontStyle: 'italic', marginBottom: 6 }}>
-                ⟳ Writing prompt with Claude…
-              </div>
-            )}
             <textarea
               className="prompt-ta"
               value={featured.prompt}
@@ -566,9 +389,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
               Section Images <span className="img-tag">1000×1500 portrait · FLUX Schnell · {enabledSections} enabled</span>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="btn btn-out btn-sm" onClick={improvePrompts} disabled={generatingPrompts || sections.length === 0} title="Claude rewrites all prompts as detailed scene descriptions">
-                {generatingPrompts ? '⟳ Writing prompts…' : '✦ Improve prompts'}
-              </button>
               <button className="btn btn-out btn-sm" onClick={generateSections} disabled={genSections}>
                 {genSections ? '⟳' : '⚡'} Generate
               </button>
@@ -602,14 +422,6 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                       disabled={uploadingSectionIdx === i}
                     />
                   </label>
-                  <button
-                    className="dl-btn dl-btn--sm"
-                    onClick={() => regenSectionPrompt(i)}
-                    disabled={regenPromptIdx === i || !s.enabled}
-                    title="Regenerate prompt for this section only"
-                  >
-                    {regenPromptIdx === i ? '⟳' : '✦'} Prompt
-                  </button>
                   <button
                     className="dl-btn dl-btn--sm"
                     onClick={() => regenSectionImage(i)}
