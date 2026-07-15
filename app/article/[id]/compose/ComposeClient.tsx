@@ -152,7 +152,6 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     // Build image URL maps — exact, normalized, and positional fallback
     let imgMapExact: Record<string, string | null> = {};
     let imgMapNorm: Record<string, string | null> = {};
-    let imgByIndex: (string | null)[] = [];
     if (imagesRaw) {
       try {
         const imgStore: ImageStore = JSON.parse(imagesRaw);
@@ -161,12 +160,11 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
             imgMapExact[s.headingText] = s.url ?? null;
             imgMapNorm[normalizeHeading(s.headingText)] = s.url ?? null;
           }
-          imgByIndex.push(s.url ?? null);
         }
       } catch { /* ignore */ }
     }
-    const resolveImg = (heading: string, idx: number): string | null =>
-      imgMapExact[heading] ?? imgMapNorm[normalizeHeading(heading)] ?? imgByIndex[idx] ?? null;
+    const resolveImg = (heading: string, _idx: number): string | null =>
+      imgMapExact[heading] ?? imgMapNorm[normalizeHeading(heading)] ?? null;
 
     // Try to restore saved compose layout first
     if (savedCompose) {

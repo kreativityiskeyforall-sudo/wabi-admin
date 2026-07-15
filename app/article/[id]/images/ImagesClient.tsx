@@ -8,6 +8,15 @@ import { getWebsiteCategory } from '@/lib/category-map';
 
 type Heading = { level: string; text: string; note: string };
 
+function parseArticleHeadings(markdown: string): Array<{ heading: string; level: 'H2' | 'H3' }> {
+  const result: Array<{ heading: string; level: 'H2' | 'H3' }> = [];
+  for (const line of markdown.split('\n')) {
+    if (line.startsWith('### ')) result.push({ heading: line.slice(4).trim(), level: 'H3' });
+    else if (line.startsWith('## ')) result.push({ heading: line.slice(3).trim(), level: 'H2' });
+  }
+  return result;
+}
+
 type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null; level?: 'H2' | 'H3' };
 type FeaturedImg = { prompt: string; url: string | null };
 
@@ -164,6 +173,19 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       } catch { /* corrupt — rebuild */ }
     }
 
+    // Prefer headings from the written article — it may have more/different H3s than the outline
+    const articleRaw = localStorage.getItem(`article-${id}`);
+    if (articleRaw) {
+      try {
+        const parsed = parseArticleHeadings(articleRaw);
+        if (parsed.length > 0) {
+          setSections(parsed.map(h => ({ headingText: h.heading, prompt: '', enabled: true, url: null, level: h.level })));
+          return;
+        }
+      } catch { /* fall through */ }
+    }
+
+    // Fall back to outline headings if article not written yet
     const outlineRaw = localStorage.getItem(`outline-${id}`);
     if (outlineRaw) {
       try {
