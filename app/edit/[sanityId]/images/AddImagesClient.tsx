@@ -39,6 +39,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   const [sections, setSections] = useState<SectionImg[]>([]);
   const [generatingPrompts, setGeneratingPrompts] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [regenIdx, setRegenIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -172,6 +173,33 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
     }
   };
 
+  const generateSingleImage = async (idx: number) => {
+    const s = sections[idx];
+    if (!s.prompt.trim()) { setError('Add a prompt for this section first.'); return; }
+    setRegenIdx(idx); setError('');
+    try {
+      const res = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompts: [{ prompt: s.prompt, model: 'pro', label: s.headingText, width: 1000, height: 1500 }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Generation failed');
+      const url = data.images?.[0]?.url;
+      if (url) {
+        const newSecs = sections.map((x, j) => j === idx ? { ...x, url } : x);
+        setSections(newSecs);
+        persistSections(newSecs);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Generation failed');
+    } finally {
+      setRegenIdx(null);
+    }
+  };
+
   const handleSaveToSanity = async () => {
     const ready = sections.filter(s => s.enabled && s.url);
     if (!ready.length) { setError('Generate images first'); return; }
@@ -276,6 +304,15 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
                 onChange={e => { const n = sections.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x); setSections(n); persistSections(n); }}
               />
               <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{s.headingText}</span>
+              <button
+                className="btn btn-out btn-sm"
+                style={{ fontSize: 10 }}
+                onClick={() => generateSingleImage(i)}
+                disabled={regenIdx === i || generating || !s.enabled}
+                title="Generate image for this section only"
+              >
+                {regenIdx === i ? '⟳' : '⚡'} Generate
+              </button>
               {s.url && (
                 <button
                   className="btn btn-out btn-sm"
