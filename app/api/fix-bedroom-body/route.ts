@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 
+export const dynamic = 'force-dynamic';
+
 // ONE-TIME FIX: redistributes the 21 stacked images in the bedroom article
 // to appear after their matching H3 heading instead of all after a single H2.
 
