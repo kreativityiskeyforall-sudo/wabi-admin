@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const { title, contentType, category, cluster, uniqueAngle, competition, priority } = await req.json();
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not set' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 
   const bible = await loadContentBible();
