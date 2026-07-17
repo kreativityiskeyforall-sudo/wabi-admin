@@ -67,8 +67,21 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
           priority: article?.priority,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed to generate');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
+        throw new Error(err.error ?? 'Failed to generate');
+      }
+      // Stream the response to avoid Vercel timeout on large pillar articles
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+      }
+      const cleaned = accumulated.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+      const data = JSON.parse(cleaned);
       if (data.headings) setHeadings(data.headings);
       if (data.seoTitle) setSeoTitle(data.seoTitle);
       if (data.metaDescription) setMetaDescription(data.metaDescription);
