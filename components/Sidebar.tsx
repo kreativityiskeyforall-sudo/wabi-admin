@@ -68,10 +68,12 @@ export default function Sidebar() {
       .catch(() => {});
   }, []);
 
+  const [pubRefreshKey, setPubRefreshKey] = useState(0);
+
   useEffect(() => {
     if (tab !== 'published') return;
     setPubLoading(true);
-    fetch('/api/published-articles')
+    fetch('/api/published-articles', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (d.articles) {
@@ -81,7 +83,7 @@ export default function Sidebar() {
       })
       .catch(() => {})
       .finally(() => setPubLoading(false));
-  }, [tab]);
+  }, [tab, pubRefreshKey]);
 
   const inProgress    = articles.filter(a => ['writing', 'images', 'pinterest'].includes(a.status));
   const needsReview   = articles.filter(a => a.status === 'outline-ready');
@@ -248,6 +250,12 @@ export default function Sidebar() {
       {/* ── PUBLISHED TAB ── */}
       {tab === 'published' && (
         <div className="sb-scroll">
+          <div style={{ padding: '8px 18px 0', display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setPubRefreshKey(k => k + 1)} disabled={pubLoading}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--t3)', padding: '2px 4px' }}>
+              {pubLoading ? '⟳ Loading…' : '⟳ Refresh'}
+            </button>
+          </div>
           {pubLoading && <div style={{ padding: '20px 18px', fontSize: 12, color: 'var(--t3)' }}>Loading…</div>}
 
           {!pubLoading && pubArticles.length === 0 && (
