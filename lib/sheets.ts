@@ -144,7 +144,7 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
   // Fetch all tabs in ONE request instead of 51 sequential calls
   const res = await sheets.spreadsheets.values.batchGet({
     spreadsheetId: SHEET_ID,
-    ranges: CONTENT_TABS.map(tab => `'${tab}'!A:J`),
+    ranges: CONTENT_TABS.map(tab => `'${tab}'!A:K`),
   });
 
   const allArticles: SheetArticle[] = [];
@@ -160,6 +160,9 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
       if (!title) continue;
       const status = mapStatus(row[8]?.toString().trim() ?? '');
       if (status === 'delete') continue;
+      const note = row[10]?.toString().trim() ?? '';
+      const slugMatch = note.match(/slug:([^\s|]+)/);
+      const publishedAtMatch = note.match(/published:([^\s|]+)/);
       allArticles.push({
         id: String(globalId++),
         title,
@@ -173,8 +176,8 @@ export async function getArticlesFromSheets(): Promise<SheetArticle[]> {
         competition: row[7]?.toString().trim() ?? '',
         status,
         priority: row[9]?.toString().trim() ?? '',
-        slug: '',
-        publishedAt: '',
+        slug: slugMatch?.[1] ?? '',
+        publishedAt: publishedAtMatch?.[1] ?? '',
         rowNumber: rowIdx + 1,
       });
     }
