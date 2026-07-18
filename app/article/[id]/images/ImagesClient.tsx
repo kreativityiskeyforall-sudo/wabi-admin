@@ -162,25 +162,39 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const [error, setError] = useState('');
   const [lightbox, setLightbox] = useState<string | null>(null);
 
-  // Restore from localStorage + build section rows from outline (prompts start blank)
+  // Restore from localStorage + build section rows from article/outline headings.
+  // Always re-parse headings from the latest article so edits in Write stage are reflected here.
+  // Saved prompts/URLs/enabled are merged back by heading text so existing work is preserved.
   useEffect(() => {
-    const saved = localStorage.getItem(`images-${id}`);
-    if (saved) {
+    // Load any previously saved featured image + per-heading data
+    let savedFeatured: FeaturedImg | null = null;
+    let savedByHeading: Record<string, { prompt: string; url: string | null; enabled: boolean }> = {};
+    const savedRaw = localStorage.getItem(`images-${id}`);
+    if (savedRaw) {
       try {
-        const store: ImageStore = JSON.parse(saved);
-        setFeatured(store.featured);
-        setSections(store.sections);
-        return;
-      } catch { /* corrupt — rebuild */ }
+        const store: ImageStore = JSON.parse(savedRaw);
+        savedFeatured = store.featured;
+        for (const s of store.sections) {
+          savedByHeading[s.headingText] = { prompt: s.prompt, url: s.url, enabled: s.enabled };
+        }
+      } catch { /* corrupt — ignore */ }
     }
 
-    // Prefer headings from the written article — it may have more/different H3s than the outline
+    if (savedFeatured) setFeatured(savedFeatured);
+
+    // Derive headings from the written article first, then fall back to outline
     const articleRaw = localStorage.getItem(`article-${id}`);
     if (articleRaw) {
       try {
         const parsed = parseArticleHeadings(articleRaw);
         if (parsed.length > 0) {
-          setSections(parsed.map(h => ({ headingText: h.heading, prompt: '', enabled: true, url: null, level: h.level })));
+          setSections(parsed.map(h => ({
+            headingText: h.heading,
+            prompt: savedByHeading[h.heading]?.prompt ?? '',
+            enabled: savedByHeading[h.heading]?.enabled ?? true,
+            url: savedByHeading[h.heading]?.url ?? null,
+            level: h.level,
+          })));
           return;
         }
       } catch { /* fall through */ }
@@ -192,14 +206,13 @@ export default function ImagesClient({ id, article }: { id: string; article: She
       try {
         const outline: { headings: Heading[] } = JSON.parse(outlineRaw);
         const allHeadings = outline.headings.filter(h => h.level === 'H2' || h.level === 'H3');
-        const built: SectionImg[] = allHeadings.map(h => ({
+        setSections(allHeadings.map(h => ({
           headingText: h.text,
-          prompt: '',
-          enabled: true,
-          url: null,
+          prompt: savedByHeading[h.text]?.prompt ?? '',
+          enabled: savedByHeading[h.text]?.enabled ?? true,
+          url: savedByHeading[h.text]?.url ?? null,
           level: h.level as 'H2' | 'H3',
-        }));
-        setSections(built);
+        })));
       } catch { /* ignore */ }
     }
   }, [id]);
