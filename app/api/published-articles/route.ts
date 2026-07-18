@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@sanity/client';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,7 @@ const sanity = createClient({
 });
 
 export async function GET() {
+  noStore();
   const articles = await sanity.fetch(`
     *[_type == "article"] | order(category asc, title asc) {
       _id,
