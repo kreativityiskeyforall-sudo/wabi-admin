@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null };
+type FeaturedImg = { prompt: string; url: string | null };
 
 function fallbackDownload(blob: Blob, filename: string) {
   const a = document.createElement('a');
@@ -37,11 +38,16 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   const [category, setCategory] = useState('');
   const [slug, setSlug] = useState('');
   const [sections, setSections] = useState<SectionImg[]>([]);
+  const [featured, setFeatured] = useState<FeaturedImg>({ prompt: '', url: null });
   const [generatingPrompts, setGeneratingPrompts] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generatingFeatured, setGeneratingFeatured] = useState(false);
+  const [uploadingFeatured, setUploadingFeatured] = useState(false);
   const [regenIdx, setRegenIdx] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savingFeatured, setSavingFeatured] = useState(false);
+  const [savedFeatured, setSavedFeatured] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [articleMarkdown, setArticleMarkdown] = useState('');
@@ -63,20 +69,23 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           .map((l: string) => l.replace(/^#{2,3} /, '').trim())
           .filter((h: string) => h.length > 0);
 
-        // Restore any previously generated URLs from localStorage
+        // Restore any previously saved data from localStorage
         const savedRaw = localStorage.getItem(`add-images-${sanityId}`);
         let savedUrls: Record<string, string> = {};
         let savedPrompts: Record<string, string> = {};
         let savedEnabled: Record<string, boolean> = {};
+        let savedFeatured: FeaturedImg = { prompt: '', url: null };
         if (savedRaw) {
           try {
             const parsed = JSON.parse(savedRaw);
             savedUrls = parsed.urls ?? {};
             savedPrompts = parsed.prompts ?? {};
             savedEnabled = parsed.enabled ?? {};
+            savedFeatured = parsed.featured ?? { prompt: '', url: null };
           } catch { /* ignore */ }
         }
 
+        setFeatured(savedFeatured);
         setSections(headings.map((h: string) => ({
           headingText: h,
           prompt: savedPrompts[h] ?? '',
@@ -88,8 +97,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       .finally(() => setLoading(false));
   }, [sanityId]);
 
-  // Persist sections to localStorage whenever they change
-  const persistSections = (secs: SectionImg[]) => {
+  const persistAll = (secs: SectionImg[], feat: FeaturedImg) => {
     const urls: Record<string, string> = {};
     const prompts: Record<string, string> = {};
     const enabled: Record<string, boolean> = {};
@@ -98,11 +106,79 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       if (s.prompt) prompts[s.headingText] = s.prompt;
       enabled[s.headingText] = s.enabled;
     }
-    localStorage.setItem(`add-images-${sanityId}`, JSON.stringify({ urls, prompts, enabled }));
+    localStorage.setItem(`add-images-${sanityId}`, JSON.stringify({ urls, prompts, enabled, featured: feat }));
   };
 
+  const persistSections = (secs: SectionImg[]) => persistAll(secs, featured);
+  const persistFeatured = (feat: FeaturedImg) => persistAll(sections, feat);
+
+  // ── Featured image ──────────────────────────────────────────────────────────
+
+  const generateFeaturedImage = async () => {
+    if (!featured.prompt.trim()) { setError('Add a prompt for the featured image first.'); return; }
+    setGeneratingFeatured(true); setError('');
+    try {
+      const res = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompts: [{ prompt: featured.prompt, model: 'ultra', label: 'featured', width: 1200, height: 800 }],
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Generation failed');
+      const url = data.images?.[0]?.url;
+      if (url) {
+        const newF = { ...featured, url };
+        setFeatured(newF);
+        persistFeatured(newF);
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Featured image generation failed');
+    } finally {
+      setGeneratingFeatured(false);
+    }
+  };
+
+  const uploadFeaturedImage = async (file: File) => {
+    setUploadingFeatured(true); setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload-image', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      const newF = { ...featured, url: data.url };
+      setFeatured(newF);
+      persistFeatured(newF);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploadingFeatured(false);
+    }
+  };
+
+  const saveFeaturedToSanity = async () => {
+    if (!featured.url) { setError('Generate or upload a featured image first.'); return; }
+    setSavingFeatured(true); setError('');
+    try {
+      const res = await fetch('/api/save-featured-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sanityId, imageUrl: featured.url, slug }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Save failed');
+      setSavedFeatured(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSavingFeatured(false);
+    }
+  };
+
+  // ── Section prompts + images ────────────────────────────────────────────────
+
   const generatePrompts = async () => {
-    // Only generate prompts for enabled (checked) sections — skip unchecked to save tokens
     const enabledSections = sections.filter(s => s.enabled);
     const headings = enabledSections.map(s => s.headingText);
     if (!headings.length) return;
@@ -115,7 +191,6 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       });
       const result = await res.json();
       if (!res.ok || !result.sectionPrompts) throw new Error(result.error ?? 'Failed to generate prompts');
-      // Match prompts back by heading text, not by index
       const promptMap = Object.fromEntries(
         headings.map((h, i) => [h, result.sectionPrompts[i] ?? ''])
       );
@@ -260,7 +335,69 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         </div>
       </div>
 
-      {/* Step guide */}
+      {error && (
+        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '10px 14px', color: '#991B1B', fontSize: 13, marginBottom: 14 }}>
+          ✕ {error}
+        </div>
+      )}
+
+      {/* ── FEATURED IMAGE ──────────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', marginBottom: 16, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--sbg)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+            Featured Image <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--t3)', marginLeft: 8 }}>1200×800 landscape · FLUX Dev</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <label className="btn btn-out btn-sm" style={{ cursor: uploadingFeatured ? 'not-allowed' : 'pointer', opacity: uploadingFeatured ? 0.5 : 1 }}>
+              {uploadingFeatured ? '⟳ Uploading…' : '↑ Upload'}
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadFeaturedImage(f); e.target.value = ''; }}
+                disabled={uploadingFeatured}
+              />
+            </label>
+            <button className="btn btn-out btn-sm" onClick={generateFeaturedImage} disabled={generatingFeatured || uploadingFeatured}>
+              {generatingFeatured ? '⟳' : '⚡'} Generate
+            </button>
+            {featured.url && !savedFeatured && (
+              <button className="btn btn-sage" onClick={saveFeaturedToSanity} disabled={savingFeatured}>
+                {savingFeatured ? '⟳ Saving…' : '↑ Save to site'}
+              </button>
+            )}
+            {savedFeatured && (
+              <button className="btn btn-out btn-sm" onClick={() => setSavedFeatured(false)}>↑ Re-save</button>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: '10px 14px' }}>
+          <textarea
+            className="prompt-ta"
+            value={featured.prompt}
+            placeholder="Write a prompt for the featured image (1200×800 landscape)…"
+            onChange={e => {
+              const newF = { ...featured, prompt: e.target.value };
+              setFeatured(newF);
+              persistFeatured(newF);
+            }}
+          />
+          {featured.url && (
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <img src={featured.url} alt="Featured" style={{ width: 240, aspectRatio: '3/2', objectFit: 'cover', borderRadius: 4 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--sage)' }}>✓ Generated</span>
+                <button
+                  className="btn btn-out btn-sm"
+                  style={{ fontSize: 10 }}
+                  onClick={() => downloadImage(featured.url!, `${slug}-featured.jpg`).catch(() => {})}
+                >
+                  ↓ Download
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Section prompts ─────────────────────────────────────────────────── */}
       <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ fontSize: 12, color: 'var(--t2)', fontWeight: 500 }}>Step 1:</div>
         <button className="btn btn-amber" onClick={generatePrompts} disabled={generatingPrompts || sections.length === 0}>
@@ -276,16 +413,16 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         {generating && <span style={{ fontSize: 12, color: 'var(--t3)', alignSelf: 'center' }}>Batching in groups of 3…</span>}
       </div>
 
-      {error && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '10px 14px', color: '#991B1B', fontSize: 13, marginBottom: 14 }}>
-          ✕ {error}
+      {saved && (
+        <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 14, fontSize: 13, color: 'var(--sage)' }}>
+          ✓ Section images saved — Cloudflare rebuilds in ~3 min.{' '}
+          <a href={`https://decoreixy.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)', fontWeight: 700 }}>View live ↗</a>
         </div>
       )}
 
-      {saved && (
+      {savedFeatured && (
         <div style={{ background: 'var(--sbg)', border: '1px solid #C8D9C0', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 14, fontSize: 13, color: 'var(--sage)' }}>
-          ✓ Images saved — Cloudflare rebuilds in ~3 min.{' '}
-          <a href={`https://decoreixy.com/${category}/${slug}`} target="_blank" rel="noopener" style={{ color: 'var(--sage)', fontWeight: 700 }}>View live ↗</a>
+          ✓ Featured image saved — Cloudflare rebuilds in ~3 min.
         </div>
       )}
 
@@ -329,7 +466,6 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
               )}
             </div>
 
-            {/* Prompt */}
             <textarea
               className="prompt-ta"
               value={s.prompt}
@@ -338,7 +474,6 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
               disabled={!s.enabled}
             />
 
-            {/* Generated image */}
             {s.url && (
               <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <img src={s.url} alt={s.headingText} style={{ width: 72, aspectRatio: '2/3', objectFit: 'cover', borderRadius: 4 }} />
