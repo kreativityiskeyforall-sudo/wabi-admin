@@ -160,6 +160,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   const [uploadingSectionIdx, setUploadingSectionIdx] = useState<number | null>(null);
   const [uploadingFeatured, setUploadingFeatured] = useState(false);
   const [error, setError] = useState('');
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   // Restore from localStorage + build section rows from outline (prompts start blank)
   useEffect(() => {
@@ -332,6 +333,21 @@ export default function ImagesClient({ id, article }: { id: string; article: She
 
   return (
     <>
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={lightbox} alt="Preview"
+            style={{ maxWidth: '90vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: 6, boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}
+          />
+          <div style={{ position: 'absolute', top: 18, right: 24, color: 'white', fontSize: 28, fontWeight: 300, cursor: 'pointer' }}>✕</div>
+        </div>
+      )}
       <StageBar articleId={id} currentStage="images" articleTitle={article?.title} isProduct={isProduct} />
       <div className="wsbody">
 
@@ -390,7 +406,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             {featured.url && (
               <div className="gen-preview">
                 <div className="gen-thumb" style={{ aspectRatio: '3/2' }}>
-                  <img src={featured.url} alt="Featured" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--r)' }} />
+                  <img
+                    src={featured.url} alt="Featured"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--r)', cursor: 'zoom-in' }}
+                    onClick={() => setLightbox(featured.url!)}
+                  />
                 </div>
                 <button
                   className="dl-btn"
@@ -474,7 +494,11 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                 />
                 {s.url && (
                   <div className="gen-thumb-sm">
-                    <img src={s.url} alt={s.headingText} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }} />
+                    <img
+                      src={s.url} alt={s.headingText}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, cursor: 'zoom-in' }}
+                      onClick={() => setLightbox(s.url!)}
+                    />
                   </div>
                 )}
               </div>
@@ -544,13 +568,13 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           gap: 12px;
         }
         .gen-thumb {
-          width: 180px;
+          width: 340px;
           border-radius: var(--r);
           overflow: hidden;
           flex-shrink: 0;
         }
         .gen-thumb-sm {
-          width: 100px;
+          width: 260px;
           aspect-ratio: 2/3;
           border-radius: 4px;
           overflow: hidden;
