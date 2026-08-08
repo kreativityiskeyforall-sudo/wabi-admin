@@ -180,7 +180,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
             headingText: p.heading,
             bodyText: p.body,
             level: p.level,
-            imageUrl: existing?.imageUrl ?? resolveImg(p.heading, idx),
+            imageUrl: resolveImg(p.heading, idx) ?? existing?.imageUrl ?? null,
             altText: existing?.altText ?? buildAltText(p.heading, category, articleTitle),
           };
         });
