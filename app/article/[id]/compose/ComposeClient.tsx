@@ -166,11 +166,18 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     const resolveImg = (heading: string, _idx: number): string | null =>
       imgMapExact[heading] ?? imgMapNorm[normalizeHeading(heading)] ?? null;
 
+    // Persist only the lightweight fields (no bodyText — it's always re-derived from article-${id})
+    const persist = (secs: Section[]) => {
+      try {
+        const slim = secs.map(({ headingText, level, imageUrl, altText }) => ({ headingText, level, imageUrl, altText }));
+        localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: slim }));
+      } catch { /* quota exceeded — skip cache, not critical */ }
+    };
+
     // Try to restore saved compose layout first
     if (savedCompose) {
       try {
         const saved = JSON.parse(savedCompose);
-        // Re-merge with latest article parse to pick up any text changes
         const savedMap = Object.fromEntries(
           (saved.sections ?? []).map((s: Section) => [s.headingText, s])
         );
@@ -186,7 +193,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
         });
         setSections(merged);
         setLoaded(true);
-        localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: merged }));
+        persist(merged);
         return;
       } catch { /* rebuild */ }
     }
@@ -202,11 +209,14 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
 
     setSections(built);
     setLoaded(true);
-    localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: built }));
+    persist(built);
   }, [id, category, articleTitle]);
 
   const save = (next: Section[]) => {
-    localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: next }));
+    try {
+      const slim = next.map(({ headingText, level, imageUrl, altText }) => ({ headingText, level, imageUrl, altText }));
+      localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: slim }));
+    } catch { /* quota exceeded — skip */ }
   };
 
   const handleApprove = () => {
