@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
+import Anthropic from '@anthropic-ai/sdk';
+
+export const maxDuration = 300;
 
 const sanity = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
@@ -84,6 +87,33 @@ function markdownToPortableText(markdown: string): PTBlock[] {
   }
 
   return blocks;
+}
+
+// Generates a real image description using Claude Haiku Vision.
+// Always returns a string — falls back to headingContext if Vision fails.
+async function generateAltText(imageUrl: string, headingContext: string): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) return headingContext;
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'url', url: imageUrl } },
+          {
+            type: 'text',
+            text: `Write alt text for this home decor image. Context: it illustrates "${headingContext}". One sentence, under 120 characters, describing what is literally visible. No preamble, start directly.`,
+          },
+        ],
+      }],
+    });
+    const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    return text.slice(0, 125) || headingContext;
+  } catch {
+    return headingContext;
+  }
 }
 
 async function uploadImageUrl(imageUrl: string, filename: string) {
@@ -181,16 +211,27 @@ export async function POST(req: NextRequest) {
     } catch { /* continue without featured image */ }
   }
 
-  // Upload section images and insert them after matching H2 blocks
+  // Upload section images and insert them after matching H2/H3 blocks.
+  // Vision alt text is generated in parallel first, then images upload sequentially.
   if (Array.isArray(sectionImages) && sectionImages.length > 0) {
-    for (const section of sectionImages) {
+    // Step 1 — generate alt text in parallel for all images that have a URL
+    const altResults = await Promise.all(
+      sectionImages.map(section =>
+        section.imageUrl
+          ? generateAltText(section.imageUrl, section.altText || section.headingText)
+          : Promise.resolve(section.altText ?? section.headingText)
+      )
+    );
+
+    // Step 2 — upload and insert each image
+    for (let si = 0; si < sectionImages.length; si++) {
+      const section = sectionImages[si];
       if (!section.imageUrl) continue;
       try {
         const assetId = await uploadImageUrl(
           section.imageUrl,
           `${slug}-section-${section.headingText.slice(0, 30).replace(/[^a-z0-9]/gi, '-').toLowerCase()}.jpg`
         );
-        // Find matching H2 or H3 block
         const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
         const target = normalize(section.headingText);
         const headingIdx = portableBody.findIndex(b =>
@@ -202,7 +243,7 @@ export async function POST(req: NextRequest) {
             _type: 'image',
             _key: key(),
             asset: { _type: 'reference', _ref: assetId },
-            alt: section.altText ?? section.headingText,
+            alt: altResults[si] || section.altText || section.headingText,
           } as any);
         }
       } catch { /* skip this image if upload fails */ }

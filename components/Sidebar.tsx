@@ -41,6 +41,40 @@ function groupByCategory<T extends { category: string }>(items: T[]): Record<str
   return g;
 }
 
+function AltTextBackfillBtn() {
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  const run = async () => {
+    if (!confirm('Generate Vision alt text for all published article images that are missing it? This may take 1–2 minutes.')) return;
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/generate-alt-text', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed');
+      setResult(`✓ ${data.imagesUpdated} images updated across ${data.articlesProcessed} articles`);
+    } catch (e: any) {
+      setResult(`✕ ${e.message}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div>
+      <button className="sb-footer-btn" onClick={run} disabled={running} style={{ width: '100%', textAlign: 'left' }}>
+        {running ? '⟳ Generating alt text…' : '⚡ Backfill image alt text'}
+      </button>
+      {result && (
+        <div style={{ fontSize: 10, padding: '4px 14px', color: result.startsWith('✓') ? '#5a9e8a' : '#e05252' }}>
+          {result}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -408,6 +442,7 @@ export default function Sidebar() {
         <Link href="/seo-agent" className={`sb-footer-btn ${pathname === '/seo-agent' ? 'on' : ''}`}>
           ◈ SEO Agent
         </Link>
+        <AltTextBackfillBtn />
         <Link href="/article/new/brief" className="sb-footer-btn">
           + New roundup
         </Link>
