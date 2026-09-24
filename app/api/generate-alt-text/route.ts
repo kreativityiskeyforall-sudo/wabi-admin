@@ -16,13 +16,21 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
 async function generateAltText(imageUrl: string, headingContext: string): Promise<string> {
   try {
+    // Fetch image and convert to base64 (SDK 0.24 doesn't support url source type)
+    const smallUrl = imageUrl.includes('cdn.sanity.io') ? `${imageUrl}?w=400&fm=jpg&q=70` : imageUrl;
+    const imgRes = await fetch(smallUrl);
+    if (!imgRes.ok) return headingContext;
+    const buffer = Buffer.from(await imgRes.arrayBuffer());
+    const b64 = buffer.toString('base64');
+    const mediaType = (imgRes.headers.get('content-type') ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 80,
       messages: [{
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'url', url: imageUrl } },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: b64 } },
           {
             type: 'text',
             text: `Write alt text for this home decor image. Context: it illustrates "${headingContext}". One sentence, under 120 characters, describing what is literally visible. No preamble, start directly.`,
