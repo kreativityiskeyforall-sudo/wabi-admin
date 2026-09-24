@@ -94,7 +94,14 @@ export async function POST() {
       if (block._type === 'block' && ['h1','h2','h3','h4'].includes(block.style)) {
         lastHeading = block.text || lastHeading;
       }
-      if (block._type === 'image' && block.url && (!block.alt || block.alt.trim() === '')) {
+      // Update if: no alt, OR alt doesn't look like a real description
+      // (real descriptions end with punctuation and are longer than 40 chars)
+      const needsVision = block._type === 'image' && block.url && (
+        !block.alt ||
+        block.alt.trim() === '' ||
+        (!block.alt.trim().match(/[.!?]$/) && block.alt.trim().length < 120)
+      );
+      if (needsVision) {
         toUpdate.push({ key: block._key, imageUrl: block.url, heading: lastHeading });
       }
     }
