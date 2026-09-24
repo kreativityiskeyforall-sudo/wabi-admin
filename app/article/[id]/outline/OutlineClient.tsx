@@ -95,8 +95,12 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   };
 
   const handleApprove = () => {
-    localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle, articleTitle: article?.title }));
-    localStorage.removeItem(`article-${id}`);
+    try {
+      localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle, articleTitle: article?.title }));
+      localStorage.removeItem(`article-${id}`);
+    } catch {
+      // localStorage quota exceeded — navigate anyway, Write stage works without cached outline
+    }
     router.push(`/article/${id}/write`);
   };
 
