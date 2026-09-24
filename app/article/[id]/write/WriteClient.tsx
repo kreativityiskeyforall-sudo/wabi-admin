@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { safeSetItem } from '@/lib/storage';
 
 type Heading = { level: string; text: string; note: string };
 type InternalArticle = { title: string; category: string; slug: string };
@@ -93,7 +94,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
       setArticleText(data.article);
       setStep(steps.length - 1);
       setDone(true);
-      localStorage.setItem(`article-${id}`, data.article);
+      safeSetItem(`article-${id}`, data.article, id);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Writing failed');
     } finally {
@@ -104,7 +105,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
 
   const handleTextChange = (val: string) => {
     setArticleText(val);
-    localStorage.setItem(`article-${id}`, val);
+    safeSetItem(`article-${id}`, val, id);
   };
 
   const countLinks = (text: string) => {

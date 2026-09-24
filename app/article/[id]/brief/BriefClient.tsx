@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { safeSetItem } from '@/lib/storage';
 
 type ProductEntry = {
   name: string;
@@ -168,7 +169,7 @@ export default function BriefClient({ id, article }: { id: string; article: Shee
 
   // Save to localStorage whenever products or angle change
   useEffect(() => {
-    localStorage.setItem(`brief-${id}`, JSON.stringify({ products, angle }));
+    safeSetItem(`brief-${id}`, JSON.stringify({ products, angle }), id);
   }, [id, products, angle]);
 
   const addProduct = () => setProducts(p => [...p, emptyProduct(p.length + 1)]);

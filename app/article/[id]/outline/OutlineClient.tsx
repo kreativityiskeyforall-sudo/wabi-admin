@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { safeSetItem } from '@/lib/storage';
 import { getWebsiteCategory, WEBSITE_CATEGORIES } from '@/lib/category-map';
 
 type Heading = { level: string; text: string; note: string; concept: string };
@@ -96,7 +97,7 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
 
   const handleApprove = () => {
     try {
-      localStorage.setItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle, articleTitle: article?.title }));
+      safeSetItem(`outline-${id}`, JSON.stringify({ headings, seoTitle, metaDescription, websiteCategory, uniqueAngle, articleTitle: article?.title }), id);
       localStorage.removeItem(`article-${id}`);
     } catch {
       // localStorage quota exceeded — navigate anyway, Write stage works without cached outline

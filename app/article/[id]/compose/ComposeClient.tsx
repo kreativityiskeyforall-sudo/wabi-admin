@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
 import type { ImageStore } from '../images/ImagesClient';
+import { safeSetItem } from '@/lib/storage';
 
 type Section = {
   headingText: string;
@@ -170,7 +171,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     const persist = (secs: Section[]) => {
       try {
         const slim = secs.map(({ headingText, level, imageUrl, altText }) => ({ headingText, level, imageUrl, altText }));
-        localStorage.setItem(`compose-${id}`, JSON.stringify({ sections: slim }));
+        safeSetItem(`compose-${id}`, JSON.stringify({ sections: slim }), id);
       } catch { /* quota exceeded — skip cache, not critical */ }
     };
 

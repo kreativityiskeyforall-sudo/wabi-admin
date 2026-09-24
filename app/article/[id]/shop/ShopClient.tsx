@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
+import { safeSetItem } from '@/lib/storage';
 
 interface ShopProduct {
   name: string;
@@ -114,7 +115,7 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
           return rest;
         }),
       }));
-    localStorage.setItem(`shop-${id}`, JSON.stringify({ blocks: blocksArr }));
+    safeSetItem(`shop-${id}`, JSON.stringify({ blocks: blocksArr }), id);
   };
 
   const toggleHeading = (heading: string, level: 'H2' | 'H3') => {

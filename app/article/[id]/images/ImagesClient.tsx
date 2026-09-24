@@ -5,6 +5,7 @@ import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
 import { getWebsiteCategory } from '@/lib/category-map';
+import { safeSetItem } from '@/lib/storage';
 
 type Heading = { level: string; text: string; note: string };
 
@@ -223,14 +224,14 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     try {
       const raw = localStorage.getItem(`images-${id}`);
       const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
-      localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, featured: newF }));
+      safeSetItem(`images-${id}`, JSON.stringify({ ...existing, featured: newF }), id);
     } catch { /* storage full — images still visible in memory, just won't survive refresh */ }
   };
   const persistSections = (newSec: SectionImg[]) => {
     try {
       const raw = localStorage.getItem(`images-${id}`);
       const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
-      localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, sections: newSec }));
+      safeSetItem(`images-${id}`, JSON.stringify({ ...existing, sections: newSec }), id);
     } catch { /* storage full — images still visible in memory, just won't survive refresh */ }
   };
 
