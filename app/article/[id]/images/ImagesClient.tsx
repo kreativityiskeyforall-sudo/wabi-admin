@@ -217,16 +217,21 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     }
   }, [id]);
 
-  // Each function reads current localStorage first so sequential calls don't clobber each other
+  // Each function reads current localStorage first so sequential calls don't clobber each other.
+  // Wrapped in try-catch — QuotaExceededError is non-fatal (images still show in state).
   const persistFeatured = (newF: FeaturedImg) => {
-    const raw = localStorage.getItem(`images-${id}`);
-    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
-    localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, featured: newF }));
+    try {
+      const raw = localStorage.getItem(`images-${id}`);
+      const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
+      localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, featured: newF }));
+    } catch { /* storage full — images still visible in memory, just won't survive refresh */ }
   };
   const persistSections = (newSec: SectionImg[]) => {
-    const raw = localStorage.getItem(`images-${id}`);
-    const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
-    localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, sections: newSec }));
+    try {
+      const raw = localStorage.getItem(`images-${id}`);
+      const existing: ImageStore = raw ? JSON.parse(raw) : { featured, sections };
+      localStorage.setItem(`images-${id}`, JSON.stringify({ ...existing, sections: newSec }));
+    } catch { /* storage full — images still visible in memory, just won't survive refresh */ }
   };
 
   // ── upload helpers ────────────────────────────────────────────────────────
