@@ -45,27 +45,17 @@ async function generateAltText(imageUrl: string, headingContext: string): Promis
   }
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY not set' }, { status: 500 });
   }
 
-  // Fetch all published articles that have body image blocks
-  const articles = await sanity.fetch(`
-    *[_type == "article" && defined(slug.current)] {
-      _id,
-      title,
-      "imageBlocks": body[_type == "image" && (!defined(alt) || alt == "")] {
-        _key,
-        alt,
-        "url": asset->url
-      }
-    }
-  `);
+  const body = await req.json().catch(() => ({}));
+  const offset = Number(body.offset ?? 0);
+  const batchSize = 5; // process 5 articles per call (~100 images max)
 
-  // Also find the nearest heading for each image block using a separate query
   const articlesWithHeadings = await sanity.fetch(`
-    *[_type == "article" && defined(slug.current)] {
+    *[_type == "article" && defined(slug.current)] | order(_createdAt asc) [$from...$to] {
       _id,
       title,
       body[] {
@@ -77,7 +67,9 @@ export async function POST() {
         alt
       }
     }
-  `);
+  `, { from: offset, to: offset + batchSize });
+
+  const totalArticles = await sanity.fetch(`count(*[_type == "article" && defined(slug.current)])`);
 
   let totalProcessed = 0;
   let totalUpdated = 0;
@@ -129,9 +121,14 @@ export async function POST() {
     totalProcessed++;
   }
 
+  const nextOffset = offset + batchSize;
+  const hasMore = nextOffset < totalArticles;
+
   return NextResponse.json({
     articlesProcessed: totalProcessed,
     imagesUpdated: totalUpdated,
+    nextOffset: hasMore ? nextOffset : null,
+    totalArticles,
     errors: errors.length > 0 ? errors : undefined,
   });
 }

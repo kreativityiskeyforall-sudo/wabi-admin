@@ -46,14 +46,32 @@ function AltTextBackfillBtn() {
   const [result, setResult] = useState<string | null>(null);
 
   const run = async () => {
-    if (!confirm('Generate Vision alt text for all published article images that are missing it? This may take 1–2 minutes.')) return;
+    if (!confirm('Generate Vision alt text for all published article images? Runs in batches of 5 articles. May take several minutes total.')) return;
     setRunning(true);
     setResult(null);
+
+    let offset = 0;
+    let totalImages = 0;
+    let totalArticles = 0;
+
     try {
-      const res = await fetch('/api/generate-alt-text', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setResult(`✓ ${data.imagesUpdated} images updated across ${data.articlesProcessed} articles`);
+      while (true) {
+        const res = await fetch('/api/generate-alt-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ offset }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Failed');
+
+        totalImages += data.imagesUpdated ?? 0;
+        totalArticles += data.articlesProcessed ?? 0;
+        setResult(`⟳ Processing… ${totalImages} images updated so far (${offset + 5} / ${data.totalArticles} articles)`);
+
+        if (!data.nextOffset) break;
+        offset = data.nextOffset;
+      }
+      setResult(`✓ Done — ${totalImages} images updated across ${totalArticles} articles`);
     } catch (e: any) {
       setResult(`✕ ${e.message}`);
     } finally {
@@ -64,10 +82,10 @@ function AltTextBackfillBtn() {
   return (
     <div>
       <button className="sb-footer-btn" onClick={run} disabled={running} style={{ width: '100%', textAlign: 'left' }}>
-        {running ? '⟳ Generating alt text…' : '⚡ Backfill image alt text'}
+        {running ? '⟳ Running…' : '⚡ Backfill image alt text'}
       </button>
       {result && (
-        <div style={{ fontSize: 10, padding: '4px 14px', color: result.startsWith('✓') ? '#5a9e8a' : '#e05252' }}>
+        <div style={{ fontSize: 10, padding: '4px 14px', color: result.startsWith('✓') ? '#5a9e8a' : result.startsWith('⟳') ? '#B87355' : '#e05252' }}>
           {result}
         </div>
       )}
