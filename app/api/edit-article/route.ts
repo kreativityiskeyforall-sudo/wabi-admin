@@ -115,7 +115,8 @@ export async function GET(req: NextRequest) {
   const article = await sanity.fetch(
     `*[_id == $id][0] {
       _id, title, category, "slug": slug.current,
-      body[]{ ..., _type == "image" => { ..., "assetUrl": asset->url } }
+      body[]{ ..., _type == "image" => { ..., "assetUrl": asset->url } },
+      productItems[]{ name, amazonUrl, imageUrl, priceNow, price1yrLow, price1yrHigh, stars, reviewCount, priceHistory }
     }`,
     { id }
   );
@@ -153,6 +154,7 @@ export async function GET(req: NextRequest) {
     slug: article.slug,
     markdown,
     existingImages,
+    productItems: article.productItems ?? [],
   });
 }
 

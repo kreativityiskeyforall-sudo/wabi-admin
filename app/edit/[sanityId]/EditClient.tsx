@@ -5,6 +5,17 @@ import Link from 'next/link';
 
 type InternalArticle = { title: string; category: string; slug: string };
 type Selection = { start: number; end: number; text: string };
+type ProductItem = {
+  name: string; amazonUrl: string; imageUrl: string;
+  priceNow: string; price1yrLow: string; price1yrHigh: string;
+  stars: string; reviewCount: string; priceHistory: number[];
+};
+
+const emptyProduct = (): ProductItem => ({
+  name: '', amazonUrl: '', imageUrl: '',
+  priceNow: '', price1yrLow: '', price1yrHigh: '',
+  stars: '', reviewCount: '', priceHistory: [],
+});
 
 export default function EditClient({ sanityId }: { sanityId: string }) {
   const [loading, setLoading] = useState(true);
@@ -17,34 +28,19 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
   const [markdown, setMarkdown] = useState('');
   const [existingImages, setExistingImages] = useState<any[]>([]);
 
-  // Product cards re-save
-  const [briefIdInput, setBriefIdInput] = useState('');
-  const [showBriefInput, setShowBriefInput] = useState(false);
-  const [savingCards, setSavingCards] = useState(false);
-  const [cardsSaved, setCardsSaved] = useState(false);
-  const [cardsError, setCardsError] = useState('');
+  // Product items editor
+  const [productItems, setProductItems] = useState<ProductItem[]>([]);
+  const [showProductEditor, setShowProductEditor] = useState(false);
+  const [savingProducts, setSavingProducts] = useState(false);
+  const [productsSaved, setProductsSaved] = useState(false);
+  const [productsError, setProductsError] = useState('');
 
-  const handleSaveProductCards = async () => {
-    const briefId = briefIdInput.trim();
-    if (!briefId) return;
-    setSavingCards(true); setCardsError(''); setCardsSaved(false);
+  const updateProduct = (i: number, field: keyof ProductItem, value: string) =>
+    setProductItems(p => p.map((pr, idx) => idx === i ? { ...pr, [field]: value } : pr));
+
+  const handleSaveProducts = async () => {
+    setSavingProducts(true); setProductsError(''); setProductsSaved(false);
     try {
-      const stored = localStorage.getItem(`brief-${briefId}`);
-      if (!stored) throw new Error(`No brief found for article #${briefId}. Make sure you're on the same browser where you filled in the brief.`);
-      const brief = JSON.parse(stored);
-      const products = brief.products ?? [];
-      if (!products.length) throw new Error('Brief has no products.');
-      const productItems = products.map((p: any) => ({
-        name: p.name ?? '',
-        amazonUrl: p.amazonUrl ?? '',
-        imageUrl: (p.imageUrls ?? '').split('\n').map((u: string) => u.trim()).filter(Boolean)[0] ?? '',
-        priceNow: p.priceNow ?? '',
-        price1yrLow: p.price90Low ?? '',
-        price1yrHigh: p.price90High ?? '',
-        stars: p.stars ?? '',
-        reviewCount: p.reviewCount ?? '',
-        priceHistory: Array.isArray(p.priceHistory) ? p.priceHistory : [],
-      }));
       const res = await fetch('/api/edit-product-items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,13 +48,12 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
-      setCardsSaved(true);
-      setShowBriefInput(false);
-      setTimeout(() => setCardsSaved(false), 4000);
+      setProductsSaved(true);
+      setTimeout(() => setProductsSaved(false), 4000);
     } catch (e: unknown) {
-      setCardsError(e instanceof Error ? e.message : 'Failed');
+      setProductsError(e instanceof Error ? e.message : 'Failed');
     } finally {
-      setSavingCards(false);
+      setSavingProducts(false);
     }
   };
 
@@ -82,6 +77,10 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
         setSlug(data.slug);
         setMarkdown(data.markdown);
         setExistingImages(data.existingImages ?? []);
+        if (data.productItems?.length) {
+          setProductItems(data.productItems);
+          setShowProductEditor(true);
+        }
       })
       .catch(() => setError('Failed to load article'))
       .finally(() => setLoading(false));
@@ -165,8 +164,8 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Link href={`/edit/${sanityId}/images`} className="btn btn-out btn-sm">+ Images</Link>
           <Link href={`/edit/${sanityId}/shop`} className="btn btn-out btn-sm">✦ Shop The Look</Link>
-          <button className="btn btn-out btn-sm" onClick={() => { setShowBriefInput(v => !v); setCardsError(''); }}>
-            {cardsSaved ? '✓ Cards saved!' : '🛒 Save product cards'}
+          <button className="btn btn-out btn-sm" onClick={() => setShowProductEditor(v => !v)}>
+            🛒 {productItems.length > 0 ? `Edit ${productItems.length} products` : 'Add products'}
           </button>
           <button className="btn btn-sage" onClick={handleSave} disabled={saving}>
             {saving ? '⟳ Saving…' : saved ? '✓ Saved' : '↑ Save to Sanity'}
@@ -174,34 +173,91 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
         </div>
       </div>
 
-      {/* Product cards re-save panel */}
-      {showBriefInput && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--t3)', marginBottom: 8 }}>
-            🛒 Save product cards from brief
+      {/* Product items editor — same fields as Brief stage */}
+      {showProductEditor && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--amber)' }}>
+              🛒 Product Cards — {productItems.length} product{productItems.length !== 1 ? 's' : ''}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-out btn-sm" onClick={() => setProductItems(p => [...p, emptyProduct()])}>+ Add product</button>
+              <button className="btn btn-amber" onClick={handleSaveProducts} disabled={savingProducts}>
+                {savingProducts ? '⟳ Saving…' : productsSaved ? '✓ Saved!' : '↑ Save products to Sanity'}
+              </button>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 10 }}>
-            Enter the article number from the brief URL — e.g. if the brief was at <code>/article/7/brief</code>, enter <strong>7</strong>.
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              className="field-inp"
-              type="number"
-              placeholder="e.g. 7"
-              value={briefIdInput}
-              onChange={e => setBriefIdInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSaveProductCards(); }}
-              style={{ width: 100, fontWeight: 700 }}
-              autoFocus
-            />
-            <button className="btn btn-amber" onClick={handleSaveProductCards} disabled={savingCards || !briefIdInput}>
-              {savingCards ? '⟳ Saving…' : '↑ Save to Sanity'}
-            </button>
-            <button className="btn btn-out btn-sm" onClick={() => { setShowBriefInput(false); setCardsError(''); }}>Cancel</button>
-          </div>
-          {cardsError && (
-            <div style={{ marginTop: 8, fontSize: 12, color: '#991B1B' }}>✕ {cardsError}</div>
+
+          {productsError && (
+            <div style={{ fontSize: 12, color: '#991B1B', marginBottom: 10 }}>✕ {productsError}</div>
           )}
+
+          {productItems.map((p, i) => (
+            <div key={i} style={{ background: '#FAF8F5', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>
+                  Product {i + 1}{p.name ? ` — ${p.name}` : ''}
+                </span>
+                {productItems.length > 1 && (
+                  <button className="btn-ghost" style={{ fontSize: 11 }} onClick={() => setProductItems(pr => pr.filter((_, idx) => idx !== i))}>✕ Remove</button>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8, marginBottom: 8 }}>
+                <div>
+                  <span className="lbl">Product name</span>
+                  <input className="field-inp" type="text" value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)} placeholder="e.g. Bamboo Bedside Table" />
+                </div>
+                <div>
+                  <span className="lbl">Amazon URL</span>
+                  <input className="field-inp" type="url" value={p.amazonUrl} onChange={e => updateProduct(i, 'amazonUrl', e.target.value)} placeholder="https://amazon.com/dp/..." style={{ fontSize: 11 }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 8 }}>
+                <span className="lbl">Product image URL (Amazon CDN)</span>
+                <input className="field-inp" type="url" value={p.imageUrl} onChange={e => updateProduct(i, 'imageUrl', e.target.value)} placeholder="https://m.media-amazon.com/images/..." style={{ fontSize: 11 }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                <div>
+                  <span className="lbl">Current price</span>
+                  <input className="field-inp" type="text" value={p.priceNow} onChange={e => updateProduct(i, 'priceNow', e.target.value)} placeholder="$44.99" style={{ fontWeight: 700 }} />
+                </div>
+                <div>
+                  <span className="lbl">1-yr low</span>
+                  <input className="field-inp" type="text" value={p.price1yrLow} onChange={e => updateProduct(i, 'price1yrLow', e.target.value)} placeholder="$36" />
+                </div>
+                <div>
+                  <span className="lbl">1-yr high</span>
+                  <input className="field-inp" type="text" value={p.price1yrHigh} onChange={e => updateProduct(i, 'price1yrHigh', e.target.value)} placeholder="$55" />
+                </div>
+                <div>
+                  <span className="lbl">Stars</span>
+                  <input className="field-inp" type="text" value={p.stars} onChange={e => updateProduct(i, 'stars', e.target.value)} placeholder="4.5" />
+                </div>
+                <div>
+                  <span className="lbl">Review count</span>
+                  <input className="field-inp" type="text" value={p.reviewCount} onChange={e => updateProduct(i, 'reviewCount', e.target.value)} placeholder="1,234" />
+                </div>
+              </div>
+
+              <div>
+                <span className="lbl">Price history — comma-separated weekly prices (oldest → newest)</span>
+                <input
+                  className="field-inp"
+                  type="text"
+                  value={Array.isArray(p.priceHistory) ? p.priceHistory.join(', ') : ''}
+                  onChange={e => {
+                    const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+                    setProductItems(pr => pr.map((pr2, idx) => idx === i ? { ...pr2, priceHistory: vals } : pr2));
+                  }}
+                  placeholder="36, 37, 41, 44, 49, 48, 44, 43, 44.99"
+                  style={{ fontSize: 11, fontFamily: 'monospace' }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
