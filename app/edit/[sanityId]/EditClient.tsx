@@ -9,12 +9,14 @@ type ProductItem = {
   name: string; amazonUrl: string; imageUrl: string;
   priceNow: string; price1yrLow: string; price1yrHigh: string;
   stars: string; reviewCount: string; priceHistory: number[];
+  brief: string; review: string;
 };
 
 const emptyProduct = (): ProductItem => ({
   name: '', amazonUrl: '', imageUrl: '',
   priceNow: '', price1yrLow: '', price1yrHigh: '',
   stars: '', reviewCount: '', priceHistory: [],
+  brief: '', review: '',
 });
 
 export default function EditClient({ sanityId }: { sanityId: string }) {
@@ -193,8 +195,8 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
           )}
 
           {productItems.map((p, i) => (
-            <div key={i} style={{ background: '#FAF8F5', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div key={i} className="prod-card" style={{ marginBottom: 14 }}>
+              <div className="prod-card-hd">
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>
                   Product {i + 1}{p.name ? ` — ${p.name}` : ''}
                 </span>
@@ -202,59 +204,78 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
                   <button className="btn-ghost" style={{ fontSize: 11 }} onClick={() => setProductItems(pr => pr.filter((_, idx) => idx !== i))}>✕ Remove</button>
                 )}
               </div>
+              <div className="prod-card-body">
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8, marginBottom: 8 }}>
-                <div>
-                  <span className="lbl">Product name</span>
-                  <input className="field-inp" type="text" value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)} placeholder="e.g. Bamboo Bedside Table" />
+                {/* Row 1: name + Amazon URL */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 10 }}>
+                  <div className="field-group" style={{ marginBottom: 0 }}>
+                    <span className="lbl">Product name</span>
+                    <input className="field-inp" type="text" value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)} placeholder="e.g. Bamboo Bedside Table" />
+                  </div>
+                  <div className="field-group" style={{ marginBottom: 0 }}>
+                    <span className="lbl">Amazon URL (affiliate link)</span>
+                    <input className="field-inp" type="url" value={p.amazonUrl} onChange={e => updateProduct(i, 'amazonUrl', e.target.value)} placeholder="https://amazon.com/dp/..." style={{ fontSize: 11 }} />
+                  </div>
                 </div>
-                <div>
-                  <span className="lbl">Amazon URL</span>
-                  <input className="field-inp" type="url" value={p.amazonUrl} onChange={e => updateProduct(i, 'amazonUrl', e.target.value)} placeholder="https://amazon.com/dp/..." style={{ fontSize: 11 }} />
-                </div>
-              </div>
 
-              <div style={{ marginBottom: 8 }}>
-                <span className="lbl">Product image URL (Amazon CDN)</span>
-                <input className="field-inp" type="url" value={p.imageUrl} onChange={e => updateProduct(i, 'imageUrl', e.target.value)} placeholder="https://m.media-amazon.com/images/..." style={{ fontSize: 11 }} />
-              </div>
+                {/* Row 2: brief */}
+                <div className="field-group" style={{ marginBottom: 0 }}>
+                  <span className="lbl">Agent brief — what to focus on for this product</span>
+                  <textarea className="brief-ta" style={{ minHeight: 52 }} value={p.brief ?? ''} onChange={e => updateProduct(i, 'brief', e.target.value)} placeholder="e.g. Emphasise Japandi aesthetic, bamboo finish. Compare to premium rivals." />
+                </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
-                <div>
-                  <span className="lbl">Current price</span>
-                  <input className="field-inp" type="text" value={p.priceNow} onChange={e => updateProduct(i, 'priceNow', e.target.value)} placeholder="$44.99" style={{ fontWeight: 700 }} />
+                {/* Row 3: review + image URL */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 10 }}>
+                  <div className="field-group" style={{ marginBottom: 0 }}>
+                    <span className="lbl">Review — 50–70 words (paste or write your own)</span>
+                    <textarea className="brief-ta" style={{ minHeight: 90 }} value={p.review ?? ''} onChange={e => updateProduct(i, 'review', e.target.value)} placeholder="Leave blank to keep existing review, or write a new one here. Copy it into the article body manually." />
+                  </div>
+                  <div className="field-group" style={{ marginBottom: 0 }}>
+                    <span className="lbl">Product image URL</span>
+                    <textarea className="field-inp" style={{ fontSize: 10, minHeight: 90, resize: 'none' }} value={p.imageUrl} onChange={e => updateProduct(i, 'imageUrl', e.target.value)} placeholder="https://m.media-amazon.com/images/..." />
+                  </div>
                 </div>
-                <div>
-                  <span className="lbl">1-yr low</span>
-                  <input className="field-inp" type="text" value={p.price1yrLow} onChange={e => updateProduct(i, 'price1yrLow', e.target.value)} placeholder="$36" />
-                </div>
-                <div>
-                  <span className="lbl">1-yr high</span>
-                  <input className="field-inp" type="text" value={p.price1yrHigh} onChange={e => updateProduct(i, 'price1yrHigh', e.target.value)} placeholder="$55" />
-                </div>
-                <div>
-                  <span className="lbl">Stars</span>
-                  <input className="field-inp" type="text" value={p.stars} onChange={e => updateProduct(i, 'stars', e.target.value)} placeholder="4.5" />
-                </div>
-                <div>
-                  <span className="lbl">Review count</span>
-                  <input className="field-inp" type="text" value={p.reviewCount} onChange={e => updateProduct(i, 'reviewCount', e.target.value)} placeholder="1,234" />
-                </div>
-              </div>
 
-              <div>
-                <span className="lbl">Price history — comma-separated weekly prices (oldest → newest)</span>
-                <input
-                  className="field-inp"
-                  type="text"
-                  value={Array.isArray(p.priceHistory) ? p.priceHistory.join(', ') : ''}
-                  onChange={e => {
-                    const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
-                    setProductItems(pr => pr.map((pr2, idx) => idx === i ? { ...pr2, priceHistory: vals } : pr2));
-                  }}
-                  placeholder="36, 37, 41, 44, 49, 48, 44, 43, 44.99"
-                  style={{ fontSize: 11, fontFamily: 'monospace' }}
-                />
+                {/* Row 4: prices + stars */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: 8 }}>
+                  <div>
+                    <span className="lbl">Current price</span>
+                    <input className="field-inp" type="text" value={p.priceNow} onChange={e => updateProduct(i, 'priceNow', e.target.value)} placeholder="$44.99" style={{ fontWeight: 700 }} />
+                  </div>
+                  <div>
+                    <span className="lbl">1-yr low</span>
+                    <input className="field-inp" type="text" value={p.price1yrLow} onChange={e => updateProduct(i, 'price1yrLow', e.target.value)} placeholder="$36" />
+                  </div>
+                  <div>
+                    <span className="lbl">1-yr high</span>
+                    <input className="field-inp" type="text" value={p.price1yrHigh} onChange={e => updateProduct(i, 'price1yrHigh', e.target.value)} placeholder="$55" />
+                  </div>
+                  <div>
+                    <span className="lbl">Stars</span>
+                    <input className="field-inp" type="text" value={p.stars} onChange={e => updateProduct(i, 'stars', e.target.value)} placeholder="4.5" />
+                  </div>
+                  <div>
+                    <span className="lbl">Review count</span>
+                    <input className="field-inp" type="text" value={p.reviewCount} onChange={e => updateProduct(i, 'reviewCount', e.target.value)} placeholder="1,234" />
+                  </div>
+                </div>
+
+                {/* Row 5: price history */}
+                <div>
+                  <span className="lbl">Price history — comma-separated weekly prices (oldest → newest)</span>
+                  <input
+                    className="field-inp"
+                    type="text"
+                    value={Array.isArray(p.priceHistory) ? p.priceHistory.join(', ') : ''}
+                    onChange={e => {
+                      const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+                      setProductItems(pr => pr.map((pr2, idx) => idx === i ? { ...pr2, priceHistory: vals } : pr2));
+                    }}
+                    placeholder="36, 37, 41, 44, 49, 48, 44, 43, 44.99"
+                    style={{ fontSize: 11, fontFamily: 'monospace' }}
+                  />
+                </div>
+
               </div>
             </div>
           ))}
