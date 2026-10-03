@@ -5,6 +5,61 @@ import Link from 'next/link';
 
 type InternalArticle = { title: string; category: string; slug: string };
 type Selection = { start: number; end: number; text: string };
+
+function MiniSparkline({ low, current, high, history, idx }: { low: string; current: string; high: string; history?: number[]; idx: number }) {
+  const parse = (s: string) => parseFloat(s.replace(/[^0-9.]/g, '')) || 0;
+  const gid = `editSpkGrad-${idx}`;
+  const fmt = (v: number) => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`;
+  const L = 36, W = 280, H = 68, TW = W + L;
+
+  if (history && history.length >= 2) {
+    const mn = Math.min(...history), mx = Math.max(...history);
+    const pad = (mx - mn) * 0.08 || 5;
+    const yMin = mn - pad, yMax = mx + pad, range = yMax - yMin || 1;
+    const yv = (v: number) => (8 + ((yMax - v) / range) * (H - 20)).toFixed(1);
+    const xv = (i: number) => (L + (i / (history.length - 1)) * W).toFixed(1);
+    let d = '';
+    history.forEach((v, i) => { d += i === 0 ? `M${xv(i)},${yv(v)}` : ` H${xv(i)} V${yv(v)}`; });
+    const mid = (mn + mx) / 2;
+    return (
+      <svg viewBox={`0 0 ${TW} ${H}`} style={{ width: '100%', height: 60, display: 'block', marginTop: 4 }}>
+        <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#B87355" stopOpacity=".18"/><stop offset="100%" stopColor="#B87355" stopOpacity="0"/></linearGradient></defs>
+        {[mx, mid, mn].map((v, gi) => <line key={gi} x1={L} y1={yv(v)} x2={TW} y2={yv(v)} stroke="#E8D8C8" strokeWidth="1" strokeDasharray="3,3"/>)}
+        <text x={L-3} y={parseFloat(yv(mx))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mx)}</text>
+        <text x={L-3} y={parseFloat(yv(mid))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mid)}</text>
+        <text x={L-3} y={parseFloat(yv(mn))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mn)}</text>
+        <polygon points={`${xv(0)},${yv(history[0])} ${history.map((v,i)=>`${xv(i)},${yv(v)}`).join(' ')} ${xv(history.length-1)},${H} ${L},${H}`} fill={`url(#${gid})`}/>
+        <path d={d} fill="none" stroke="#B87355" strokeWidth="1.8" strokeLinejoin="round"/>
+        <circle cx={xv(history.length-1)} cy={yv(history[history.length-1])} r="3" fill="#B87355"/>
+        <text x={L+2} y={H-1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1 year ago</text>
+        <text x={TW-26} y={H-1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
+      </svg>
+    );
+  }
+
+  const lo = parse(low), cu = parse(current), hi = parse(high);
+  if (!lo && !cu && !hi) return null;
+  const mn = Math.min(lo, cu, hi), mx = Math.max(lo, cu, hi);
+  const pad = (mx - mn) * 0.08 || 5;
+  const yMin = mn - pad, yMax = mx + pad, range = yMax - yMin || 1;
+  const yv = (v: number) => (8 + ((yMax - v) / range) * (H - 20)).toFixed(1);
+  const mid = (mn + mx) / 2;
+  const pts = `${L},${yv(lo)} ${L+W/2},${yv(hi)} ${L+W},${yv(cu)}`;
+  return (
+    <svg viewBox={`0 0 ${TW} ${H}`} style={{ width: '100%', height: 60, display: 'block', marginTop: 4 }}>
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#B87355" stopOpacity=".22"/><stop offset="100%" stopColor="#B87355" stopOpacity="0"/></linearGradient></defs>
+      {[mx, mid, mn].map((v, gi) => <line key={gi} x1={L} y1={yv(v)} x2={TW} y2={yv(v)} stroke="#E8D8C8" strokeWidth="1" strokeDasharray="3,3"/>)}
+      <text x={L-3} y={parseFloat(yv(mx))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mx)}</text>
+      <text x={L-3} y={parseFloat(yv(mid))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mid)}</text>
+      <text x={L-3} y={parseFloat(yv(mn))+3} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif" textAnchor="end">{fmt(mn)}</text>
+      <polygon points={`${L},${yv(lo)} ${L+W/2},${yv(hi)} ${L+W},${yv(cu)} ${L+W},${H} ${L},${H}`} fill={`url(#${gid})`}/>
+      <polyline points={pts} fill="none" stroke="#B87355" strokeWidth="1.8" strokeLinejoin="round"/>
+      <circle cx={L+W} cy={yv(cu)} r="3" fill="#B87355"/>
+      <text x={L+2} y={H-1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">1-year low</text>
+      <text x={TW-26} y={H-1} fontSize="7" fill="#A89F95" fontFamily="DM Sans,sans-serif">Today</text>
+    </svg>
+  );
+}
 type ProductItem = {
   name: string; amazonUrl: string; imageUrl: string;
   priceNow: string; price1yrLow: string; price1yrHigh: string;
@@ -36,9 +91,40 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
   const [savingProducts, setSavingProducts] = useState(false);
   const [productsSaved, setProductsSaved] = useState(false);
   const [productsError, setProductsError] = useState('');
+  const [chartLoading, setChartLoading] = useState<boolean[]>([]);
+  const [chartDragOver, setChartDragOver] = useState<number | null>(null);
+  const chartFileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const updateProduct = (i: number, field: keyof ProductItem, value: string) =>
     setProductItems(p => p.map((pr, idx) => idx === i ? { ...pr, [field]: value } : pr));
+
+  const readChartFromImage = async (i: number, file: File, currentPrice: string, productName: string) => {
+    if (!currentPrice) return;
+    setChartLoading(prev => { const next = [...prev]; next[i] = true; return next; });
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/read-price-chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: base64, mediaType: file.type || 'image/png', price: Number(currentPrice.replace(/[^0-9.]/g, '')), name: productName }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setProductItems(p => p.map((pr, idx) => idx === i ? {
+        ...pr,
+        price1yrLow: String(data.low ?? pr.price1yrLow),
+        price1yrHigh: String(data.high ?? pr.price1yrHigh),
+        priceHistory: data.history ?? pr.priceHistory,
+      } : pr));
+    } catch { /* ignore */ } finally {
+      setChartLoading(prev => { const next = [...prev]; next[i] = false; return next; });
+    }
+  };
 
   const handleSaveProducts = async () => {
     setSavingProducts(true); setProductsError(''); setProductsSaved(false);
@@ -260,20 +346,75 @@ export default function EditClient({ sanityId }: { sanityId: string }) {
                   </div>
                 </div>
 
-                {/* Row 5: price history */}
-                <div>
-                  <span className="lbl">Price history — comma-separated weekly prices (oldest → newest)</span>
-                  <input
-                    className="field-inp"
-                    type="text"
-                    value={Array.isArray(p.priceHistory) ? p.priceHistory.join(', ') : ''}
-                    onChange={e => {
-                      const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
-                      setProductItems(pr => pr.map((pr2, idx) => idx === i ? { ...pr2, priceHistory: vals } : pr2));
-                    }}
-                    placeholder="36, 37, 41, 44, 49, 48, 44, 43, 44.99"
-                    style={{ fontSize: 11, fontFamily: 'monospace' }}
-                  />
+                {/* Row 5: price history + chart upload */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 10, alignItems: 'start' }}>
+                  <div>
+                    <span className="lbl">Price history — comma-separated weekly prices (oldest → newest)</span>
+                    <input
+                      className="field-inp"
+                      type="text"
+                      value={Array.isArray(p.priceHistory) ? p.priceHistory.join(', ') : ''}
+                      onChange={e => {
+                        const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+                        setProductItems(pr => pr.map((pr2, idx) => idx === i ? { ...pr2, priceHistory: vals } : pr2));
+                      }}
+                      placeholder="36, 37, 41, 44, 49, 48, 44, 43, 44.99"
+                      style={{ fontSize: 11, fontFamily: 'monospace' }}
+                    />
+                    {/* Sparkline preview */}
+                    <MiniSparkline
+                      low={p.price1yrLow} current={p.priceNow} high={p.price1yrHigh}
+                      history={p.priceHistory?.length >= 2 ? p.priceHistory : undefined}
+                      idx={i}
+                    />
+                  </div>
+
+                  {/* Chart screenshot upload */}
+                  <div>
+                    <span className="lbl">📷 Upload Amazon price chart</span>
+                    <div
+                      style={{
+                        border: `2px dashed ${chartDragOver === i ? 'var(--sage)' : 'var(--border)'}`,
+                        borderRadius: 'var(--r)',
+                        padding: '12px 8px',
+                        textAlign: 'center',
+                        cursor: chartLoading[i] ? 'not-allowed' : 'pointer',
+                        background: chartDragOver === i ? 'var(--sbg)' : 'transparent',
+                        transition: 'border-color .15s, background .15s',
+                        minHeight: 72,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                      }}
+                      onDragOver={e => { e.preventDefault(); setChartDragOver(i); }}
+                      onDragLeave={() => setChartDragOver(null)}
+                      onDrop={e => {
+                        e.preventDefault(); setChartDragOver(null);
+                        const file = e.dataTransfer.files[0];
+                        if (file) readChartFromImage(i, file, p.priceNow, p.name);
+                      }}
+                      onClick={() => !chartLoading[i] && chartFileRefs.current[i]?.click()}
+                    >
+                      {chartLoading[i]
+                        ? <><span style={{ fontSize: 13 }}>⟳</span><span style={{ fontSize: 10, color: 'var(--t3)' }}>Reading chart…</span></>
+                        : <><span style={{ fontSize: 13 }}>📷</span><span style={{ fontSize: 10, color: 'var(--t3)' }}>Drop screenshot or click</span><span style={{ fontSize: 9, color: 'var(--t3)' }}>Claude reads price data</span></>
+                      }
+                      <input
+                        ref={el => { chartFileRefs.current[i] = el; }}
+                        type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) readChartFromImage(i, file, p.priceNow, p.name);
+                          e.target.value = '';
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 4, textAlign: 'center' }}>
+                      Enter current price first, then upload
+                    </div>
+                  </div>
                 </div>
 
               </div>
