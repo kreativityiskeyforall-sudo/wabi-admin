@@ -50,6 +50,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
   const [savedFeatured, setSavedFeatured] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [articleMarkdown, setArticleMarkdown] = useState('');
 
   useEffect(() => {
@@ -62,14 +63,21 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
         setSlug(data.slug);
         setArticleMarkdown(data.markdown ?? '');
 
-        // Extract both H2 and H3 headings
         const headings = data.markdown
           .split('\n')
           .filter((l: string) => l.startsWith('## ') || l.startsWith('### '))
           .map((l: string) => l.replace(/^#{2,3} /, '').trim())
           .filter((h: string) => h.length > 0);
 
-        // Restore any previously saved data from localStorage
+        // Build a map of heading → existing Sanity image URL
+        const sanityImgMap: Record<string, string> = {};
+        for (const img of data.existingImages ?? []) {
+          if (img.headingText && img.assetRef) {
+            sanityImgMap[img.headingText] = `https://cdn.sanity.io/images/2t1zjo13/production/${img.assetRef.replace('image-', '').replace(/-(?:jpg|png|webp)$/, (m: string) => m.replace('-', '.'))}`;
+          }
+        }
+
+        // Restore from localStorage (overrides Sanity if present — means user regenerated)
         const savedRaw = localStorage.getItem(`add-images-${sanityId}`);
         let savedUrls: Record<string, string> = {};
         let savedPrompts: Record<string, string> = {};
@@ -90,7 +98,7 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
           headingText: h,
           prompt: savedPrompts[h] ?? '',
           enabled: savedEnabled[h] !== undefined ? savedEnabled[h] : true,
-          url: savedUrls[h] ?? null,
+          url: savedUrls[h] ?? sanityImgMap[h] ?? null,
         })));
       })
       .catch(() => setError('Failed to load article'))
@@ -245,6 +253,24 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
       setError(e instanceof Error ? e.message : 'Generation failed');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const uploadSectionImage = async (idx: number, file: File) => {
+    setUploadingIdx(idx); setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/upload-image', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      const newSecs = sections.map((x, j) => j === idx ? { ...x, url: data.url, enabled: true } : x);
+      setSections(newSecs);
+      persistSections(newSecs);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploadingIdx(null);
     }
   };
 
@@ -441,6 +467,13 @@ export default function AddImagesClient({ sanityId }: { sanityId: string }) {
                 onChange={e => { const n = sections.map((x, j) => j === i ? { ...x, enabled: e.target.checked } : x); setSections(n); persistSections(n); }}
               />
               <span style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>{s.headingText}</span>
+              <label className="btn btn-out btn-sm" style={{ fontSize: 10, cursor: uploadingIdx === i ? 'not-allowed' : 'pointer', opacity: uploadingIdx === i ? 0.5 : 1 }}>
+                {uploadingIdx === i ? '⟳' : '↑'} Upload
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadSectionImage(i, f); e.target.value = ''; }}
+                  disabled={uploadingIdx === i || !s.enabled}
+                />
+              </label>
               <button
                 className="btn btn-out btn-sm"
                 style={{ fontSize: 10 }}
