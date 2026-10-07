@@ -18,7 +18,7 @@ function parseArticleHeadings(markdown: string): Array<{ heading: string; level:
   return result;
 }
 
-type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null; level?: 'H2' | 'H3' };
+type SectionImg = { headingText: string; prompt: string; enabled: boolean; url: string | null; level?: 'H2' | 'H3'; altText?: string };
 type FeaturedImg = { prompt: string; url: string | null };
 
 export type ImageStore = {
@@ -169,14 +169,14 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   useEffect(() => {
     // Load any previously saved featured image + per-heading data
     let savedFeatured: FeaturedImg | null = null;
-    let savedByHeading: Record<string, { prompt: string; url: string | null; enabled: boolean }> = {};
+    let savedByHeading: Record<string, { prompt: string; url: string | null; enabled: boolean; altText?: string }> = {};
     const savedRaw = localStorage.getItem(`images-${id}`);
     if (savedRaw) {
       try {
         const store: ImageStore = JSON.parse(savedRaw);
         savedFeatured = store.featured;
         for (const s of store.sections) {
-          savedByHeading[s.headingText] = { prompt: s.prompt, url: s.url, enabled: s.enabled };
+          savedByHeading[s.headingText] = { prompt: s.prompt, url: s.url, enabled: s.enabled, altText: s.altText };
         }
       } catch { /* corrupt — ignore */ }
     }
@@ -194,6 +194,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
             prompt: savedByHeading[h.heading]?.prompt ?? '',
             enabled: savedByHeading[h.heading]?.enabled ?? true,
             url: savedByHeading[h.heading]?.url ?? null,
+            altText: savedByHeading[h.heading]?.altText ?? '',
             level: h.level,
           })));
           return;
@@ -212,6 +213,7 @@ export default function ImagesClient({ id, article }: { id: string; article: She
           prompt: savedByHeading[h.text]?.prompt ?? '',
           enabled: savedByHeading[h.text]?.enabled ?? true,
           url: savedByHeading[h.text]?.url ?? null,
+          altText: savedByHeading[h.text]?.altText ?? '',
           level: h.level as 'H2' | 'H3',
         })));
       } catch { /* ignore */ }
@@ -507,6 +509,18 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                   value={s.prompt}
                   onChange={e => {
                     const next = sections.map((ss, j) => j === i ? { ...ss, prompt: e.target.value } : ss);
+                    setSections(next); persistSections(next);
+                  }}
+                  disabled={!s.enabled}
+                />
+                <input
+                  type="text"
+                  className="prompt-ta"
+                  style={{ marginTop: 4, minHeight: 'unset', fontSize: 11 }}
+                  value={s.altText ?? ''}
+                  placeholder="Alt text (optional) — leave blank for auto-generation at publish"
+                  onChange={e => {
+                    const next = sections.map((ss, j) => j === i ? { ...ss, altText: e.target.value } : ss);
                     setSections(next); persistSections(next);
                   }}
                   disabled={!s.enabled}

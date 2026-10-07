@@ -153,6 +153,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
     // Build image URL maps — exact, normalized, and positional fallback
     let imgMapExact: Record<string, string | null> = {};
     let imgMapNorm: Record<string, string | null> = {};
+    let imgAltMapExact: Record<string, string> = {};
     if (imagesRaw) {
       try {
         const imgStore: ImageStore = JSON.parse(imagesRaw);
@@ -160,6 +161,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
           if (s.headingText) {
             imgMapExact[s.headingText] = s.url ?? null;
             imgMapNorm[normalizeHeading(s.headingText)] = s.url ?? null;
+            if (s.altText) imgAltMapExact[s.headingText] = s.altText;
           }
         }
       } catch { /* ignore */ }
@@ -189,7 +191,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
             bodyText: p.body,
             level: p.level,
             imageUrl: resolveImg(p.heading, idx) ?? existing?.imageUrl ?? null,
-            altText: existing?.altText ?? buildAltText(p.heading, category, articleTitle),
+            altText: imgAltMapExact[p.heading] || existing?.altText || buildAltText(p.heading, category, articleTitle),
           };
         });
         setSections(merged);
@@ -205,7 +207,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
       bodyText: p.body,
       level: p.level,
       imageUrl: resolveImg(p.heading, idx),
-      altText: buildAltText(p.heading, category, articleTitle),
+      altText: imgAltMapExact[p.heading] || buildAltText(p.heading, category, articleTitle),
     }));
 
     setSections(built);
