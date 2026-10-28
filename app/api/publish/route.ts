@@ -336,5 +336,18 @@ export async function POST(req: NextRequest) {
 
   const created = await sanity.create(doc);
 
+  // Auto-purge Cloudflare cache after publish
+  try {
+    const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+    const token = process.env.CLOUDFLARE_API_TOKEN;
+    if (zoneId && token) {
+      await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purge_everything: true }),
+      });
+    }
+  } catch { /* non-fatal — article is published even if purge fails */ }
+
   return NextResponse.json({ id: created._id, slug });
 }
