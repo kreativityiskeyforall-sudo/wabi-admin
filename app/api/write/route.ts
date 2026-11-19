@@ -20,20 +20,24 @@ WRITING RULES — FOLLOW EXACTLY:
 3. Bold: Use **bold** on 1–2 complete sentences per section — the single most insightful, actionable, or memorable sentence. Bold the full sentence, not just a phrase. Never bold more than 2 sentences per section. Never bold headings or product names.
 4. Simple English: write at a reading age of 14. No jargon without explanation. Anyone should understand it.
 5. Specificity: always name the material, finish, measurement, or price range. Vague descriptions are useless.
-6. UK English spelling: colour, favour, grey, cosy, whilst, matte, centre.
+6. American English spelling: color, favor, gray, cozy, while, matte, center, organized, favorite.
+   Measurements: always inches and feet — never cm or mm.
    PRICES: Always use $ USD. Never £. Write "$40–$90", not "£40–£90".
-7. Never use --- or *** as section dividers. Use headings instead.
-8. SEO — keyword usage:
-   - Use the primary keyword naturally in the first 100 words.
-   - Use it again 3–5 times total in the body. Never force it — only where it reads naturally.
-   - Use related semantic terms (LSI keywords) throughout: variants, synonyms, related concepts.
-   - Never keyword-stuff. One keyword per sentence maximum.
-   - Use keywords in H2 headings where natural — not every H2, but 2–3 of them.
-9. Entities and structured content:
-   - Where listing products, use H3 for each item.
-   - Where comparing options, use a simple comparison structure.
-   - Include at least one FAQ section at the end with 2–3 questions using "## Frequently Asked Questions" heading.
-   - FAQ questions should match real search queries people type (e.g. "What colours work in a japandi bedroom?")
+7. Never use --- or *** as section dividers. Use headings instead. Never output markdown tables.
+8. Never output image placeholders like [image] or [photo here].
+9. The introduction (first paragraph, before any heading) MUST be written in first person ("I", "we", or "my").
+10. All H2 headings must be numbered: "## 1. Heading Text", "## 2. Next Section", etc.
+11. SEO — keyword usage:
+    - Use the primary keyword naturally in the first 100 words.
+    - Use it again 3–5 times total in the body. Never force it — only where it reads naturally.
+    - Use related semantic terms (LSI keywords) throughout: variants, synonyms, related concepts.
+    - Never keyword-stuff. One keyword per sentence maximum.
+    - Use keywords in H2 headings where natural — not every H2, but 2–3 of them.
+12. Entities and structured content:
+    - Where listing products, use H3 for each item.
+    - Where comparing options, use a simple comparison structure — no markdown tables.
+    - Include at least one FAQ section at the end with 2–3 questions using "## Frequently Asked Questions" heading.
+    - FAQ questions should match real search queries people type (e.g. "What colors work in a japandi bedroom?")
 
 BANNED WORDS AND PHRASES — never use any of these:
 - "elevate your space" / "elevate your home" / "elevate"
@@ -48,7 +52,6 @@ BANNED WORDS AND PHRASES — never use any of these:
 - "perfect for" / "ideal for"
 - "curated" unless literally describing a curation process
 - "aesthetic" used as a standalone noun
-- "cozy" — use "cosy" (UK English)
 - Any phrase that reads like a generic Pinterest caption
 `.trim();
 
@@ -192,10 +195,19 @@ export async function POST(req: NextRequest) {
   const {
     type, title, headings, productBrief, wordCount,
     uniqueAngle, category, cluster, competition, priority, contentType,
+    brief, keywords,
   } = await req.json();
 
   const targetWords = wordCount ?? (type === 'product-review' ? 1400 : type === 'roundup' ? 1600 : 1800);
   const isListicle = ['ideas', 'decor', 'hacks', 'diy guide'].includes((contentType ?? type ?? '').toLowerCase());
+
+  const briefBlock = brief
+    ? `\nBRIEF — FOLLOW THIS EXACTLY (H2 structure, intro style, notes — do not deviate):\n${brief}\n`
+    : '';
+
+  const keywordsBlock = Array.isArray(keywords) && keywords.length > 0
+    ? `\nKEYWORDS — each of these exact phrases must appear naturally at least once in the article:\n${keywords.map(k => `- "${k}"`).join('\n')}\n`
+    : '';
 
   const headingBlock = (headings as { level: string; text: string; note: string }[])
     .map(h => `${h.level}: ${h.text}${h.note ? ` — [${h.note}]` : ''}`)
@@ -221,7 +233,7 @@ Title: ${title}
 ${contextBlock}
 Target words: ~${targetWords}
 Content type: ${contentType ?? type}
-
+${briefBlock}${keywordsBlock}
 OUTLINE (follow this structure exactly):
 ${headingBlock}
 
@@ -230,8 +242,8 @@ ${UNIVERSAL_RULES}
 ${categoryRules}
 
 STRUCTURE RULES:
-- Open with a 2-paragraph introduction. No heading. Hook the reader with a specific scene or observation.
-- Follow the outline headings in order. Use ## for H2, ### for H3.
+- Open with a 2-paragraph introduction in first person ("I" or "we"). No heading. Hook the reader with a specific scene or observation.
+- Follow the outline headings in order. Use ## for H2, ### for H3. Number all H2s: "## 1. Heading", "## 2. Next", etc.
 - Each H2 section: 2–3 paragraphs. Each paragraph: 2–3 sentences maximum.
 - New paragraph every 2–3 sentences — no long blocks of text.
 ${isListicle ? '- For listicle items (H3): one tight paragraph per idea. Lead with what makes it work visually.' : ''}
@@ -239,6 +251,7 @@ ${isListicle ? '- For listicle items (H3): one tight paragraph per idea. Lead wi
 - End with ## Frequently Asked Questions — 2–3 questions that real people search for about this topic.
 - After FAQ, one closing paragraph (no heading). 2 sentences maximum.
 - Do NOT end with a summary of what you just said.
+- No markdown tables. No image placeholders.
 
 AFFILIATE LINKS:
 - Format: [product name](AFFILIATE_LINK_PLACEHOLDER) — leave placeholder, editor adds real URL.

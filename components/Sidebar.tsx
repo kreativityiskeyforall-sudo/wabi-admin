@@ -424,6 +424,18 @@ export default function Sidebar() {
         </div>
       )}
 
+      {/* ── DRAFTS LINK (always visible below tabs) ── */}
+      <Link href="/drafts" style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px',
+        textDecoration: 'none', borderTop: '1px solid var(--border)',
+        background: pathname.startsWith('/drafts') ? 'rgba(90,158,138,0.12)' : 'transparent',
+      }}>
+        <span style={{ fontSize: 14 }}>📋</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: pathname.startsWith('/drafts') ? 'var(--sage)' : 'var(--t2)' }}>
+          Drafts for Review
+        </span>
+      </Link>
+
       {/* ── MEDIA TAB ── */}
       {tab === 'media' && (
         <div className="sb-scroll">

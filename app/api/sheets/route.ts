@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getArticlesFromSheets, invalidateSheetsCache, CONTENT_TABS } from '@/lib/sheets';
 import { google } from 'googleapis';
+import { isAgentRequest } from '@/lib/agentAuth';
 
 const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
 
@@ -29,6 +30,11 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { tab, rowNumber, status, slug, publishedAt } = await req.json();
+
+  // Agents may only set "drafted" — never "published"
+  if (isAgentRequest(req.headers.get('authorization')) && status === 'published') {
+    return NextResponse.json({ error: 'Agent cannot set sheet status to published.' }, { status: 403 });
+  }
 
   if (!CONTENT_TABS.includes(tab)) {
     return NextResponse.json({ error: `Unknown tab: ${tab}` }, { status: 400 });

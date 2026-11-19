@@ -497,19 +497,19 @@ STEP 3 — WRITE THE PROMPT with ALL of these elements in order, comma-separated
 [CAMERA ANGLE + HEIGHT — from rotation bank, not repeated in article]
 [COMPOSITION — from rotation bank, not repeated in article]
 [MOOD — one precise evocative sentence that captures the feeling of THAT specific section, never generic]
-hyper-realistic RAW photograph, 8K, editorial interior photography, no CGI, no people, no text, no watermarks, Kinfolk magazine quality
+A casual, unedited iPhone photo of a real, lived-in home interior, no CGI, no people, no text, no watermarks, shot with natural light
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FEATURED HERO IMAGE (1200×800px landscape)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 The featured image represents the WHOLE article — it must instantly communicate the style, the room type, and the emotional promise of the article.
-  - Use the most visually dramatic wall colour from the category bank (richly saturated or deep tone)
+  - Use the most visually distinctive wall color from the category bank
   - Wide full-room establishing shot — show wall + curtains + primary furniture all at once
-  - Strong directional raking light — never flat even lighting
+  - Warm natural directional light — never flat even lighting
   - Include ALL style signature objects (2–3 from the vocabulary list)
-  - The room must be UNMISTAKABLY the correct style — a reader who doesn't know the style must be able to identify it from this image alone
-  - CRITICAL: Well-exposed and fully legible. Dark walls show their colour at minimum 15% luminosity, never pitch black
-  Append: "1200×800px landscape hero, wide editorial establishing room shot, strong directional light, well-exposed, Kinfolk cover quality, hyper-realistic RAW photograph, 8K"
+  - The room must be UNMISTAKABLY the correct style
+  - CRITICAL: Well-exposed and fully legible. Dark walls show their color at minimum 15% luminosity, never pitch black
+  Append: "1200×800px landscape, wide establishing room shot, warm natural light, well-exposed, A casual unedited iPhone photo of a real lived-in home"
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
