@@ -473,8 +473,11 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
               spellCheck={false}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
               <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
+              <button className="btn btn-out btn-sm" onClick={handleSaveDraft} disabled={savingDraft} title="Save as a draft for human review — does not publish">
+                {savingDraft ? 'Saving…' : '📋 Save as Draft for Review'}
+              </button>
               <Link href={`/article/${id}/${isProduct ? 'compose' : 'images'}`} className="btn btn-sage">{isProduct ? 'Article done — go to compose →' : 'Article done — go to images →'}</Link>
             </div>
           </div>
