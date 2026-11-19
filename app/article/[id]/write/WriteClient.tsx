@@ -6,6 +6,7 @@ import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
 import { safeSetItem } from '@/lib/storage';
 import { saveDraftFromPipeline } from '@/lib/saveDraftFromPipeline';
+import DraftToast from '@/components/DraftToast';
 
 type Heading = { level: string; text: string; note: string };
 type InternalArticle = { title: string; category: string; slug: string };
@@ -209,6 +210,7 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
 
   return (
     <>
+      <DraftToast msg={draftMsg} onDismiss={() => setDraftMsg('')} />
       <StageBar articleId={id} currentStage="write" articleTitle={article?.title} isProduct={isProduct} />
       <div className="wsbody">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -274,13 +276,6 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
         {error && (
           <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '12px 16px', color: '#991B1B', fontSize: 13, marginBottom: 16 }}>
             ✕ {error}
-          </div>
-        )}
-
-        {draftMsg && (
-          <div style={{ background: draftMsg.startsWith('✕') ? '#FEF2F2' : 'var(--sbg)', border: `1px solid ${draftMsg.startsWith('✕') ? '#FECACA' : 'var(--sage)'}`, borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 13, color: draftMsg.startsWith('✕') ? '#991B1B' : 'var(--sage)', marginBottom: 16, fontWeight: 600 }}>
-            {draftMsg.startsWith('✕') ? draftMsg : `✓ ${draftMsg} — `}
-            {!draftMsg.startsWith('✕') && <a href="/drafts" style={{ color: 'var(--sage)' }}>View in Drafts →</a>}
           </div>
         )}
 

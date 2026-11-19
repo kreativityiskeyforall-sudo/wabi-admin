@@ -8,30 +8,47 @@ function toSlug(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
 }
 
+// Fetches JSON from a route and throws a human-readable error on non-2xx.
+// If the server returns non-JSON (e.g. a 500 HTML page), surfaces that as an error.
+async function apiFetch(path: string, body: unknown): Promise<Record<string, unknown>> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  let data: Record<string, unknown> = {};
+  try { data = JSON.parse(text); } catch {
+    throw new Error(`${path} returned HTTP ${res.status} with non-JSON body: ${text.slice(0, 200)}`);
+  }
+  if (!res.ok) {
+    throw new Error(`${path} HTTP ${res.status}: ${data.error ?? text.slice(0, 200)}`);
+  }
+  return data;
+}
+
 export async function saveDraftFromPipeline(
   id: string,
   article: SheetArticle | null,
 ): Promise<{ draftId: string; slug: string }> {
-  // Read all pipeline data from localStorage
   const articleMarkdown = localStorage.getItem(`article-${id}`) ?? '';
-  if (!articleMarkdown) throw new Error('No article text found — write the article first.');
+  if (!articleMarkdown.trim()) throw new Error('No article text found — write the article first.');
 
   const outlineRaw = (() => { try { return JSON.parse(localStorage.getItem(`outline-${id}`) ?? '{}'); } catch { return {}; } })();
-  const imagesRaw = (() => { try { return JSON.parse(localStorage.getItem(`images-${id}`) ?? '{}'); } catch { return {}; } })();
+  const imagesRaw  = (() => { try { return JSON.parse(localStorage.getItem(`images-${id}`)  ?? '{}'); } catch { return {}; } })();
   const composeRaw = (() => { try { return JSON.parse(localStorage.getItem(`compose-${id}`) ?? '{}'); } catch { return {}; } })();
-  const shopRaw = (() => { try { return JSON.parse(localStorage.getItem(`shop-${id}`) ?? '{}'); } catch { return {}; } })();
-  const briefRaw = (() => { try { return JSON.parse(localStorage.getItem(`brief-${id}`) ?? '{}'); } catch { return {}; } })();
+  const shopRaw    = (() => { try { return JSON.parse(localStorage.getItem(`shop-${id}`)    ?? '{}'); } catch { return {}; } })();
+  const briefRaw   = (() => { try { return JSON.parse(localStorage.getItem(`brief-${id}`)   ?? '{}'); } catch { return {}; } })();
 
   const title = article?.title ?? outlineRaw.title ?? '';
+  if (!title.trim()) throw new Error('Article has no title — cannot save as draft.');
+
   const slug = toSlug(title);
   const websiteCategory = outlineRaw.websiteCategory ?? getWebsiteCategory(article?.category ?? '');
   const type = article?.type ?? 'editorial';
   const cluster = (article?.cluster ?? '').replace(/^→\s*/, '').trim() || null;
+  const featuredImageUrl: string = imagesRaw.featured?.url ?? '';
 
-  // Featured image: from images store
-  const featuredImageUrl = imagesRaw.featured?.url ?? '';
-
-  // Section images: from compose store (which carries imageUrl + altText)
   const sectionImages: Array<{ headingText: string; imageUrl: string; altText: string }> =
     (composeRaw.sections ?? [])
       .filter((s: { imageUrl?: string }) => s.imageUrl)
@@ -41,11 +58,9 @@ export async function saveDraftFromPipeline(
         altText: s.altText ?? s.headingText,
       }));
 
-  // Shop blocks
   const shopBlocks = (shopRaw.blocks ?? [])
     .filter((b: { afterHeading?: string; products?: unknown[] }) => b.afterHeading && (b.products?.length ?? 0) > 0);
 
-  // Product items (product-review articles)
   const productItems = type === 'product-review'
     ? (briefRaw.products ?? []).map((p: Record<string, unknown>) => ({
         name: p.name ?? '',
@@ -60,9 +75,6 @@ export async function saveDraftFromPipeline(
       }))
     : [];
 
-  // Check if we already saved a draft for this article (update instead of create)
-  const existingDraftId = localStorage.getItem(`draft-id-${id}`);
-
   const payload = {
     title, slug, body: articleMarkdown,
     category: websiteCategory, type, cluster,
@@ -74,29 +86,42 @@ export async function saveDraftFromPipeline(
     sheetTab: article?.category,
   };
 
+  const existingDraftId = localStorage.getItem(`draft-id-${id}`);
+
   if (existingDraftId) {
-    // Update existing draft
-    const res = await fetch('/api/update-draft', {
+    // Try to update the existing draft first
+    const updateRes = await fetch('/api/update-draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: existingDraftId, ...payload }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? 'Update failed');
-    return { draftId: existingDraftId, slug };
+
+    if (updateRes.ok) {
+      return { draftId: existingDraftId, slug };
+    }
+
+    // If the draft was deleted (404) or missing, fall through to create a new one.
+    // Any other error (401, 500) → surface it.
+    if (updateRes.status !== 404) {
+      const text = await updateRes.text();
+      let msg = `HTTP ${updateRes.status}`;
+      try { msg = JSON.parse(text).error ?? msg; } catch { msg += `: ${text.slice(0, 150)}`; }
+      throw new Error(`update-draft failed: ${msg}`);
+    }
+
+    // 404 — draft was deleted; clear the stale ID and create fresh
+    localStorage.removeItem(`draft-id-${id}`);
   }
 
   // Create new draft
-  const res = await fetch('/api/save-draft', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Save failed');
+  const data = await apiFetch('/api/save-draft', payload);
+  const draftId = String(data.id ?? '');
+  const returnedSlug = String(data.slug ?? slug);
 
-  // Remember draft ID so future clicks update instead of create
-  try { localStorage.setItem(`draft-id-${id}`, data.id); } catch { /* quota */ }
+  if (!draftId.startsWith('drafts.')) {
+    throw new Error(`save-draft returned unexpected id: "${draftId}"`);
+  }
 
-  return { draftId: data.id, slug: data.slug };
+  try { localStorage.setItem(`draft-id-${id}`, draftId); } catch { /* quota */ }
+  return { draftId, slug: returnedSlug };
 }

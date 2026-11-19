@@ -8,6 +8,7 @@ import type { SheetArticle } from '@/lib/sheets';
 import type { ImageStore } from '../images/ImagesClient';
 import { safeSetItem } from '@/lib/storage';
 import { saveDraftFromPipeline } from '@/lib/saveDraftFromPipeline';
+import DraftToast from '@/components/DraftToast';
 
 type Section = {
   headingText: string;
@@ -263,6 +264,7 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
 
   return (
     <>
+      <DraftToast msg={draftMsg} onDismiss={() => setDraftMsg('')} />
       <StageBar articleId={id} currentStage="compose" articleTitle={article?.title} isProduct={isProduct} />
       <div className="wsbody">
 
@@ -391,11 +393,6 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
               </div>
 
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {draftMsg && (
-                  <div style={{ fontSize: 12, padding: '8px 10px', borderRadius: 6, fontWeight: 600, background: draftMsg.startsWith('✕') ? '#FEF2F2' : 'var(--sbg)', color: draftMsg.startsWith('✕') ? '#991B1B' : 'var(--sage)', border: `1px solid ${draftMsg.startsWith('✕') ? '#FECACA' : 'var(--sage)'}` }}>
-                    {draftMsg}{!draftMsg.startsWith('✕') && <> — <a href="/drafts" style={{ color: 'var(--sage)' }}>View →</a></>}
-                  </div>
-                )}
                 <button className="btn btn-out btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSaveDraft} disabled={savingDraft}>
                   {savingDraft ? 'Saving draft…' : '📋 Save as Draft for Review'}
                 </button>
