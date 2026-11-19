@@ -28,6 +28,10 @@ export function middleware(request: NextRequest) {
   const expected = process.env.ADMIN_PASSWORD;
 
   if (!token || !expected || token !== expected) {
+    // API routes return 401 so callers get a proper error (not HTML redirect)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
