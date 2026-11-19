@@ -23,7 +23,7 @@ WRITING RULES — FOLLOW EXACTLY:
 6. American English spelling: color, favor, gray, cozy, while, matte, center, organized, favorite.
    Measurements: always inches and feet — never cm or mm.
    PRICES: Always use $ USD. Never £. Write "$40–$90", not "£40–£90".
-7. Never use --- or *** as section dividers. Use headings instead. Never output markdown tables.
+7. Never use --- or *** anywhere in the output. Use headings as section dividers. Never output markdown tables.
 8. Never output image placeholders like [image] or [photo here].
 9. The introduction (first paragraph, before any heading) MUST be written in first person ("I", "we", or "my").
 10. All H2 headings must be numbered: "## 1. Heading Text", "## 2. Next Section", etc.
@@ -417,20 +417,20 @@ Return ONLY the article in markdown. No preamble.`;
   if (publishedArticles.length > 0) {
     const motherBlock = motherArticle
       ? `CLUSTER MOTHER ARTICLE — MUST LINK TO THIS ONCE:
-The master guide for this cluster is: [${motherArticle.title}](https://decoreixy.com/${motherArticle.category}/${motherArticle.slug})
+The master guide for this cluster is: [${motherArticle.title}](https://decoreixy.com/${motherArticle.category}/${motherArticle.slug}/)
 Embed this link naturally in one sentence (e.g. "For the full room guide, [the ultimate Japandi living room guide](url) covers every element."). Do not list it — weave it into prose.\n\n`
       : '';
 
     const siblingBlock = siblingArticles.length > 0
       ? `CLUSTER SIBLING ARTICLES — LINK TO 1–2 WHERE RELEVANT:
 These are other articles in the same content cluster. Pick 1–2 that are topically closest to a section in this article and link to them naturally mid-prose:
-${siblingArticles.map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug})`).join('\n')}\n\n`
+${siblingArticles.map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug}/)`).join('\n')}\n\n`
       : '';
 
     const otherArticles = publishedArticles
       .filter(a => a.slug !== motherArticle?.slug && !siblingArticles.find(s => s.slug === a.slug))
       .slice(0, 3)
-      .map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug})`)
+      .map(a => `- [${a.title}](https://decoreixy.com/${a.category}/${a.slug}/)`)
       .join('\n');
 
     const otherBlock = !siblingArticles.length && otherArticles
@@ -440,13 +440,20 @@ ${siblingArticles.map(a => `- [${a.title}](https://decoreixy.com/${a.category}/$
     prompt += `
 
 INTERNAL LINKING — REQUIRED:
-${motherBlock}${siblingBlock}${otherBlock}Format all links as: [anchor text](full url). Weave naturally into prose. Never list links at the end of the article.
+${motherBlock}${siblingBlock}${otherBlock}Format all links as: [anchor text](full url). Every internal URL MUST end with a trailing slash, e.g. https://decoreixy.com/japandi/slug/ — never https://decoreixy.com/japandi/slug. Weave naturally into prose. Never list links at the end of the article.
 
 EXTERNAL LINK — REQUIRED:
-Add exactly one external link to a reputable home decor or design authority site.
+Add exactly one external link to a non-competitor reference source.
+Never link to home decor publications, design magazines, or interior inspiration sites — these are direct competitors.
+Approved sources only (scientific, academic, sustainability, materials research):
+- https://www.nih.gov/ (health/wellness studies)
+- https://www.epa.gov/ (environmental standards)
+- https://www.worldwildlife.org/ (sustainability)
+- https://www.fsc.org/ (certified wood standards)
+- https://www.oeko-tex.com/ (fabric/textile certification)
+- https://www.color-affects.co.uk/ (colour psychology research)
 Link to the ROOT domain only — no invented paths or article slugs.
-Approved URLs: https://www.dezeen.com/, https://www.architecturaldigest.com/, https://www.housebeautiful.com/, https://www.mydomaine.com/, https://www.apartmenttherapy.com/, https://www.elledecor.com/
-Format: [descriptive anchor text](root url). Place naturally in the prose.`;
+Format: [descriptive anchor text](root url). Place naturally in the prose where genuinely relevant. If none of these fit naturally, omit the external link entirely rather than forcing it.`;
   }
 
   const message = await client.messages.create({
