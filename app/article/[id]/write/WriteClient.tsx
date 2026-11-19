@@ -5,6 +5,7 @@ import Link from 'next/link';
 import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
 import { safeSetItem } from '@/lib/storage';
+import { saveDraftFromPipeline } from '@/lib/saveDraftFromPipeline';
 
 type Heading = { level: string; text: string; note: string };
 type InternalArticle = { title: string; category: string; slug: string };
@@ -23,6 +24,20 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
   const [productBriefData, setProductBriefData] = useState<{ products: any[]; angle: string } | null>(null);
   const [linksOpen, setLinksOpen] = useState(true);
   const [urlEdits, setUrlEdits] = useState<Record<number, string>>({});
+
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftMsg, setDraftMsg] = useState('');
+
+  async function handleSaveDraft() {
+    setSavingDraft(true); setDraftMsg('');
+    try {
+      const { draftId } = await saveDraftFromPipeline(id, article);
+      const short = draftId.replace('drafts.', '').slice(0, 8);
+      setDraftMsg(`Saved as draft (${short}…)`);
+    } catch (e: unknown) {
+      setDraftMsg(e instanceof Error ? `✕ ${e.message}` : '✕ Save failed');
+    } finally { setSavingDraft(false); }
+  }
 
   // Link tool state
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -221,6 +236,11 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
               <button className="btn btn-out btn-sm" onClick={() => { localStorage.removeItem(`article-${id}`); setDone(false); setArticleText(''); setSelection(null); setLinkMode(null); }}>↺ Rewrite</button>
             )}
             {done && (
+              <button className="btn btn-out btn-sm" onClick={handleSaveDraft} disabled={savingDraft} title="Save current article as a draft for review without publishing">
+                {savingDraft ? 'Saving…' : '📋 Save as Draft for Review'}
+              </button>
+            )}
+            {done && (
               <Link href={`/article/${id}/${isProduct ? 'compose' : 'images'}`} className="btn btn-sage">{isProduct ? 'Compose →' : 'Images →'}</Link>
             )}
           </div>
@@ -254,6 +274,13 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
         {error && (
           <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 'var(--r)', padding: '12px 16px', color: '#991B1B', fontSize: 13, marginBottom: 16 }}>
             ✕ {error}
+          </div>
+        )}
+
+        {draftMsg && (
+          <div style={{ background: draftMsg.startsWith('✕') ? '#FEF2F2' : 'var(--sbg)', border: `1px solid ${draftMsg.startsWith('✕') ? '#FECACA' : 'var(--sage)'}`, borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 13, color: draftMsg.startsWith('✕') ? '#991B1B' : 'var(--sage)', marginBottom: 16, fontWeight: 600 }}>
+            {draftMsg.startsWith('✕') ? draftMsg : `✓ ${draftMsg} — `}
+            {!draftMsg.startsWith('✕') && <a href="/drafts" style={{ color: 'var(--sage)' }}>View in Drafts →</a>}
           </div>
         )}
 

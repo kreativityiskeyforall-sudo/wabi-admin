@@ -7,6 +7,7 @@ import StageBar from '@/components/StageBar';
 import type { SheetArticle } from '@/lib/sheets';
 import type { ImageStore } from '../images/ImagesClient';
 import { safeSetItem } from '@/lib/storage';
+import { saveDraftFromPipeline } from '@/lib/saveDraftFromPipeline';
 
 type Section = {
   headingText: string;
@@ -123,6 +124,20 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [shopBlockMap, setShopBlockMap] = useState<Record<string, boolean>>({});
+
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftMsg, setDraftMsg] = useState('');
+
+  async function handleSaveDraft() {
+    setSavingDraft(true); setDraftMsg('');
+    try {
+      const { draftId } = await saveDraftFromPipeline(id, article);
+      const short = draftId.replace('drafts.', '').slice(0, 8);
+      setDraftMsg(`✓ Saved as draft (${short}…)`);
+    } catch (e: unknown) {
+      setDraftMsg(e instanceof Error ? `✕ ${e.message}` : '✕ Save failed');
+    } finally { setSavingDraft(false); }
+  }
 
   useEffect(() => {
     const articleRaw = localStorage.getItem(`article-${id}`) ?? '';
@@ -264,6 +279,9 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Link href={`/article/${id}/shop`} className="btn btn-out btn-sm">← Shop</Link>
+            <button className="btn btn-out btn-sm" onClick={handleSaveDraft} disabled={savingDraft || !loaded} title="Save current article as a draft for review without publishing">
+              {savingDraft ? 'Saving…' : '📋 Save as Draft'}
+            </button>
             <button className="btn btn-sage" onClick={handleApprove} disabled={!loaded}>
               Publish →
             </button>
@@ -372,7 +390,15 @@ export default function ComposeClient({ id, article }: { id: string; article: Sh
                 ))}
               </div>
 
-              <div style={{ marginTop: 20 }}>
+              <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {draftMsg && (
+                  <div style={{ fontSize: 12, padding: '8px 10px', borderRadius: 6, fontWeight: 600, background: draftMsg.startsWith('✕') ? '#FEF2F2' : 'var(--sbg)', color: draftMsg.startsWith('✕') ? '#991B1B' : 'var(--sage)', border: `1px solid ${draftMsg.startsWith('✕') ? '#FECACA' : 'var(--sage)'}` }}>
+                    {draftMsg}{!draftMsg.startsWith('✕') && <> — <a href="/drafts" style={{ color: 'var(--sage)' }}>View →</a></>}
+                  </div>
+                )}
+                <button className="btn btn-out btn-sm" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSaveDraft} disabled={savingDraft}>
+                  {savingDraft ? 'Saving draft…' : '📋 Save as Draft for Review'}
+                </button>
                 <button className="btn btn-sage" style={{ width: '100%', justifyContent: 'center' }} onClick={handleApprove}>
                   Approve layout — Publish →
                 </button>
