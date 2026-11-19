@@ -27,17 +27,57 @@ interface Draft {
   hasPublishedVersion?: boolean;
 }
 
-function extractBodyText(body: unknown[]): string {
+type PTSpan = { _type: 'span'; text?: string; marks?: string[] };
+type PTMarkDef = { _type: string; _key: string; href?: string };
+type PTBlock = { _type: string; _key?: string; style?: string; listItem?: string; level?: number; children?: PTSpan[]; markDefs?: PTMarkDef[]; alt?: string; assetUrl?: string };
+
+function portableTextToMarkdown(body: unknown[]): string {
   if (!Array.isArray(body)) return '';
-  return body.map((block: unknown) => {
-    const b = block as Record<string, unknown>;
-    if (b._type === 'image') return `[Image: ${b.alt ?? ''}]`;
-    const style = (b.style as string) ?? 'normal';
-    const text = ((b.children as Array<{ text?: string }>) ?? []).map(c => c.text ?? '').join('');
-    if (style === 'h2') return `## ${text}`;
-    if (style === 'h3') return `### ${text}`;
-    return text;
-  }).filter(Boolean).join('\n\n');
+  const lines: string[] = [];
+
+  for (const raw of body) {
+    const block = raw as PTBlock;
+
+    // Image block
+    if (block._type === 'image') {
+      const alt = block.alt ?? '';
+      const url = block.assetUrl ?? '';
+      lines.push(url ? `![${alt}](${url})` : `[Image: ${alt}]`);
+      continue;
+    }
+
+    if (block._type !== 'block') continue;
+
+    const style = block.style ?? 'normal';
+    const markDefs = block.markDefs ?? [];
+    const children = block.children ?? [];
+
+    // Render inline spans with marks
+    const inlineText = children.map((span) => {
+      let t = span.text ?? '';
+      const marks = span.marks ?? [];
+      // Links
+      const linkMark = marks.find(m => markDefs.some(d => d._key === m && d._type === 'link'));
+      if (linkMark) {
+        const def = markDefs.find(d => d._key === linkMark);
+        t = `[${t}](${def?.href ?? ''})`;
+      } else {
+        if (marks.includes('strong')) t = `**${t}**`;
+        if (marks.includes('em')) t = `*${t}*`;
+      }
+      return t;
+    }).join('');
+
+    if (!inlineText.trim()) continue;
+
+    if (style === 'h1') { lines.push(`# ${inlineText}`); continue; }
+    if (style === 'h2') { lines.push(`## ${inlineText}`); continue; }
+    if (style === 'h3') { lines.push(`### ${inlineText}`); continue; }
+    if (block.listItem === 'bullet') { lines.push(`- ${inlineText}`); continue; }
+    lines.push(inlineText);
+  }
+
+  return lines.join('\n\n');
 }
 
 function extractImageBlocks(body: unknown[]): ImageBlock[] {
@@ -86,6 +126,7 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   const [slug, setSlug] = useState('');
   const [category, setCategory] = useState('');
   const [bodyText, setBodyText] = useState('');
+  const [originalBodyLen, setOriginalBodyLen] = useState(0);
   const [preview, setPreview] = useState(false);
   const [imageBlocks, setImageBlocks] = useState<ImageBlock[]>([]);
   const [altEdits, setAltEdits] = useState<Record<string, string>>({});
@@ -94,15 +135,18 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   const [rowNumber, setRowNumber] = useState('');
 
   useEffect(() => {
-    fetch(`/api/drafts/${encodeURIComponent(draftId)}`)
+    fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
+        if (data.error) { setErr(data.error); return; }
         const d: Draft = data.draft;
         setDraft(d);
         setTitle(d.title ?? '');
         setSlug(d.slug ?? '');
         setCategory(d.category ?? '');
-        setBodyText(extractBodyText(d.body));
+        const md = portableTextToMarkdown(d.body);
+        setBodyText(md);
+        setOriginalBodyLen(md.length);
         setImageBlocks(extractImageBlocks(d.body));
         setShopBlocks(d.shopBlocks ?? []);
       })
@@ -128,7 +172,7 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   async function handleSaveAltTexts() {
     setSaving(true); setMsg(''); setErr('');
     try {
-      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`);
+      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { cache: 'no-store' });
       const data = await res.json();
       const fullBody: unknown[] = data.draft.body;
       const updated = fullBody.map((b: unknown) => {
@@ -150,7 +194,7 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   }
 
   async function handleRemoveImage(key: string) {
-    const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`);
+    const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { cache: 'no-store' });
     const data = await res.json();
     const updated = (data.draft.body as unknown[]).filter(
       (b: unknown) => (b as Record<string, unknown>)._key !== key,
@@ -185,7 +229,17 @@ export default function DraftClient({ draftId }: { draftId: string }) {
     });
   }
 
+  // Body safety check: block publish/save if body appears empty or was truncated.
+  // Only applies when the original body was substantial (>200 chars).
+  const bodyIsEmpty = bodyText.trim().length === 0;
+  const bodyIsTruncated = originalBodyLen > 200 && bodyText.trim().length < originalBodyLen * 0.2;
+  const bodyUnsafe = bodyIsEmpty || bodyIsTruncated;
+
   async function handlePublish() {
+    if (bodyUnsafe) {
+      setErr(`Blocked: the body appears empty or much shorter than the saved version (${bodyText.trim().length} chars vs original ${originalBodyLen}). The draft has not been changed — this is a display issue. Do not publish until the body shows correctly.`);
+      return;
+    }
     if (!confirm('Publish this draft? It will go live on decoreixy.com after the site rebuilds (~3 min).')) return;
     setPublishing(true); setMsg(''); setErr('');
     try {
@@ -200,7 +254,7 @@ export default function DraftClient({ draftId }: { draftId: string }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Publish failed');
       setMsg(`Published! Live at: decoreixy.com/${category}/${data.slug}/`);
-      setTimeout(() => router.push('/drafts'), 2500);
+      setTimeout(() => { router.refresh(); router.push('/drafts'); }, 2500);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : 'Publish failed');
     } finally { setPublishing(false); }
@@ -210,10 +264,13 @@ export default function DraftClient({ draftId }: { draftId: string }) {
     if (!confirm('Delete this draft permanently? This cannot be undone.')) return;
     setDeleting(true);
     try {
-      await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { method: 'DELETE' });
+      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Delete failed'); }
+      // Bust router cache so /drafts re-fetches immediately
+      router.refresh();
       router.push('/drafts');
-    } catch {
-      setErr('Delete failed');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Delete failed');
       setDeleting(false);
     }
   }
@@ -251,14 +308,24 @@ export default function DraftClient({ draftId }: { draftId: string }) {
           <button
             onClick={handlePublish}
             disabled={publishing}
-            style={{ background: publishing ? 'var(--sage)' : 'var(--sage)', border: 'none', borderRadius: 6, color: '#fff', padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: publishing ? 'default' : 'pointer', opacity: publishing ? 0.7 : 1 }}
+            title={bodyUnsafe ? 'Body is empty or truncated — cannot publish' : ''}
+            style={{ background: bodyUnsafe ? '#9CA3AF' : 'var(--sage)', border: 'none', borderRadius: 6, color: '#fff', padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: publishing ? 'default' : 'pointer', opacity: publishing ? 0.7 : 1 }}
           >
-            {publishing ? 'Publishing…' : '✓ Publish Now'}
+            {publishing ? 'Publishing…' : bodyUnsafe ? '⚠ Body empty' : '✓ Publish Now'}
           </button>
         </div>
       </div>
 
       <div style={{ padding: '20px 24px' }}>
+
+        {/* Body empty / truncated warning */}
+        {bodyUnsafe && originalBodyLen > 0 && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#991B1B', fontWeight: 600 }}>
+            ⚠ Body appears empty or much shorter than expected ({bodyText.trim().length} chars vs {originalBodyLen} saved).
+            The article content is safe in Sanity — this is a display issue only.
+            Publishing is blocked until the body renders correctly.
+          </div>
+        )}
 
         {/* Published-version warning */}
         {draft.hasPublishedVersion && (

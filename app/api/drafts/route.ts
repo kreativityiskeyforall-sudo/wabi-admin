@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 
+export const dynamic = 'force-dynamic';
+
 const sanity = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
   dataset: process.env.SANITY_DATASET ?? 'production',
@@ -21,5 +23,7 @@ export async function GET() {
       "hasFeaturedImage": defined(featuredImage)
     }`,
   );
-  return NextResponse.json({ drafts });
+  return NextResponse.json({ drafts }, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
 }

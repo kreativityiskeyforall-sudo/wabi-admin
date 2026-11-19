@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
 
+export const dynamic = 'force-dynamic';
+
 const sanity = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
   dataset: process.env.SANITY_DATASET ?? 'production',
@@ -40,12 +42,21 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Draft not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ draft: { ...draft, hasPublishedVersion: !!liveCheck } });
+  return NextResponse.json(
+    { draft: { ...draft, hasPublishedVersion: !!liveCheck } },
+    { headers: { 'Cache-Control': 'no-store' } },
+  );
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const rawId = params.id;
   const draftId = rawId.startsWith('drafts.') ? rawId : `drafts.${rawId}`;
+
+  // Hard guard: regardless of how the ID was constructed, refuse if it doesn't start with "drafts."
+  // This makes it structurally impossible to delete a live document through this route.
+  if (!draftId.startsWith('drafts.')) {
+    return NextResponse.json({ error: 'Refused: only draft documents (id starting with "drafts.") may be deleted.' }, { status: 400 });
+  }
 
   await sanity.delete(draftId);
   return NextResponse.json({ ok: true });

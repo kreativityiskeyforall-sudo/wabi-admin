@@ -14,7 +14,7 @@ export default function DraftsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/drafts')
+    fetch('/api/drafts', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => setDrafts(d.drafts ?? []))
       .catch(() => setError('Failed to load drafts'))
