@@ -1,25 +1,58 @@
 # AGENT_HANDOFF.md — decoreixy Content Admin API
 
-This document describes the wabi-admin system at `https://wabi-admin.vercel.app` for external AI agents automating article creation. All endpoints require authentication unless noted.
+This document describes the wabi-admin system at `https://wabi-admin.vercel.app` for external AI agents automating article creation.
+
+---
+
+## 0. MCP Connector (Recommended for Claude.ai)
+
+The admin exposes a remote MCP server at:
+
+```
+https://wabi-admin.vercel.app/api/mcp
+```
+
+**Add in claude.ai:** Settings → Connectors → Add custom connector → enter the URL above.
+
+**Auth:** `Authorization: Bearer <AGENT_API_KEY>` on every request.
+
+**14 available tools:**
+`list_queue`, `get_queue_item`, `validate_outline`, `generate_outline`, `write_article`, `save_draft`, `update_draft`, `list_drafts`, `get_draft`, `upload_image`, `attach_image_to_draft`, `set_shop_blocks`, `set_sheet_status`, `get_site_articles`
+
+**No `publish` tool.** Drafts must be published by a human from the Drafts for Review page at `https://wabi-admin.vercel.app/drafts`.
 
 ---
 
 ## 1. Authentication
 
+### Human sessions (browser)
 **Method:** Cookie-based session (`wabi-auth` cookie).
 
-**Login:**
 ```
 POST /api/auth
 Content-Type: application/json
 
 { "password": "<ADMIN_PASSWORD env var value>" }
 ```
-Response: sets `wabi-auth` httpOnly cookie (7-day TTL).  
-On success: `{ "ok": true }`  
-On failure: `{ "error": "Incorrect password" }` (401)
+Response: sets `wabi-auth` httpOnly cookie (7-day TTL).
 
-**All subsequent requests** must include the session cookie. For programmatic access, capture the `Set-Cookie` header from the login response and pass it in subsequent requests.
+### Agent API (MCP + direct API calls)
+**Method:** Bearer token in Authorization header.
+
+```
+Authorization: Bearer <AGENT_API_KEY>
+```
+
+The `AGENT_API_KEY` env var value is set in Vercel. The agent uses this for all requests including the MCP connector. No cookie required.
+
+**Routes blocked for agent Bearer token (returns 403):**
+- `POST /api/publish`
+- `POST /api/edit-article`
+- `POST /api/edit-product-items`
+- `POST /api/update-content-bible`
+- `POST /api/fix-bedroom-body`
+- `POST /api/patch-existing-articles`
+- `PATCH /api/sheets` with `status: "published"`
 
 **Public routes (no auth required):**
 - `POST /api/auth`
@@ -175,10 +208,17 @@ For **product-review** type, also include:
 
 The response is the complete article in **Markdown format**. Store this — it is the input to the publish step.
 
+**Optional fields:**
+- `brief` (string): full markdown brief to follow exactly (H2 structure, intro style, notes)
+- `keywords` (array of strings): exact phrases that must appear naturally at least once each
+
 **Writing rules enforced automatically:**
 - Max 20 words per sentence
-- UK English (colour, grey, cosy)
+- American English (color, gray, cozy, center, favorite, organized, inches/feet)
 - Prices in USD ($)
+- Introduction always in first person ("I" or "we")
+- All H2s numbered: "## 1. First Section", "## 2. Next Section"
+- No markdown tables, no image placeholders, no `---` dividers
 - Banned words: "elevate", "stunning", "timeless", "seamlessly", "effortlessly", "curated", etc.
 - Ends with `## Frequently Asked Questions`
 
@@ -345,14 +385,75 @@ Response: `{ "id": "kLsEaYFa3mAxI05MnvkQxo", "slug": "13-christmas-kitchen..." }
 
 ---
 
-## 8. Saving as Draft (WITHOUT Publishing)
+## 8. Saving as Draft (Agent workflow)
 
-**There is no draft-save API.** The pipeline uses browser localStorage as temporary storage during the pipeline stages (outline → write → images → shop → compose → publish). An article only exists in Sanity after `POST /api/publish` is called.
+Agents use a Sanity-backed draft system. Drafts have `_id` starting with `drafts.` and are **never visible on decoreixy.com** until a human publishes them.
 
-**To stage an article without publishing:**
-- Complete the pipeline up to the Compose stage
-- Do NOT call `POST /api/publish`
-- The article data remains in localStorage only
+### Save a new draft
+```
+POST /api/save-draft
+Authorization: Bearer <AGENT_API_KEY>
+Content-Type: application/json
+
+{
+  "title": "13 Christmas Kitchen Decor Ideas...",
+  "slug": "13-christmas-kitchen-decor-ideas",
+  "body": "# Title\n\n## 1. The Advent Calendar Counter\n\n...",
+  "category": "seasonal",
+  "type": "editorial",
+  "cluster": "christmas-decor",
+  "isMother": false,
+  "featuredImageUrl": "https://cdn.sanity.io/...",
+  "sectionImages": [
+    { "headingText": "1. The Advent Calendar Counter", "imageUrl": "https://cdn.sanity.io/...", "altText": "..." }
+  ],
+  "shopBlocks": [],
+  "productItems": [],
+  "rowNumber": 12,
+  "sheetTab": "Seasonal — Christmas + Winter"
+}
+```
+Response: `{ "id": "drafts.abc123", "slug": "13-christmas-kitchen..." }`
+
+The `rowNumber` + `sheetTab` fields are optional — if provided, the sheet row is automatically marked `"drafted"`.
+
+### Update a draft
+```
+POST /api/update-draft
+Authorization: Bearer <AGENT_API_KEY>
+Content-Type: application/json
+
+{
+  "id": "drafts.abc123",
+  "title": "Updated title",
+  "body": "Updated markdown...",
+  "shopBlocks": [...]
+}
+```
+Any subset of fields can be updated. `id` must start with `drafts.`.
+
+### List all drafts
+```
+GET /api/drafts
+Authorization: Bearer <AGENT_API_KEY>
+```
+Response: `{ "drafts": [ { "_id": "drafts.abc123", "title": "...", "category": "...", "_updatedAt": "..." } ] }`
+
+### Get a single draft
+```
+GET /api/drafts/{draftId}
+Authorization: Bearer <AGENT_API_KEY>
+```
+Response includes full body, images with assetUrl, shopBlocks, productItems.
+
+### Delete a draft
+```
+DELETE /api/drafts/{draftId}
+Authorization: Bearer <AGENT_API_KEY>
+```
+
+### Publish a draft (HUMAN ONLY — agent cannot call this)
+Human opens `https://wabi-admin.vercel.app/drafts`, reviews the article, and clicks Publish. This calls `POST /api/publish-draft` which is blocked for agent Bearer tokens (403).
 
 **To save article body to an already-published article** (edit mode):
 ```
@@ -481,34 +582,48 @@ The final URL is: `https://decoreixy.com/{category}/{slug}/`
 
 ## 12. Things an Agent MUST NOT Do
 
-1. **Never call `POST /api/publish` without explicit user confirmation.** Publishing is irreversible and immediately triggers a site rebuild.
-2. **Never delete Sanity documents.** There is no delete API — do not call Sanity directly.
-3. **Never update the Google Sheet status to "published" before the article is actually published** in Sanity. The sheet is the source of truth for the queue.
-4. **Never publish the same article twice.** The publish route uses `sanity.create()` — calling it twice creates two documents with the same slug, causing duplicate pages on the live site.
-5. **Never modify the content bible** (`POST /api/update-content-bible`) unless explicitly instructed — it gates all future outline generation.
-6. **Never use the fix-bedroom-body or patch-existing-articles routes** — these are one-time migration scripts, not general-purpose tools.
-7. **Never set `isMother: true`** unless the article is explicitly designated as the master guide for a cluster.
-8. **Never fabricate Amazon product data.** Price history, stars, and review counts must come from real Amazon data or the generate-price-curve API.
-9. **Always append `?tag=oppositeattra-20`** to every Amazon affiliate URL. Missing the tag means lost revenue.
-10. **Never bypass the outline → write pipeline** by writing article content directly. The outline checks the content bible to prevent duplicate concepts across the 597-article plan.
+1. **Never call `POST /api/publish`.** This route is blocked (403) for agent Bearer tokens. Use `save_draft` instead. Only a human can publish from the Drafts for Review page.
+2. **Never call `POST /api/publish-draft`.** Same — blocked for agents (403).
+3. **Never delete live Sanity documents.** `DELETE /api/drafts/{id}` only deletes draft documents (ID starting with `drafts.`). Never call Sanity directly.
+4. **Never update the Google Sheet status to `"published"`.** The agent can only set `"drafted"`. Attempting `"published"` returns 403.
+5. **Never save the same draft twice with the same slug.** `save_draft` checks for an existing live article with the same slug and returns 409 if found.
+6. **Never modify the content bible** (`POST /api/update-content-bible`) — it gates all future outline generation.
+7. **Never use the fix-bedroom-body or patch-existing-articles routes** — these are one-time migration scripts.
+8. **Never set `isMother: true`** unless explicitly designated as the master guide for a cluster.
+9. **Never fabricate Amazon product data.** Price history, stars, review counts must come from real Amazon pages or the read-price-chart API.
+10. **Always append `?tag=oppositeattra-20`** to every Amazon URL. The `save_draft` and `set_shop_blocks` routes enforce this automatically — but verify before calling.
+11. **Never bypass the outline → write pipeline.** The outline checks the content bible to prevent duplicate concepts across the 597-article plan.
+12. **Never use `generate-price-curve`** — it generates fabricated price data. Only `read-price-chart` (from a real Amazon screenshot) is acceptable.
 
 ---
 
-## 13. Full Pipeline Order
+## 13. Agent Pipeline Order (via MCP)
 
-For a new article, the correct pipeline order is:
+For a new article using the MCP connector:
 
 ```
-1. GET /api/sheets                    — find the article by ID
-2. POST /api/outline                  — generate + approve outline
-3. POST /api/write                    — generate article markdown
-4. POST /api/generate-image-prompts   — generate image prompts
-5. POST /api/generate-images          — generate section images (FLUX)
-6. POST /api/generate-images          — generate featured image (FLUX ultra)
-7. POST /api/generate-price-curve     — (product articles only) generate price curves
-8. POST /api/publish                  — publish to Sanity (⚠ irreversible)
-9. PATCH /api/sheets                  — mark as published in queue
+1. list_queue                 — find the article in the queue
+2. get_site_articles          — check for overlap with existing articles
+3. validate_outline           — check proposed headings against content bible
+4. generate_outline           — generate SEO outline
+5. write_article              — generate markdown (returned only, not saved)
+6. [review and edit markdown]
+7. upload_image               — upload featured image to Sanity CDN
+8. upload_image (×N)          — upload each section image
+9. save_draft                 — save complete article as Sanity draft (sets sheet to "drafted")
+10. attach_image_to_draft     — set featured image + each section image
+11. set_shop_blocks           — add product cards (optional)
+12. [human opens /drafts, reviews, clicks Publish]
 ```
+
+**Article type values in this pipeline:**
+- Input type: `"editorial"` | `"product-review"` | `"roundup"`
+- Stored in Sanity as: `"info"` | `"roundup"` | `"gift-guide"` (mapped automatically by save-draft)
+
+**Price field names:**
+- In productBrief (write): `price90Low` / `price90High`
+- In Sanity / productItems: `price1yrLow` / `price1yrHigh`
+- Both are accepted by save-draft (normalized automatically)
 
 ---
 
@@ -519,7 +634,8 @@ The following env vars must be set in Vercel for the admin to function. **Do not
 | Variable | Purpose |
 |---|---|
 | `ADMIN_PASSWORD` | Login password for the admin panel |
-| `ANTHROPIC_API_KEY` | Claude API (outline, write, price curves) |
+| `AGENT_API_KEY` | Bearer token for MCP and agent API access — **NEW** |
+| `ANTHROPIC_API_KEY` | Claude API (outline, write, alt text generation) |
 | `SANITY_PROJECT_ID` | Sanity project ID (`2t1zjo13`) |
 | `SANITY_DATASET` | `production` |
 | `SANITY_TOKEN` | Sanity write token |
@@ -529,3 +645,7 @@ The following env vars must be set in Vercel for the admin to function. **Do not
 | `CLOUDFLARE_ZONE_ID` | For cache purging after publish |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API token (Cache Purge permission only) |
 | `SANITY_WEBHOOK_SECRET` | Verifies incoming Sanity webhook signatures |
+
+**New env var to add in Vercel:** `AGENT_API_KEY` — choose any strong random string (e.g. `openssl rand -hex 32`). This is the value you enter as the API key in claude.ai's custom connector settings.
+
+**MCP connector URL for claude.ai:** `https://wabi-admin.vercel.app/api/mcp`
