@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { isAgentRequest, AGENT_BLOCKED_ROUTES } from '@/lib/agentAuth';
+import { isAgentRequest, isAgentMcpPath, AGENT_BLOCKED_ROUTES } from '@/lib/agentAuth';
 
 const PUBLIC_PATHS = ['/login', '/api/auth', '/api/purge-cache'];
 
@@ -10,9 +10,9 @@ export function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 
-  // Agent Bearer-token auth (used by MCP connector and direct API access)
+  // Agent auth: Bearer token header OR key embedded in /api/mcp/<key> URL path
   const authHeader = request.headers.get('authorization');
-  if (isAgentRequest(authHeader)) {
+  if (isAgentRequest(authHeader) || isAgentMcpPath(pathname)) {
     const isBlocked = AGENT_BLOCKED_ROUTES.some(r => pathname.startsWith(r));
     if (isBlocked) {
       return NextResponse.json(

@@ -5,6 +5,15 @@ export function isAgentRequest(authHeader: string | null): boolean {
   return !!(expected && key === expected);
 }
 
+// URL-path fallback: /api/mcp/<AGENT_API_KEY>
+// Used when the client cannot set custom headers (e.g. claude.ai connector beta).
+export function isAgentMcpPath(pathname: string): boolean {
+  if (!pathname.startsWith('/api/mcp/')) return false;
+  const pathKey = pathname.slice('/api/mcp/'.length).split('/')[0];
+  const expected = process.env.AGENT_API_KEY;
+  return !!(expected && pathKey.length > 0 && pathKey === expected);
+}
+
 // Routes the agent bearer token cannot call
 export const AGENT_BLOCKED_ROUTES = [
   '/api/publish',
