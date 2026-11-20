@@ -16,8 +16,8 @@ https://wabi-admin.vercel.app/api/mcp
 
 **Auth:** `Authorization: Bearer <AGENT_API_KEY>` on every request.
 
-**14 available tools:**
-`list_queue`, `get_queue_item`, `validate_outline`, `generate_outline`, `write_article`, `save_draft`, `update_draft`, `list_drafts`, `get_draft`, `upload_image`, `attach_image_to_draft`, `set_shop_blocks`, `set_sheet_status`, `get_site_articles`
+**15 available tools:**
+`list_queue`, `get_queue_item`, `validate_outline`, `generate_outline`, `write_article`, `save_draft`, `update_draft`, `list_drafts`, `get_draft`, `upload_image`, `attach_image_to_draft`, `set_shop_blocks`, `set_sheet_status`, `get_site_articles`, `read_price_chart`
 
 **No `publish` tool.** Drafts must be published by a human from the Drafts for Review page at `https://wabi-admin.vercel.app/drafts`.
 
@@ -296,7 +296,22 @@ Response:
 }
 ```
 
-### Price curve from screenshot (Vision)
+### Price curve from screenshot — MCP tool (recommended for agents)
+Use the `read_price_chart` MCP tool. It accepts either a URL or base64, compresses large images automatically, and returns a clear error if the chart cannot be read rather than guessing.
+
+```
+tool: read_price_chart
+{
+  "imageUrl": "https://example.com/price-chart.png",  // OR imageBase64 + mediaType
+  "price": 189.99,
+  "name": "Bamboo Platform Bed"
+}
+```
+Response: `{"history":[...20 values...],"low":149.99,"high":219.99,"badge":"low"}`
+
+If the image is blurry, cropped, or not a price chart, the tool throws an error with a clear reason. **Never guess or fill in values.**
+
+### Price curve from screenshot — direct API (legacy, pipeline UI)
 ```
 POST /api/read-price-chart
 Content-Type: application/json

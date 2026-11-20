@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@sanity/client';
+import Anthropic from '@anthropic-ai/sdk';
 import { isAgentRequest } from '@/lib/agentAuth';
 import { randomKey } from '@/lib/markdownToPortableText';
 
@@ -281,6 +282,21 @@ const TOOLS = [
     description: 'Get all published articles: title, full URL with trailing slash, and list of H2 headings. Use for overlap checking and finding internal link targets before writing.',
     inputSchema: { type: 'object', properties: {}, required: [] },
   },
+  {
+    name: 'read_price_chart',
+    description: 'Extract 1-year price history from a real Amazon price-chart screenshot using vision. Returns history array, low, high, badge — ready to plug directly into set_shop_blocks. If the image is not a price chart, blurry, missing axis labels, or cannot be read confidently, returns a clear error. NEVER guesses values.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        imageUrl: { type: 'string', description: 'Public URL of the chart screenshot. Fetched server-side — stays within Vercel request limits even for large images.' },
+        imageBase64: { type: 'string', description: 'Base64-encoded chart image. Use imageUrl instead for large images.' },
+        mediaType: { type: 'string', description: 'MIME type of the image, e.g. image/png, image/jpeg. Required when using imageBase64.' },
+        price: { type: 'number', description: 'Current price of the product from the Amazon product page.' },
+        name: { type: 'string', description: 'Product name, used for context in the chart reading prompt.' },
+      },
+      required: ['price'],
+    },
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -525,6 +541,113 @@ async function toolSetSheetStatus(params: Record<string, unknown>, baseUrl: stri
   return `Sheet row ${rowNumber} in tab "${tab}" marked as "${status}"`;
 }
 
+async function toolReadPriceChart(params: Record<string, unknown>): Promise<string> {
+  const { imageUrl, imageBase64, mediaType, price, name } = params as {
+    imageUrl?: string; imageBase64?: string; mediaType?: string; price: number; name?: string;
+  };
+  if (!imageUrl && !imageBase64) throw new Error('Provide imageUrl or imageBase64');
+  if (!price) throw new Error('price (current price from the product page) is required');
+
+  const currentPrice = Number(price);
+
+  // Resolve image to base64
+  let b64: string;
+  let mime: string;
+  if (imageUrl) {
+    const res = await fetch(imageUrl);
+    if (!res.ok) throw new Error(`Could not fetch image URL: HTTP ${res.status}`);
+    let buf = Buffer.from(await res.arrayBuffer());
+    // Compress if >3 MB to stay within Vercel limits
+    const MAX = 3 * 1024 * 1024;
+    if (buf.length > MAX) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const sharp = require('sharp') as (input: Buffer) => { jpeg(o: { quality: number }): { toBuffer(): Promise<Buffer> } };
+        const compressed = await sharp(buf).jpeg({ quality: 82 }).toBuffer();
+        if (compressed.length < buf.length) buf = compressed;
+      } catch { /* sharp unavailable — proceed with original */ }
+    }
+    b64 = buf.toString('base64');
+    mime = (res.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
+  } else {
+    b64 = String(imageBase64);
+    mime = String(mediaType || 'image/png');
+  }
+
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mime as 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp',
+            data: b64,
+          },
+        },
+        {
+          type: 'text',
+          text: `This is a 1-year Amazon price history chart for "${name || 'a product'}". The current price is ${currentPrice}.
+
+FIRST — verify readability: If this image is NOT a price chart, is too blurry to read the Y-axis, is cropped so axis values are missing, or you cannot determine price values confidently, respond ONLY with this exact JSON (nothing else):
+{"unreadable":true,"reason":"brief explanation"}
+
+If you CAN read it:
+
+STEP 1 — Read the Y-axis: Note the exact dollar values on the horizontal grid lines (e.g. $90, $110, $130). These are your reference points.
+
+STEP 2 — Read the chart left to right: The chart is a step-function (flat lines with sudden drops/jumps). Trace every price level from left (oldest) to right (newest/today).
+
+STEP 3 — Extract 20 price points: Sample 20 evenly-spaced points left to right. Estimate each price against Y-axis labels. BE PRECISE — halfway between $110 and $130 means $120.
+
+CRITICAL RULES:
+- "low" = the LOWEST price the line ever touches. Look for the deepest dip.
+- "high" = the HIGHEST price the line ever reaches.
+- The 20th (last) value MUST be exactly ${currentPrice}.
+- Never invent values — read directly from the chart's Y-axis scale.
+- Do NOT set low = current price unless it genuinely IS the lowest point on the whole chart.
+
+Return ONLY this JSON (nothing else):
+{"history":[v1,v2,...,v20],"low":<true minimum seen>,"high":<true maximum seen>}`,
+        },
+      ],
+    }],
+  });
+
+  const rawText = (message.content[0] as { type: string; text: string }).text.trim();
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Chart reader returned an unrecognizable response');
+
+  let parsed: Record<string, unknown>;
+  try { parsed = JSON.parse(jsonMatch[0]); } catch { throw new Error('Chart reader returned invalid JSON'); }
+
+  if (parsed.unreadable) throw new Error(`Cannot read chart: ${parsed.reason || 'image is not a readable price chart — use a full-size screenshot with visible axis labels'}`);
+
+  const history = parsed.history as number[];
+  if (!Array.isArray(history) || history.length < 2) throw new Error('Chart returned insufficient data points');
+  history[history.length - 1] = currentPrice;
+
+  const histMin = Math.min(...history), histMax = Math.max(...history);
+  const low = Math.min((parsed.low as number) ?? histMin, histMin);
+  const high = Math.max((parsed.high as number) ?? histMax, histMax);
+
+  const pct = (currentPrice - low) / (high - low || 1);
+  let badge: 'low' | 'rising' | 'pick' = 'pick';
+  if (pct <= 0.15) {
+    badge = 'low';
+  } else {
+    const last4 = history.slice(-4);
+    const secondHighest = [...history].sort((a, b) => b - a)[1] ?? high;
+    if (last4.every(v => v >= secondHighest * 0.97)) badge = 'rising';
+  }
+
+  return JSON.stringify({ history, low, high, badge }, null, 2);
+}
+
 async function toolGetSiteArticles(): Promise<string> {
   const articles = await sanity.fetch<Array<{
     title: string; slug: string; category: string; body: Array<{ style?: string; children?: Array<{ text?: string }> }>;
@@ -572,7 +695,8 @@ async function handleToolCall(id: unknown, params: { name: string; arguments?: R
       case 'attach_image_to_draft': resultText = await toolAttachImageToDraft(args); break;
       case 'set_shop_blocks':  resultText = await toolSetShopBlocks(args); break;
       case 'set_sheet_status': resultText = await toolSetSheetStatus(args, baseUrl, agentKey); break;
-      case 'get_site_articles': resultText = await toolGetSiteArticles(); break;
+      case 'get_site_articles':  resultText = await toolGetSiteArticles(); break;
+      case 'read_price_chart':   resultText = await toolReadPriceChart(args); break;
       default:
         return jsonRpcError(id, -32601, `Unknown tool: ${toolName}`);
     }

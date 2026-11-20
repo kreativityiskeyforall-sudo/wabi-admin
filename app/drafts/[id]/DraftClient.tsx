@@ -80,6 +80,141 @@ function portableTextToMarkdown(body: unknown[]): string {
   return lines.join('\n\n');
 }
 
+// ── Rich preview helpers ──────────────────────────────────────────────────────
+
+function fmtDate(iso: string | undefined): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function renderInlineMd(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  const re = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
+  let last = 0; let ki = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('**')) parts.push(<strong key={ki++}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith('*')) parts.push(<em key={ki++}>{tok.slice(1, -1)}</em>);
+    else { const lm = tok.match(/\[([^\]]+)\]\(([^)]+)\)/); if (lm) parts.push(<a key={ki++} href={lm[2]} target="_blank" rel="noopener" style={{ color: 'var(--sage)' }}>{lm[1]}</a>); }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
+function PreviewProductCard({ p, pubDate }: { p: ShopProduct; pubDate: string }) {
+  const stars = parseFloat(String(p.stars)) || 0;
+  const hasPriceRange = p.low != null && p.high != null && (p.high ?? 0) !== (p.low ?? 0);
+  const meterPct = hasPriceRange
+    ? Math.round(Math.max(4, Math.min(96, ((p.price - (p.low ?? p.price)) / ((p.high ?? p.price) - (p.low ?? p.price))) * 100)))
+    : null;
+  return (
+    <div style={{ background: '#fff', borderRadius: 8, border: '1.5px solid #5a9e8a', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontSize: 12 }}>
+      {p.imageUrl && (
+        <div style={{ aspectRatio: '1', background: '#f9f9f9', overflow: 'hidden' }}>
+          <img src={p.imageUrl} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6, boxSizing: 'border-box' }} />
+        </div>
+      )}
+      <div style={{ padding: '10px 10px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <p style={{ fontWeight: 700, fontSize: 12, lineHeight: 1.4, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.name}</p>
+        <p style={{ fontSize: 10, color: '#888', margin: 0 }}>{('★').repeat(Math.round(stars))}{('☆').repeat(5 - Math.round(stars))} {stars.toFixed(1)} ({(p.reviews ?? 0).toLocaleString()})</p>
+        <p style={{ fontSize: 20, fontWeight: 900, margin: 0, lineHeight: 1 }}>${p.price}</p>
+        <p style={{ fontSize: 10, color: '#aaa', margin: 0 }}>Price at time of writing{pubDate ? ` · ${pubDate}` : ''}</p>
+        {meterPct !== null && (
+          <div style={{ margin: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#888', marginBottom: 2 }}>
+              <span style={{ color: '#3d7a68', fontWeight: 700 }}>Low ${p.low}</span>
+              <span style={{ color: '#c17a5a', fontWeight: 700 }}>High ${p.high}</span>
+            </div>
+            <div style={{ position: 'relative', height: 5, borderRadius: 3, background: 'linear-gradient(to right,#5a9e8a,#e8c870,#c17a5a)' }}>
+              <div style={{ position: 'absolute', top: '50%', left: `${meterPct}%`, transform: 'translate(-50%,-50%)', width: 11, height: 11, borderRadius: '50%', background: '#fff', border: '2px solid #333' }} />
+            </div>
+          </div>
+        )}
+        <a href={p.amazonUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', background: '#333', color: '#fff', borderRadius: 5, padding: '8px 6px', fontSize: 10, fontWeight: 700, textDecoration: 'none', marginTop: 'auto' }}>
+          See Today&apos;s Price →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function renderBodyPreview(
+  body: string,
+  featuredImageUrl: string | undefined,
+  shopBlocks: ShopBlock[],
+  createdAt: string,
+): React.ReactNode {
+  const pubDate = fmtDate(createdAt);
+  const normH = (s: string) => s.replace(/^\d+\.\s+/, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // Split into blocks by BOTH H2 and H3 (matches production site behaviour)
+  type Block = { level: 'h2' | 'h3' | null; heading: string | null; lines: string[] };
+  const blocks: Block[] = [{ level: null, heading: null, lines: [] }];
+  for (const line of body.split('\n')) {
+    if (line.startsWith('## '))       blocks.push({ level: 'h2', heading: line.slice(3), lines: [] });
+    else if (line.startsWith('### ')) blocks.push({ level: 'h3', heading: line.slice(4), lines: [] });
+    else                              blocks[blocks.length - 1].lines.push(line);
+  }
+
+  // Pre-assign shop blocks (first heading match, no double-use)
+  const usedBlocks = new Set<number>();
+  const shopAssignment = new Map<number, number>(); // blockIdx → shopBlockIdx
+  blocks.forEach((block, bi) => {
+    if (!block.heading) return;
+    const idx = shopBlocks.findIndex((sb, i) => !usedBlocks.has(i) && normH(sb.afterHeading) === normH(block.heading!));
+    if (idx !== -1) { shopAssignment.set(bi, idx); usedBlocks.add(idx); }
+  });
+
+  return (
+    <div>
+      {featuredImageUrl && (
+        <img src={`${featuredImageUrl}?w=820&h=380&fit=crop&auto=format`} alt="Featured"
+          style={{ width: '100%', height: 240, objectFit: 'cover', borderRadius: 8, marginBottom: 20, display: 'block' }} />
+      )}
+      {blocks.map((block, bi) => (
+        <div key={bi}>
+          {block.level === 'h2' && (
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)', margin: '28px 0 10px', paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>
+              {block.heading}
+            </h2>
+          )}
+          {block.level === 'h3' && (
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', margin: '18px 0 7px' }}>
+              {block.heading}
+            </h3>
+          )}
+          {block.lines.map((line, li) => {
+            if (!line.trim()) return <div key={li} style={{ height: 6 }} />;
+            const imgM = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+            if (imgM) return (
+              <figure key={li} style={{ margin: '14px 0' }}>
+                <img src={imgM[2]} alt={imgM[1]} title={imgM[1]} style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+                {imgM[1] && <figcaption style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', marginTop: 3, fontStyle: 'italic' }}>{imgM[1]}</figcaption>}
+              </figure>
+            );
+            if (line.startsWith('- ')) return <li key={li} style={{ fontSize: 13, color: 'var(--t1)', lineHeight: 1.65, marginLeft: 18, marginBottom: 3 }}>{renderInlineMd(line.slice(2))}</li>;
+            return <p key={li} style={{ fontSize: 13, color: 'var(--t1)', lineHeight: 1.7, margin: '0 0 10px' }}>{renderInlineMd(line)}</p>;
+          })}
+          {shopAssignment.has(bi) && (() => {
+            const block2 = shopBlocks[shopAssignment.get(bi)!];
+            return (
+              <div style={{ background: '#eef2ef', border: '2px solid #5a9e8a', borderRadius: 10, padding: '16px 14px', margin: '20px 0' }}>
+                <p style={{ textAlign: 'center', fontSize: 11, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#3d7a68', marginBottom: 12 }}>Shop The Look</p>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(block2.products.length, 3)}, 1fr)`, gap: 10 }}>
+                  {block2.products.map((prod, pi) => <PreviewProductCard key={pi} p={prod} pubDate={pubDate} />)}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function extractImageBlocks(body: unknown[]): ImageBlock[] {
   if (!Array.isArray(body)) return [];
   return body
@@ -397,8 +532,8 @@ export default function DraftClient({ draftId }: { draftId: string }) {
             </button>
           </div>
           {preview ? (
-            <div style={{ fontSize: 13, color: 'var(--t1)', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 480, overflowY: 'auto', padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-              {bodyText}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              {renderBodyPreview(bodyText, draft.featuredImageUrl, shopBlocks, draft._createdAt)}
             </div>
           ) : (
             <textarea
