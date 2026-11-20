@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { isAgentRequest, isAgentMcpPath, AGENT_BLOCKED_ROUTES } from '@/lib/agentAuth';
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/purge-cache', '/api/mcp-debug'];
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/purge-cache'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
