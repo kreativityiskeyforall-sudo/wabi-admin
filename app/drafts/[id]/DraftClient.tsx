@@ -232,7 +232,7 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   // Body safety check: block publish/save if body appears empty or was truncated.
   // Only applies when the original body was substantial (>200 chars).
   const bodyIsEmpty = bodyText.trim().length === 0;
-  const bodyIsTruncated = originalBodyLen > 200 && bodyText.trim().length < originalBodyLen * 0.2;
+  const bodyIsTruncated = originalBodyLen > 200 && bodyText.trim().length < originalBodyLen * 0.8;
   const bodyUnsafe = bodyIsEmpty || bodyIsTruncated;
 
   async function handlePublish() {

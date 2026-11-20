@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack(config) {
+    config.externals = [...(Array.isArray(config.externals) ? config.externals : []), 'sharp'];
+    return config;
+  },
   async headers() {
     return [
       {
