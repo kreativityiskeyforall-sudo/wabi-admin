@@ -5,6 +5,7 @@ import {
   markdownToPortableText, extractIntro, extractPullQuote,
   mapContentType, buildKicker, randomKey,
 } from '@/lib/markdownToPortableText';
+import { cleanArticleText } from '@/lib/cleanArticleText';
 
 export const maxDuration = 300;
 
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `A published article with slug "${slug}" already exists. Choose a different slug.` }, { status: 409 });
   }
 
-  const portableBody = markdownToPortableText(body);
+  const portableBody = markdownToPortableText(cleanArticleText(body));
 
   // Strip duplicate leading title
   if (portableBody.length > 0) {

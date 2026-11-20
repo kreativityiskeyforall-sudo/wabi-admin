@@ -4,6 +4,7 @@ import {
   markdownToPortableText, extractIntro, extractPullQuote,
   mapContentType, buildKicker, randomKey,
 } from '@/lib/markdownToPortableText';
+import { cleanArticleText } from '@/lib/cleanArticleText';
 
 export const maxDuration = 60;
 
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (type !== undefined) updates.type = mapContentType(type);
 
   if (body !== undefined) {
-    const portableBody = markdownToPortableText(body);
+    const portableBody = markdownToPortableText(cleanArticleText(body));
     updates.body = portableBody;
     updates.intro = extractIntro(body) || null;
     updates.pullQuote = extractPullQuote(body) || null;
