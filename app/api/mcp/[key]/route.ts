@@ -26,16 +26,25 @@ function validateKey(req: NextRequest): boolean {
 
 export async function POST(req: NextRequest, { params }: { params: { key: string } }) {
   if (!validateKey(req)) {
-    return NextResponse.json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unauthorized' } }, { status: 401 });
+    // 403 not 401 — a 401 triggers claude.ai OAuth discovery ("Sign-in required")
+    return NextResponse.json({ jsonrpc: '2.0', error: { code: -32001, message: 'Invalid key' } }, { status: 403 });
   }
   return mcpPost(authorized(req, params.key));
 }
 
 export async function GET(req: NextRequest, { params }: { params: { key: string } }) {
   if (!validateKey(req)) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return new NextResponse('Invalid key', { status: 403 });
   }
   return mcpGet(authorized(req, params.key));
+}
+
+// HEAD: used by some connectors to probe the endpoint
+export async function HEAD(req: NextRequest) {
+  if (!validateKey(req)) {
+    return new NextResponse(null, { status: 403 });
+  }
+  return new NextResponse(null, { status: 200 });
 }
 
 export async function OPTIONS() {

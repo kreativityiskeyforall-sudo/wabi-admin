@@ -758,7 +758,8 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   if (!isAgentRequest(authHeader)) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    // 403 not 401 — a 401 triggers claude.ai OAuth discovery ("Sign-in required")
+    return new NextResponse('Invalid or missing Bearer token', { status: 403 });
   }
   // Return a minimal SSE stream that immediately closes (no server-push needed)
   const stream = new ReadableStream({
