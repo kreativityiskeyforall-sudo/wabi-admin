@@ -118,7 +118,7 @@ const TOOLS = [
   },
   {
     name: 'save_draft',
-    description: 'Save a complete article as a Sanity draft. It will NEVER appear on decoreixy.com until a human publishes it from the Drafts for Review page. Returns the draft ID.',
+    description: 'Save a complete article as a Sanity draft. It will NEVER appear on decoreixy.com until a human publishes it from the Drafts for Review page. Returns the draft ID and a review link.\n\nType mapping (agent input → stored in Sanity): editorial→info | product-review→roundup | roundup→roundup. This is intentional — the website uses "info", "roundup", and "gift-guide" as its type values.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -312,6 +312,7 @@ function getBaseUrl(req: NextRequest): string {
 async function callRoute(baseUrl: string, path: string, method: 'GET' | 'POST' | 'PATCH', agentKey: string, body?: unknown) {
   const res = await fetch(`${baseUrl}${path}`, {
     method,
+    cache: 'no-store', // bypass Next.js data-fetch cache so list results are always live
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${agentKey}`,
@@ -406,7 +407,7 @@ async function toolWriteArticle(params: Record<string, unknown>, baseUrl: string
 async function toolSaveDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
   const data = await callRoute(baseUrl, '/api/save-draft', 'POST', agentKey, params);
   if (data.error) throw new Error(data.error);
-  return `Draft saved. ID: ${data.id} | Slug: ${data.slug}\nReview at: https://wabi-admin.vercel.app/drafts/${encodeURIComponent(data.id)}`;
+  return `Draft saved. ID: ${data.id} | Slug: ${data.slug}\nReview at: ${baseUrl}/drafts/${encodeURIComponent(data.id)}`;
 }
 
 async function toolUpdateDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {

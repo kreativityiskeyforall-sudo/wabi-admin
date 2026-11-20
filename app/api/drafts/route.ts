@@ -30,7 +30,9 @@ export async function GET() {
       "hasFeaturedImage": defined(featuredImage)
     }`,
     {},
-    { perspective: 'raw' },
+    // perspective:'raw' ensures drafts are visible; cache:'no-store' bypasses
+    // Next.js data-fetch caching so newly created drafts appear immediately.
+    { perspective: 'raw', cache: 'no-store' } as Parameters<typeof sanity.fetch>[2],
   );
   return NextResponse.json({ drafts }, {
     headers: { 'Cache-Control': 'no-store' },

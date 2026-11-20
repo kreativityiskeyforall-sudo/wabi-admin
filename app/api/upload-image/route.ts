@@ -48,13 +48,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     if (body.url) {
-      // Fetch from public URL server-side (no body-size limit on outgoing fetch)
-      const imgRes = await fetch(body.url);
+      // Fetch from public URL server-side (no body-size limit on outgoing fetch).
+      // Send a browser-like User-Agent so servers like Wikimedia don't reject us.
+      const imgRes = await fetch(body.url, {
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/*,*/*;q=0.8',
+        },
+      });
       if (!imgRes.ok) {
-        return NextResponse.json({ error: `Failed to fetch image URL: ${imgRes.status}` }, { status: 400 });
+        const errBody = await imgRes.text().catch(() => '');
+        const host = (() => { try { return new URL(body.url).hostname; } catch { return body.url; } })();
+        return NextResponse.json(
+          { error: `Failed to fetch image URL: HTTP ${imgRes.status} from ${host}${errBody ? ` — ${errBody.slice(0, 150)}` : ''}` },
+          { status: 400 },
+        );
       }
       buffer = Buffer.from(await imgRes.arrayBuffer());
-      mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+      mimeType = imgRes.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
       filename = body.filename || body.url.split('/').pop()?.split('?')[0] || 'upload.jpg';
 
     } else if (body.base64) {
