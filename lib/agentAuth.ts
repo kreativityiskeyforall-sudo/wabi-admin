@@ -1,7 +1,7 @@
 export function isAgentRequest(authHeader: string | null): boolean {
   if (!authHeader?.startsWith('Bearer ')) return false;
-  const key = authHeader.slice(7);
-  const expected = process.env.AGENT_API_KEY;
+  const key = authHeader.slice(7).trim();
+  const expected = process.env.AGENT_API_KEY?.trim();
   return !!(expected && key === expected);
 }
 
@@ -10,7 +10,7 @@ export function isAgentRequest(authHeader: string | null): boolean {
 export function isAgentMcpPath(pathname: string): boolean {
   if (!pathname.startsWith('/api/mcp/')) return false;
   const pathKey = pathname.slice('/api/mcp/'.length).split('/')[0];
-  const expected = process.env.AGENT_API_KEY;
+  const expected = process.env.AGENT_API_KEY?.trim(); // trim guards against Vercel copy-paste whitespace
   return !!(expected && pathKey.length > 0 && pathKey === expected);
 }
 
