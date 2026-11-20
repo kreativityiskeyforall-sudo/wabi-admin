@@ -556,14 +556,15 @@ async function toolReadPriceChart(params: Record<string, unknown>): Promise<stri
   if (imageUrl) {
     const res = await fetch(imageUrl);
     if (!res.ok) throw new Error(`Could not fetch image URL: HTTP ${res.status}`);
-    let buf = Buffer.from(await res.arrayBuffer());
+    // Cast to Buffer (no generic) so compression reassignment is type-safe
+    let buf: Buffer = Buffer.from(await res.arrayBuffer()) as Buffer;
     // Compress if >3 MB to stay within Vercel limits
     const MAX = 3 * 1024 * 1024;
     if (buf.length > MAX) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const sharp = require('sharp') as (input: Buffer) => { jpeg(o: { quality: number }): { toBuffer(): Promise<Buffer> } };
-        const compressed = await sharp(buf).jpeg({ quality: 82 }).toBuffer();
+        const compressed = await sharp(buf).jpeg({ quality: 82 }).toBuffer() as Buffer;
         if (compressed.length < buf.length) buf = compressed;
       } catch { /* sharp unavailable — proceed with original */ }
     }
