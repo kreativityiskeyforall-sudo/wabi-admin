@@ -12,6 +12,13 @@ const sanity = createClient({
 });
 
 export async function GET() {
+  if (!process.env.SANITY_TOKEN) {
+    return NextResponse.json(
+      { error: 'SANITY_TOKEN is not set — add it to this Vercel environment (Preview + Production)', drafts: [] },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
+
   const drafts = await sanity.fetch<Array<{
     _id: string; title: string; slug: string; category: string;
     type: string; cluster: string | null; _createdAt: string; _updatedAt: string;
@@ -22,6 +29,8 @@ export async function GET() {
       _createdAt, _updatedAt,
       "hasFeaturedImage": defined(featuredImage)
     }`,
+    {},
+    { perspective: 'raw' },
   );
   return NextResponse.json({ drafts }, {
     headers: { 'Cache-Control': 'no-store' },

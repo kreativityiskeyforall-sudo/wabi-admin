@@ -16,7 +16,10 @@ export default function DraftsPage() {
   useEffect(() => {
     fetch('/api/drafts', { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => setDrafts(d.drafts ?? []))
+      .then(d => {
+        if (d.error) { setError(d.error); return; }
+        setDrafts(d.drafts ?? []);
+      })
       .catch(() => setError('Failed to load drafts'))
       .finally(() => setLoading(false));
   }, []);

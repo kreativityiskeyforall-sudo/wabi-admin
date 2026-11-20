@@ -12,9 +12,18 @@ const sanity = createClient({
 });
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  if (!process.env.SANITY_TOKEN) {
+    return NextResponse.json(
+      { error: 'SANITY_TOKEN is not set — add it to this Vercel environment (Preview + Production)' },
+      { status: 500 },
+    );
+  }
+
   const rawId = params.id;
   const draftId = rawId.startsWith('drafts.') ? rawId : `drafts.${rawId}`;
   const liveId = draftId.replace(/^drafts\./, '');
+
+  const fetchOpts = { perspective: 'raw' as const };
 
   const [draft, liveCheck] = await Promise.all([
     sanity.fetch(
@@ -31,6 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         "productItems": productItems[]{ name, amazonUrl, imageUrl, priceNow, price1yrLow, price1yrHigh, stars, reviewCount, priceHistory }
       }`,
       { id: draftId },
+      fetchOpts,
     ),
     sanity.fetch<{ _id: string } | null>(
       `*[_id == $id && !(_id in path("drafts.**"))][0]{ _id }`,
