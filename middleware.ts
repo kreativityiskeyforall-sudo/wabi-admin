@@ -18,6 +18,12 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Upload slot PUT: auth is the HMAC-signed token in the query string, not Bearer/cookie.
+  // The route handler validates the token; middleware must not block it.
+  if (pathname === '/api/upload-slot' && request.method === 'PUT') {
+    return NextResponse.next();
+  }
+
   const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 

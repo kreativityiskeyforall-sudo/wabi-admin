@@ -16,8 +16,8 @@ https://wabi-admin.vercel.app/api/mcp
 
 **Auth:** `Authorization: Bearer <AGENT_API_KEY>` on every request.
 
-**15 available tools:**
-`list_queue`, `get_queue_item`, `validate_outline`, `generate_outline`, `write_article`, `save_draft`, `update_draft`, `list_drafts`, `get_draft`, `upload_image`, `attach_image_to_draft`, `set_shop_blocks`, `set_sheet_status`, `get_site_articles`, `read_price_chart`
+**17 available tools:**
+`list_queue`, `get_queue_item`, `validate_outline`, `generate_outline`, `write_article`, `save_draft`, `update_draft`, `list_drafts`, `get_draft`, `upload_image`, `attach_image_to_draft`, `set_shop_blocks`, `set_sheet_status`, `get_site_articles`, `read_price_chart`, `create_upload_slot`, `lookup_amazon_product`
 
 **No `publish` tool.** Drafts must be published by a human from the Drafts for Review page at `https://wabi-admin.vercel.app/drafts`.
 

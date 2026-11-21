@@ -283,6 +283,28 @@ const TOOLS = [
     inputSchema: { type: 'object', properties: {}, required: [] },
   },
   {
+    name: 'create_upload_slot',
+    description: 'Generate a short-lived signed upload URL so the user can upload an image file from their computer (e.g. a Google Flow screenshot that requires a login). Returns a ready-to-run curl command. The user runs it; the response contains {"assetId":"...","url":"..."} — tell the agent the assetId, then use attach_image_to_draft.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mediaType: { type: 'string', description: 'MIME type of the image, e.g. image/jpeg, image/png (default: image/jpeg)' },
+        expiresInMinutes: { type: 'number', description: 'How long the upload URL is valid (1–60 minutes, default 15)' },
+      },
+    },
+  },
+  {
+    name: 'lookup_amazon_product',
+    description: 'Look up an Amazon product by ASIN or URL using the Amazon Product Advertising API. Returns name, current price, stars, review count, main image URL, and affiliate-tagged URL — ready to fill set_shop_blocks without opening a browser. Requires AMAZON_PAAPI_ACCESS_KEY and AMAZON_PAAPI_SECRET_KEY in Vercel env vars.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        asin: { type: 'string', description: '10-character ASIN, e.g. B08XYZ1234' },
+        url: { type: 'string', description: 'Full Amazon product URL (ASIN is extracted automatically)' },
+      },
+    },
+  },
+  {
     name: 'read_price_chart',
     description: 'Extract 1-year price history from a real Amazon price-chart screenshot using vision. Returns history array, low, high, badge — ready to plug directly into set_shop_blocks. If the image is not a price chart, blurry, missing axis labels, or cannot be read confidently, returns a clear error. NEVER guesses values.',
     inputSchema: {
@@ -542,6 +564,57 @@ async function toolSetSheetStatus(params: Record<string, unknown>, baseUrl: stri
   return `Sheet row ${rowNumber} in tab "${tab}" marked as "${status}"`;
 }
 
+async function toolCreateUploadSlot(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
+  const body: Record<string, unknown> = {};
+  if (params.mediaType) body.mediaType = params.mediaType;
+  if (params.expiresInMinutes) body.expiresInMinutes = params.expiresInMinutes;
+  const data = await callRoute(baseUrl, '/api/upload-slot', 'POST', agentKey, body);
+  return [
+    `Upload slot created. Valid until: ${data.expiresAt}`,
+    ``,
+    `Ask the user to run this command in their terminal (replace /path/to/image.jpg):`,
+    ``,
+    `  ${data.command}`,
+    ``,
+    `The command output will show {"assetId":"...","url":"..."}.`,
+    `Tell the user to share the assetId with you, then use attach_image_to_draft.`,
+  ].join('\n');
+}
+
+async function toolLookupAmazonProduct(params: Record<string, unknown>): Promise<string> {
+  // Import here to avoid loading crypto at module level unnecessarily
+  const { lookupASIN, extractASIN } = await import('@/lib/amazonPAAPI');
+
+  const rawInput = String(params.asin ?? params.url ?? '');
+  if (!rawInput) throw new Error('Provide asin or url');
+
+  const asin = extractASIN(rawInput);
+  if (!asin) throw new Error(`Could not extract a valid ASIN from: ${rawInput}`);
+
+  const p = await lookupASIN(asin);
+
+  const lines = [
+    `Product: ${p.name}`,
+    `ASIN: ${p.asin}`,
+    `Price: ${p.price !== null ? `$${p.price}` : 'not available (may be out of stock)'}`,
+    `Stars: ${p.stars !== null ? `${p.stars}/5` : 'not available'}`,
+    `Reviews: ${p.reviewCount !== null ? p.reviewCount.toLocaleString('en-US') : 'not available'}`,
+    `Image URL: ${p.imageUrl ?? 'not available'}`,
+    `Amazon URL (tagged): ${p.amazonUrl}`,
+    ``,
+    `Ready for set_shop_blocks:`,
+    JSON.stringify({
+      name: p.name,
+      amazonUrl: p.amazonUrl,
+      imageUrl: p.imageUrl,
+      price: p.price,
+      stars: p.stars,
+      reviews: p.reviewCount,
+    }, null, 2),
+  ];
+  return lines.join('\n');
+}
+
 async function toolReadPriceChart(params: Record<string, unknown>): Promise<string> {
   const { imageUrl, imageBase64, mediaType, price, name } = params as {
     imageUrl?: string; imageBase64?: string; mediaType?: string; price: number; name?: string;
@@ -697,8 +770,10 @@ async function handleToolCall(id: unknown, params: { name: string; arguments?: R
       case 'attach_image_to_draft': resultText = await toolAttachImageToDraft(args); break;
       case 'set_shop_blocks':  resultText = await toolSetShopBlocks(args); break;
       case 'set_sheet_status': resultText = await toolSetSheetStatus(args, baseUrl, agentKey); break;
-      case 'get_site_articles':  resultText = await toolGetSiteArticles(); break;
-      case 'read_price_chart':   resultText = await toolReadPriceChart(args); break;
+      case 'get_site_articles':       resultText = await toolGetSiteArticles(); break;
+      case 'create_upload_slot':     resultText = await toolCreateUploadSlot(args, baseUrl, agentKey); break;
+      case 'lookup_amazon_product':  resultText = await toolLookupAmazonProduct(args); break;
+      case 'read_price_chart':       resultText = await toolReadPriceChart(args); break;
       default:
         return jsonRpcError(id, -32601, `Unknown tool: ${toolName}`);
     }
