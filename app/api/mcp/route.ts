@@ -480,6 +480,19 @@ async function toolSaveDraft(params: Record<string, unknown>, baseUrl: string, a
 async function toolUpdateDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
   const data = await callRoute(baseUrl, '/api/update-draft', 'POST', agentKey, params);
   if (data.error) throw new Error(data.error);
+
+  // When body changes, re-sync the pipeline Write stage so the pipeline page reflects the new text
+  if (params.body) {
+    const draftId = String(params.id ?? '').startsWith('drafts.') ? String(params.id) : `drafts.${params.id}`;
+    const pipelineArticleId = await getPipelineArticleId(draftId);
+    if (pipelineArticleId) {
+      await writePipelineCache(baseUrl, agentKey, {
+        articleId: pipelineArticleId,
+        article: String(params.body),
+      });
+    }
+  }
+
   return `Draft updated. ID: ${params.id}`;
 }
 

@@ -36,19 +36,16 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
 
   useEffect(() => {
     async function load() {
-      let stored = localStorage.getItem(`outline-${id}`);
-      if (!stored) {
-        try {
-          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const cache = await res.json();
-            if (cache.outline) {
-              stored = JSON.stringify(cache.outline);
-              localStorage.setItem(`outline-${id}`, stored);
-            }
-          }
-        } catch { /* ignore */ }
-      }
+      // Server is authoritative for agent-managed content — always overwrite localStorage
+      try {
+        const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const cache = await res.json();
+          if (cache.outline) localStorage.setItem(`outline-${id}`, JSON.stringify(cache.outline));
+        }
+      } catch { /* ignore — fall through to localStorage */ }
+
+      const stored = localStorage.getItem(`outline-${id}`);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);

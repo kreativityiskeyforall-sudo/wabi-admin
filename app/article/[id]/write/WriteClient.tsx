@@ -52,26 +52,19 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
 
   useEffect(() => {
     async function load() {
-      let storedOutline = localStorage.getItem(`outline-${id}`);
-      let storedArticle = localStorage.getItem(`article-${id}`);
+      // The server pipeline cache is authoritative for agent-managed content.
+      // Always fetch and overwrite localStorage so stale browser-cached text is replaced.
+      try {
+        const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const cache = await res.json();
+          if (cache.article) localStorage.setItem(`article-${id}`, String(cache.article));
+          if (cache.outline) localStorage.setItem(`outline-${id}`, JSON.stringify(cache.outline));
+        }
+      } catch { /* ignore — fall through to localStorage */ }
 
-      // If localStorage is empty, try server pipeline cache
-      if (!storedOutline || !storedArticle) {
-        try {
-          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const cache = await res.json();
-            if (!storedOutline && cache.outline) {
-              storedOutline = JSON.stringify(cache.outline);
-              localStorage.setItem(`outline-${id}`, storedOutline);
-            }
-            if (!storedArticle && cache.article) {
-              storedArticle = String(cache.article);
-              localStorage.setItem(`article-${id}`, storedArticle);
-            }
-          }
-        } catch { /* ignore */ }
-      }
+      const storedOutline = localStorage.getItem(`outline-${id}`);
+      const storedArticle = localStorage.getItem(`article-${id}`);
 
       if (storedOutline) {
         try {
