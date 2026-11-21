@@ -295,12 +295,13 @@ const TOOLS = [
   },
   {
     name: 'lookup_amazon_product',
-    description: 'Look up an Amazon product by ASIN or URL using the Amazon Product Advertising API. Returns name, current price, stars, review count, main image URL, and affiliate-tagged URL — ready to fill set_shop_blocks without opening a browser. Requires AMAZON_PAAPI_ACCESS_KEY and AMAZON_PAAPI_SECRET_KEY in Vercel env vars.',
+    description: 'Look up an Amazon product via the Amazon Creators API (replaced PA-API in May 2026). Accepts an ASIN, an Amazon URL, or a keyword search string. Returns name, price, image URL, and affiliate-tagged URL ready for set_shop_blocks. NOTE: star ratings and review counts are NOT available from this API — those fields will be null. Requires AMAZON_CREATORS_CLIENT_ID and AMAZON_CREATORS_CLIENT_SECRET in Vercel env vars (from Associates Central → Tools → Creators API).',
     inputSchema: {
       type: 'object',
       properties: {
         asin: { type: 'string', description: '10-character ASIN, e.g. B08XYZ1234' },
         url: { type: 'string', description: 'Full Amazon product URL (ASIN is extracted automatically)' },
+        keywords: { type: 'string', description: 'Keyword search, e.g. "chunky knit throw blanket". Returns up to 5 results.' },
       },
     },
   },
@@ -582,37 +583,44 @@ async function toolCreateUploadSlot(params: Record<string, unknown>, baseUrl: st
 }
 
 async function toolLookupAmazonProduct(params: Record<string, unknown>): Promise<string> {
-  // Import here to avoid loading crypto at module level unnecessarily
-  const { lookupASIN, extractASIN } = await import('@/lib/amazonPAAPI');
+  const { lookupASIN, searchItems, extractASIN } = await import('@/lib/amazonCreatorsAPI');
+
+  function formatProduct(p: Awaited<ReturnType<typeof lookupASIN>>): string[] {
+    return [
+      `Product: ${p.name}`,
+      `ASIN: ${p.asin}`,
+      `Price: ${p.price !== null ? `$${p.price}` : 'not available (may be out of stock)'}`,
+      `Stars: not available (Creators API does not provide review data)`,
+      `Reviews: not available (Creators API does not provide review data)`,
+      `Image URL: ${p.imageUrl ?? 'not available'}`,
+      `Amazon URL (tagged): ${p.amazonUrl}`,
+      ``,
+      `Ready for set_shop_blocks (set stars/reviews manually or omit):`,
+      JSON.stringify({
+        name: p.name,
+        amazonUrl: p.amazonUrl,
+        imageUrl: p.imageUrl,
+        price: p.price,
+        stars: 0,
+        reviews: 0,
+      }, null, 2),
+    ];
+  }
+
+  if (params.keywords) {
+    const results = await searchItems(String(params.keywords));
+    if (results.length === 0) return `No products found for: "${params.keywords}"`;
+    const sections = results.map((p, i) => [`--- Result ${i + 1} ---`, ...formatProduct(p)].join('\n'));
+    return sections.join('\n\n');
+  }
 
   const rawInput = String(params.asin ?? params.url ?? '');
-  if (!rawInput) throw new Error('Provide asin or url');
+  if (!rawInput) throw new Error('Provide asin, url, or keywords');
 
   const asin = extractASIN(rawInput);
   if (!asin) throw new Error(`Could not extract a valid ASIN from: ${rawInput}`);
 
-  const p = await lookupASIN(asin);
-
-  const lines = [
-    `Product: ${p.name}`,
-    `ASIN: ${p.asin}`,
-    `Price: ${p.price !== null ? `$${p.price}` : 'not available (may be out of stock)'}`,
-    `Stars: ${p.stars !== null ? `${p.stars}/5` : 'not available'}`,
-    `Reviews: ${p.reviewCount !== null ? p.reviewCount.toLocaleString('en-US') : 'not available'}`,
-    `Image URL: ${p.imageUrl ?? 'not available'}`,
-    `Amazon URL (tagged): ${p.amazonUrl}`,
-    ``,
-    `Ready for set_shop_blocks:`,
-    JSON.stringify({
-      name: p.name,
-      amazonUrl: p.amazonUrl,
-      imageUrl: p.imageUrl,
-      price: p.price,
-      stars: p.stars,
-      reviews: p.reviewCount,
-    }, null, 2),
-  ];
-  return lines.join('\n');
+  return formatProduct(await lookupASIN(asin)).join('\n');
 }
 
 async function toolReadPriceChart(params: Record<string, unknown>): Promise<string> {

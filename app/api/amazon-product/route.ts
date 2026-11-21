@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { lookupASIN, extractASIN } from '@/lib/amazonPAAPI';
+import { lookupASIN, searchItems, extractASIN } from '@/lib/amazonCreatorsAPI';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const { asin: rawAsin, url } = await req.json().catch(() => ({}));
-
-  const asin = rawAsin ? extractASIN(rawAsin) : url ? extractASIN(url) : null;
-  if (!asin) {
-    return NextResponse.json(
-      { error: 'Provide asin (10-char ASIN) or url (Amazon product URL)' },
-      { status: 400 },
-    );
-  }
+  const { asin: rawAsin, url, keywords } = await req.json().catch(() => ({}));
 
   try {
+    if (keywords) {
+      const products = await searchItems(String(keywords));
+      return NextResponse.json({ products });
+    }
+
+    const asin = rawAsin ? extractASIN(rawAsin) : url ? extractASIN(url) : null;
+    if (!asin) {
+      return NextResponse.json(
+        { error: 'Provide asin (10-char ASIN), url (Amazon product URL), or keywords (search terms)' },
+        { status: 400 },
+      );
+    }
+
     const product = await lookupASIN(asin);
     return NextResponse.json(product);
   } catch (err: unknown) {
