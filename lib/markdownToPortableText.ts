@@ -58,9 +58,14 @@ export function markdownToPortableText(markdown: string): PTBlock[] {
       blocks.push({ _type: 'block', _key: key(), style: 'normal', listItem: 'bullet', level: 1, markDefs, children });
       i++; continue;
     }
+    if (/^\d+\. /.test(line)) {
+      const { children, markDefs } = parseInline(line.replace(/^\d+\. /, '').trim());
+      blocks.push({ _type: 'block', _key: key(), style: 'normal', listItem: 'number', level: 1, markDefs, children });
+      i++; continue;
+    }
 
     const paraLines: string[] = [];
-    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('#') && !/^[*-] /.test(lines[i])) {
+    while (i < lines.length && lines[i].trim() && !lines[i].startsWith('#') && !/^[*-] /.test(lines[i]) && !/^\d+\. /.test(lines[i])) {
       paraLines.push(lines[i]);
       i++;
     }

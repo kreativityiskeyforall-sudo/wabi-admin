@@ -758,15 +758,25 @@ function ptToMd(body: unknown[]): string {
     for (const def of markDefs) {
       if (def._type === 'link' && def.href) linkHref[def._key] = def.href;
     }
+    const listItem = block.listItem as string | undefined;
     const children = (block.children as Array<{ text?: string; marks?: string[] }>) ?? [];
     const text = children.map(span => {
-      const t = span.text ?? '';
+      let t = span.text ?? '';
       if (!t) return '';
-      const linkKey = (span.marks ?? []).find(m => linkHref[m]);
-      return linkKey ? `[${t}](${linkHref[linkKey]})` : t;
+      const marks = span.marks ?? [];
+      const hasStrong = marks.includes('strong');
+      const hasEm = marks.includes('em');
+      if (hasStrong && hasEm) t = `***${t}***`;
+      else if (hasStrong) t = `**${t}**`;
+      else if (hasEm) t = `*${t}*`;
+      const linkKey = marks.find(m => linkHref[m]);
+      if (linkKey) t = `[${t}](${linkHref[linkKey]})`;
+      return t;
     }).join('');
     if (!text.trim()) continue;
-    if (style === 'h2') lines.push(`## ${text}`);
+    if (listItem === 'bullet') lines.push(`- ${text}`);
+    else if (listItem === 'number') lines.push(`1. ${text}`);
+    else if (style === 'h2') lines.push(`## ${text}`);
     else if (style === 'h3') lines.push(`### ${text}`);
     else lines.push(text);
   }
