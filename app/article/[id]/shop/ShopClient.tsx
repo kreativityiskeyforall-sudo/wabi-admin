@@ -133,6 +133,12 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
         }),
       }));
     safeSetItem(`shop-${id}`, JSON.stringify({ blocks: blocksArr }), id);
+    // Write-through: keep pipeline server cache in sync so "Publish Now" and other devices see the data
+    fetch(`/api/pipeline-cache`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articleId: id, shop: { blocks: blocksArr } }),
+    }).catch(() => { /* non-fatal */ });
   };
 
   const toggleHeading = (heading: string, level: 'H2' | 'H3') => {

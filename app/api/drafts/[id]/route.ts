@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     sanity.fetch(
       `*[_id == $id][0]{
         _id, title, "slug": slug.current, category, type, cluster, isMother,
-        kicker, intro, pullQuote, _createdAt, _updatedAt,
+        kicker, intro, pullQuote, _createdAt, _updatedAt, pipelineArticleId,
         "featuredImageUrl": featuredImage.asset->url,
         "featuredImageRef": featuredImage.asset._ref,
         body[]{

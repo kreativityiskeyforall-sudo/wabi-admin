@@ -22,6 +22,7 @@ interface ShopBlock {
 interface Draft {
   _id: string; title: string; slug: string; category: string; type: string;
   cluster: string | null; kicker: string; _createdAt: string; _updatedAt: string;
+  pipelineArticleId?: string;
   featuredImageUrl?: string; featuredImageRef?: string;
   body: unknown[]; shopBlocks: ShopBlock[]; productItems: unknown[];
   hasPublishedVersion?: boolean;
@@ -380,6 +381,28 @@ export default function DraftClient({ draftId }: { draftId: string }) {
     if (!confirm('Publish this draft? It will go live on decoreixy.com after the site rebuilds (~3 min).')) return;
     setPublishing(true); setMsg(''); setErr('');
     try {
+      // If the draft has no shop blocks but was linked to a pipeline article,
+      // pull the pipeline's shop blocks and patch them in before publishing.
+      const noShop = !draft || !draft.shopBlocks || draft.shopBlocks.length === 0;
+      const pipelineId = draft?.pipelineArticleId;
+      if (noShop && pipelineId) {
+        try {
+          const cacheRes = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(pipelineId)}`);
+          if (cacheRes.ok) {
+            const cache = await cacheRes.json();
+            const blocks = (cache.shop?.blocks ?? []).filter((b: Record<string, unknown>) => b.afterHeading && (b.products as unknown[])?.length > 0);
+            if (blocks.length > 0) {
+              // Patch the draft with the pipeline shop blocks before publishing
+              await fetch('/api/update-draft', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: draftId, shopBlocks: blocks }),
+              });
+              setShopBlocks(blocks as ShopBlock[]);
+            }
+          }
+        } catch { /* non-fatal — publish will still proceed with current shop blocks */ }
+      }
+
       const res = await fetch('/api/publish-draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

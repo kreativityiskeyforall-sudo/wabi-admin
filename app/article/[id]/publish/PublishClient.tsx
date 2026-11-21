@@ -83,12 +83,22 @@ export default function PublishClient({ id, article }: { id: string; article: Sh
         sectionImages = (compose.sections ?? []).filter((s: any) => s.imageUrl);
       } catch { /* ignore */ }
 
-      // Shop The Look blocks
+      // Shop The Look blocks — localStorage first, server cache fallback
       let shopBlocks: Array<{ afterHeading: string; products: any[] }> = [];
       try {
         const shopData = JSON.parse(localStorage.getItem(`shop-${id}`) ?? '{}');
         shopBlocks = (shopData.blocks ?? []).filter((b: any) => b.afterHeading && b.products?.length > 0);
       } catch { /* ignore */ }
+      if (shopBlocks.length === 0) {
+        try {
+          const cacheRes = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+          if (cacheRes.ok) {
+            const cache = await cacheRes.json();
+            const cached = (cache.shop?.blocks ?? []).filter((b: any) => b.afterHeading && b.products?.length > 0);
+            if (cached.length > 0) shopBlocks = cached;
+          }
+        } catch { /* ignore */ }
+      }
 
       // Pinterest pins from images store
       let pinterestPins: Array<{ url: string; layout: string }> = [];
