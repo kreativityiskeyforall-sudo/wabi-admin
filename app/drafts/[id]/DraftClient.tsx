@@ -41,7 +41,9 @@ function portableTextToMarkdown(body: unknown[]): string {
     // Image block
     if (block._type === 'image') {
       const alt = block.alt ?? '';
-      const url = block.assetUrl ?? '';
+      const rawUrl = block.assetUrl ?? '';
+      // Width-only param so the CDN preserves the natural aspect ratio
+      const url = rawUrl ? `${rawUrl}?w=640&auto=format` : '';
       lines.push(url ? `![${alt}](${url})` : `[Image: ${alt}]`);
       continue;
     }
@@ -191,7 +193,7 @@ function renderBodyPreview(
             const imgM = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
             if (imgM) return (
               <figure key={li} style={{ margin: '14px 0' }}>
-                <img src={imgM[2]} alt={imgM[1]} title={imgM[1]} style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+                <img src={imgM[2]} alt={imgM[1]} title={imgM[1]} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 6 }} />
                 {imgM[1] && <figcaption style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', marginTop: 3, fontStyle: 'italic' }}>{imgM[1]}</figcaption>}
               </figure>
             );
