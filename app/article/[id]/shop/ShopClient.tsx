@@ -82,26 +82,43 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
   const [dragOver, setDragOver] = useState<string | null>(null);
 
   useEffect(() => {
-    const articleRaw = localStorage.getItem(`article-${id}`) ?? '';
-    const parsed = parseHeadings(articleRaw);
-    setHeadings(parsed);
+    async function load() {
+      // Seed localStorage from server pipeline cache if any keys are missing
+      const hasArticle = !!localStorage.getItem(`article-${id}`);
+      const hasShop = !!localStorage.getItem(`shop-${id}`);
+      if (!hasArticle || !hasShop) {
+        try {
+          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+          if (res.ok) {
+            const cache = await res.json();
+            if (!hasArticle && cache.article) localStorage.setItem(`article-${id}`, cache.article);
+            if (!hasShop && cache.shop) localStorage.setItem(`shop-${id}`, JSON.stringify(cache.shop));
+          }
+        } catch { /* ignore */ }
+      }
 
-    // Restore saved shop data
-    const saved = localStorage.getItem(`shop-${id}`);
-    if (saved) {
-      try {
-        const { blocks: savedBlocks } = JSON.parse(saved);
-        const activeSet = new Set<string>();
-        const blockMap: Record<string, ShopBlock> = {};
-        for (const b of savedBlocks ?? []) {
-          activeSet.add(b.afterHeading);
-          blockMap[b.afterHeading] = { ...b, products: b.products.map((p: ShopProduct) => ({ ...p, generating: false })) };
-        }
-        setActiveHeadings(activeSet);
-        setBlocks(blockMap);
-      } catch { /* ignore */ }
+      const articleRaw = localStorage.getItem(`article-${id}`) ?? '';
+      const parsed = parseHeadings(articleRaw);
+      setHeadings(parsed);
+
+      // Restore saved shop data
+      const saved = localStorage.getItem(`shop-${id}`);
+      if (saved) {
+        try {
+          const { blocks: savedBlocks } = JSON.parse(saved);
+          const activeSet = new Set<string>();
+          const blockMap: Record<string, ShopBlock> = {};
+          for (const b of savedBlocks ?? []) {
+            activeSet.add(b.afterHeading);
+            blockMap[b.afterHeading] = { ...b, products: b.products.map((p: ShopProduct) => ({ ...p, generating: false })) };
+          }
+          setActiveHeadings(activeSet);
+          setBlocks(blockMap);
+        } catch { /* ignore */ }
+      }
+      setLoaded(true);
     }
-    setLoaded(true);
+    load();
   }, [id]);
 
   const save = (nextBlocks: Record<string, ShopBlock>, nextActive: Set<string>) => {

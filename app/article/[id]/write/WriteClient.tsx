@@ -51,29 +51,52 @@ export default function WriteClient({ id, article }: { id: string; article: Shee
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(`outline-${id}`);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed.articleTitle && article?.title && parsed.articleTitle !== article.title) {
+    async function load() {
+      let storedOutline = localStorage.getItem(`outline-${id}`);
+      let storedArticle = localStorage.getItem(`article-${id}`);
+
+      // If localStorage is empty, try server pipeline cache
+      if (!storedOutline || !storedArticle) {
+        try {
+          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+          if (res.ok) {
+            const cache = await res.json();
+            if (!storedOutline && cache.outline) {
+              storedOutline = JSON.stringify(cache.outline);
+              localStorage.setItem(`outline-${id}`, storedOutline);
+            }
+            if (!storedArticle && cache.article) {
+              storedArticle = String(cache.article);
+              localStorage.setItem(`article-${id}`, storedArticle);
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (storedOutline) {
+        try {
+          const parsed = JSON.parse(storedOutline);
+          if (parsed.articleTitle && article?.title && parsed.articleTitle !== article.title) {
+            localStorage.removeItem(`outline-${id}`);
+            localStorage.removeItem(`article-${id}`);
+          } else {
+            setOutline(parsed);
+            if (storedArticle) { setArticleText(storedArticle); setDone(true); setStep(5); }
+          }
+        } catch {
           localStorage.removeItem(`outline-${id}`);
-          localStorage.removeItem(`article-${id}`);
-        } else {
-          setOutline(parsed);
-          const savedArticle = localStorage.getItem(`article-${id}`);
-          if (savedArticle) { setArticleText(savedArticle); setDone(true); setStep(5); }
         }
-      } catch {
-        localStorage.removeItem(`outline-${id}`);
+      }
+
+      // Load product brief (only for product-review articles)
+      if (article?.type === 'product-review') {
+        const brief = localStorage.getItem(`brief-${id}`);
+        if (brief) {
+          try { setProductBriefData(JSON.parse(brief)); } catch { /* ignore */ }
+        }
       }
     }
-    // Load product brief (only for product-review articles)
-    if (article?.type === 'product-review') {
-      const brief = localStorage.getItem(`brief-${id}`);
-      if (brief) {
-        try { setProductBriefData(JSON.parse(brief)); } catch { /* ignore */ }
-      }
-    }
+    load();
   }, [id, article?.title, article?.type]);
 
   const steps = isProduct

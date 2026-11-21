@@ -306,6 +306,18 @@ const TOOLS = [
     },
   },
   {
+    name: 'sync_draft_to_pipeline',
+    description: 'Backfill an existing Sanity draft into the article pipeline. Opens the full draft (body, images, shop blocks), converts it to pipeline format, and writes outline/write/images/shop stages so the pipeline pages (/article/{articleId}/outline, /write, /images, /shop) are pre-filled. The agent never publishes — the user does that from the pipeline. Use this for drafts that were created before pipeline sync was added.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        draftId: { type: 'string', description: 'The Sanity draft ID, e.g. drafts.lwejzcyv4j358wia' },
+        articleId: { type: 'string', description: 'The pipeline article ID, e.g. "545". Visible in the pipeline URL /article/545/outline.' },
+      },
+      required: ['draftId', 'articleId'],
+    },
+  },
+  {
     name: 'read_price_chart',
     description: 'Extract 1-year price history from a real Amazon price-chart screenshot using vision. Returns history array, low, high, badge — ready to plug directly into set_shop_blocks. If the image is not a price chart, blurry, missing axis labels, or cannot be read confidently, returns a clear error. NEVER guesses values.',
     inputSchema: {
@@ -430,7 +442,39 @@ async function toolWriteArticle(params: Record<string, unknown>, baseUrl: string
 async function toolSaveDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
   const data = await callRoute(baseUrl, '/api/save-draft', 'POST', agentKey, params);
   if (data.error) throw new Error(data.error);
-  return `Draft saved. ID: ${data.id} | Slug: ${data.slug}\nReview at: ${baseUrl}/drafts/${encodeURIComponent(data.id)}`;
+
+  const draftId: string = data.id;
+  let pipelineNote = '';
+
+  // Populate pipeline cache if rowNumber + sheetTab were provided
+  if (params.rowNumber && params.sheetTab) {
+    const articleId = await lookupArticleId(Number(params.rowNumber), String(params.sheetTab), baseUrl, agentKey);
+    if (articleId) {
+      const body = String(params.body ?? '');
+      const headings = [
+        { level: 'H1', text: String(params.title ?? ''), note: 'Main title', concept: '' },
+        ...extractHeadingsFromMd(body),
+      ];
+      await writePipelineCache(baseUrl, agentKey, {
+        articleId,
+        draftId,
+        outline: {
+          headings,
+          seoTitle: String(params.title ?? ''),
+          metaDescription: '',
+          websiteCategory: String(params.category ?? ''),
+          uniqueAngle: '',
+          articleTitle: String(params.title ?? ''),
+        },
+        article: body,
+      });
+      // Patch the draft with pipelineArticleId so attach/shop tools can find it
+      try { await sanity.patch(draftId).set({ pipelineArticleId: articleId }).commit(); } catch { /* non-fatal */ }
+      pipelineNote = `\nPipeline: ${baseUrl}/article/${articleId}/outline`;
+    }
+  }
+
+  return `Draft saved. ID: ${draftId} | Slug: ${data.slug}\nReview at: ${baseUrl}/drafts/${encodeURIComponent(draftId)}${pipelineNote}`;
 }
 
 async function toolUpdateDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
@@ -480,7 +524,7 @@ async function toolUploadImage(params: Record<string, unknown>, baseUrl: string,
   return `Uploaded. Asset ID: ${data.assetId}\nCDN URL: ${data.url}`;
 }
 
-async function toolAttachImageToDraft(params: Record<string, unknown>): Promise<string> {
+async function toolAttachImageToDraft(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
   const { draftId, assetId, type, headingText, altText } = params as {
     draftId: string; assetId: string; type: 'featured' | 'section';
     headingText?: string; altText?: string;
@@ -492,13 +536,24 @@ async function toolAttachImageToDraft(params: Record<string, unknown>): Promise<
 
   if (type === 'featured') {
     await sanity.patch(draftId).set({ featuredImage: imageRef }).commit();
+
+    // Also update pipeline images stage
+    const pipelineArticleId = await getPipelineArticleId(draftId);
+    if (pipelineArticleId) {
+      const existing = await getPipelineImages(pipelineArticleId, baseUrl, agentKey);
+      await writePipelineCache(baseUrl, agentKey, {
+        articleId: pipelineArticleId,
+        images: { ...existing, featured: { prompt: '', url: assetIdToUrl(assetId) } },
+      });
+    }
+
     return `Featured image attached to draft ${draftId}`;
   }
 
   // Section image: insert after the matching heading in body
   if (!headingText) throw new Error('headingText is required for section images');
 
-  const draft = await sanity.getDocument(draftId) as { body?: unknown[] } | null;
+  const draft = await sanity.getDocument(draftId) as { body?: unknown[]; pipelineArticleId?: string } | null;
   if (!draft) throw new Error('Draft not found');
 
   const body = [...(draft.body ?? [])];
@@ -521,10 +576,29 @@ async function toolAttachImageToDraft(params: Record<string, unknown>): Promise<
 
   body.splice(idx + 1, 0, imageBlock);
   await sanity.patch(draftId).set({ body }).commit();
+
+  // Also update pipeline images stage
+  const pipelineArticleId = draft.pipelineArticleId ?? await getPipelineArticleId(draftId);
+  if (pipelineArticleId) {
+    const existing = await getPipelineImages(pipelineArticleId, baseUrl, agentKey);
+    const imgUrl = assetIdToUrl(assetId);
+    const updatedSections = [...existing.sections];
+    const secIdx = updatedSections.findIndex(s => normalize(s.headingText) === target);
+    if (secIdx !== -1) {
+      updatedSections[secIdx] = { ...updatedSections[secIdx], url: imgUrl, altText: altText ?? headingText };
+    } else {
+      updatedSections.push({ headingText, prompt: '', enabled: true, url: imgUrl, altText: altText ?? headingText });
+    }
+    await writePipelineCache(baseUrl, agentKey, {
+      articleId: pipelineArticleId,
+      images: { ...existing, sections: updatedSections },
+    });
+  }
+
   return `Section image attached after heading "${headingText}" in draft ${draftId}`;
 }
 
-async function toolSetShopBlocks(params: Record<string, unknown>): Promise<string> {
+async function toolSetShopBlocks(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
   const { draftId, shopBlocks } = params as { draftId: string; shopBlocks: Record<string, unknown>[] };
 
   if (!draftId.startsWith('drafts.')) throw new Error('draftId must start with "drafts."');
@@ -554,6 +628,21 @@ async function toolSetShopBlocks(params: Record<string, unknown>): Promise<strin
 
   await sanity.patch(draftId).set({ shopBlocks: sanitized }).commit();
   const totalProducts = sanitized.reduce((n, b) => n + b.products.length, 0);
+
+  // Also update pipeline shop stage
+  const pipelineArticleId = await getPipelineArticleId(draftId);
+  if (pipelineArticleId) {
+    const pipelineBlocks = sanitized.map(b => ({
+      afterHeading: b.afterHeading,
+      headingLevel: b.headingLevel,
+      products: b.products.map(({ _type: _t, _key: _k, ...rest }) => ({ ...rest, generating: false })),
+    }));
+    await writePipelineCache(baseUrl, agentKey, {
+      articleId: pipelineArticleId,
+      shop: { blocks: pipelineBlocks },
+    });
+  }
+
   return `Saved ${sanitized.length} shop block(s) with ${totalProducts} product(s) to draft ${draftId}`;
 }
 
@@ -621,6 +710,180 @@ async function toolLookupAmazonProduct(params: Record<string, unknown>): Promise
   if (!asin) throw new Error(`Could not extract a valid ASIN from: ${rawInput}`);
 
   return formatProduct(await lookupASIN(asin)).join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIPELINE HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function assetIdToUrl(assetId: string): string {
+  const m = assetId.match(/^image-([a-f0-9]+)-(\d+x\d+)-(\w+)$/);
+  if (!m) return '';
+  return `https://cdn.sanity.io/images/${process.env.SANITY_PROJECT_ID}/production/${m[1]}-${m[2]}.${m[3]}`;
+}
+
+function extractHeadingsFromMd(markdown: string): Array<{ level: string; text: string; note: string; concept: string }> {
+  const result: Array<{ level: string; text: string; note: string; concept: string }> = [];
+  for (const line of markdown.split('\n')) {
+    if (line.startsWith('### ')) result.push({ level: 'H3', text: line.slice(4).trim(), note: '', concept: '' });
+    else if (line.startsWith('## ')) result.push({ level: 'H2', text: line.slice(3).trim(), note: '', concept: '' });
+  }
+  return result;
+}
+
+function ptToMd(body: unknown[]): string {
+  if (!Array.isArray(body)) return '';
+  const lines: string[] = [];
+  for (const raw of body) {
+    const block = raw as Record<string, unknown>;
+    if (block._type === 'image') {
+      const url = assetIdToUrl(String(block.assetRef ?? ''));
+      lines.push(url ? `![${block.alt ?? ''}](${url})` : '');
+      continue;
+    }
+    if (block._type !== 'block') continue;
+    const style = String(block.style ?? 'normal');
+    const children = (block.children as Array<{ text?: string }>) ?? [];
+    const text = children.map(c => c.text ?? '').join('');
+    if (!text.trim()) continue;
+    if (style === 'h2') lines.push(`## ${text}`);
+    else if (style === 'h3') lines.push(`### ${text}`);
+    else lines.push(text);
+  }
+  return lines.filter(Boolean).join('\n\n');
+}
+
+async function lookupArticleId(rowNumber: number, sheetTab: string, baseUrl: string, agentKey: string): Promise<string | null> {
+  try {
+    const data = await callRoute(baseUrl, '/api/sheets', 'GET', agentKey);
+    const articles = (data.articles ?? []) as Array<Record<string, unknown>>;
+    const match = articles.find(a => Number(a.rowNumber) === rowNumber && String(a.category) === sheetTab);
+    return match ? String(match.id) : null;
+  } catch { return null; }
+}
+
+async function writePipelineCache(
+  baseUrl: string, agentKey: string,
+  payload: { articleId: string; draftId?: string; outline?: unknown; article?: string; images?: unknown; shop?: unknown },
+): Promise<void> {
+  try {
+    await callRoute(baseUrl, '/api/pipeline-cache', 'POST', agentKey, payload);
+  } catch { /* non-fatal — draft was saved, pipeline is a bonus */ }
+}
+
+async function getPipelineArticleId(draftId: string): Promise<string | null> {
+  try {
+    const doc = await sanity.fetch<{ pipelineArticleId?: string } | null>(
+      '*[_id == $id][0]{ pipelineArticleId }', { id: draftId },
+    );
+    return doc?.pipelineArticleId ?? null;
+  } catch { return null; }
+}
+
+async function getPipelineImages(articleId: string, baseUrl: string, agentKey: string): Promise<{
+  featured: { prompt: string; url: string | null };
+  sections: Array<{ headingText: string; prompt: string; enabled: boolean; url: string | null; level?: string; altText?: string }>;
+}> {
+  try {
+    const cache = await callRoute(baseUrl, `/api/pipeline-cache?id=${articleId}`, 'GET', agentKey);
+    return cache.images ?? { featured: { prompt: '', url: null }, sections: [] };
+  } catch { return { featured: { prompt: '', url: null }, sections: [] }; }
+}
+
+async function toolSyncDraftToPipeline(params: Record<string, unknown>, baseUrl: string, agentKey: string): Promise<string> {
+  const { draftId: rawId, articleId } = params as { draftId: string; articleId: string };
+  if (!rawId || !articleId) throw new Error('draftId and articleId are required');
+  const draftId = rawId.startsWith('drafts.') ? rawId : `drafts.${rawId}`;
+
+  // Fetch draft with resolved asset URLs
+  const draft = await sanity.fetch<{
+    title: string; slug: string; category: string; type: string; cluster: string | null;
+    body: Array<Record<string, unknown>>;
+    featuredImage: { assetUrl: string; assetRef: string } | null;
+    shopBlocks: Array<Record<string, unknown>> | null;
+  }>(
+    `*[_id == $id][0]{
+      title, "slug": slug.current, category, type, cluster,
+      body[]{ ..., _type == "image" => { ..., "assetUrl": asset->url, "assetRef": asset._ref } },
+      "featuredImage": featuredImage{ "assetUrl": asset->url, "assetRef": asset._ref },
+      "shopBlocks": shopBlocks[]{ afterHeading, headingLevel, "products": products[]{ name, amazonUrl, imageUrl, price, highPrice, stars, reviews, low, high, priceHistory, badge } }
+    }`,
+    { id: draftId },
+  );
+
+  if (!draft) throw new Error(`Draft not found: ${draftId}`);
+
+  // Build markdown from body
+  const markdown = ptToMd(draft.body);
+
+  // Extract headings for outline stage
+  const headings = [
+    { level: 'H1', text: draft.title, note: 'Main title', concept: '' },
+    ...extractHeadingsFromMd(markdown),
+  ];
+
+  // Build images stage
+  let currentH2 = '';
+  let currentLevel: 'H2' | 'H3' = 'H2';
+  const sectionImgs: Array<{ headingText: string; prompt: string; enabled: boolean; url: string | null; level: 'H2' | 'H3'; altText: string }> = [];
+  for (const block of draft.body) {
+    if (block._type === 'block') {
+      const text = ((block.children as Array<{ text?: string }>) ?? []).map(c => c.text ?? '').join('');
+      if (block.style === 'h2') { currentH2 = text; currentLevel = 'H2'; }
+      if (block.style === 'h3') { currentH2 = text; currentLevel = 'H3'; }
+    }
+    if (block._type === 'image') {
+      const url = block.assetUrl ? String(block.assetUrl) : (block.assetRef ? assetIdToUrl(String(block.assetRef)) : null);
+      if (currentH2) sectionImgs.push({ headingText: currentH2, prompt: '', enabled: true, url, level: currentLevel, altText: String(block.alt ?? '') });
+    }
+  }
+  const images = {
+    featured: {
+      prompt: '',
+      url: draft.featuredImage?.assetUrl ?? null,
+    },
+    sections: sectionImgs,
+  };
+
+  // Build shop stage
+  const shop = draft.shopBlocks && draft.shopBlocks.length > 0
+    ? { blocks: draft.shopBlocks.map(b => ({ ...b, products: (b.products as Array<Record<string, unknown>>)?.map(p => ({ ...p, generating: false })) ?? [] })) }
+    : null;
+
+  const outline = {
+    headings,
+    seoTitle: draft.title,
+    metaDescription: '',
+    websiteCategory: draft.category,
+    uniqueAngle: '',
+    articleTitle: draft.title,
+  };
+
+  // Write all stages to pipeline cache
+  await writePipelineCache(baseUrl, agentKey, {
+    articleId: String(articleId),
+    draftId,
+    outline,
+    article: markdown,
+    images,
+    ...(shop ? { shop } : {}),
+  });
+
+  // Patch draft with pipelineArticleId for future tool calls
+  try {
+    await sanity.patch(draftId).set({ pipelineArticleId: String(articleId) }).commit();
+  } catch { /* non-fatal */ }
+
+  const sections = sectionImgs.length;
+  const shopBlocks = draft.shopBlocks?.length ?? 0;
+  return [
+    `Synced draft ${draftId} → pipeline article ${articleId}.`,
+    `Outline: ${headings.filter(h => h.level !== 'H1').length} headings saved.`,
+    `Write stage: ${markdown.split(/\s+/).length} words saved.`,
+    `Images: featured ${draft.featuredImage?.assetUrl ? '✓' : '✗'} · ${sections} section image${sections !== 1 ? 's' : ''} saved.`,
+    `Shop: ${shopBlocks} block${shopBlocks !== 1 ? 's' : ''} saved.`,
+    `Open the pipeline at: ${baseUrl}/article/${articleId}/outline`,
+  ].join('\n');
 }
 
 async function toolReadPriceChart(params: Record<string, unknown>): Promise<string> {
@@ -775,13 +1038,14 @@ async function handleToolCall(id: unknown, params: { name: string; arguments?: R
       case 'list_drafts':      resultText = await toolListDrafts(baseUrl, agentKey); break;
       case 'get_draft':        resultText = await toolGetDraft(String(args.id), baseUrl, agentKey); break;
       case 'upload_image':     resultText = await toolUploadImage(args, baseUrl, agentKey); break;
-      case 'attach_image_to_draft': resultText = await toolAttachImageToDraft(args); break;
-      case 'set_shop_blocks':  resultText = await toolSetShopBlocks(args); break;
+      case 'attach_image_to_draft': resultText = await toolAttachImageToDraft(args, baseUrl, agentKey); break;
+      case 'set_shop_blocks':  resultText = await toolSetShopBlocks(args, baseUrl, agentKey); break;
       case 'set_sheet_status': resultText = await toolSetSheetStatus(args, baseUrl, agentKey); break;
       case 'get_site_articles':       resultText = await toolGetSiteArticles(); break;
-      case 'create_upload_slot':     resultText = await toolCreateUploadSlot(args, baseUrl, agentKey); break;
-      case 'lookup_amazon_product':  resultText = await toolLookupAmazonProduct(args); break;
-      case 'read_price_chart':       resultText = await toolReadPriceChart(args); break;
+      case 'create_upload_slot':      resultText = await toolCreateUploadSlot(args, baseUrl, agentKey); break;
+      case 'lookup_amazon_product':   resultText = await toolLookupAmazonProduct(args); break;
+      case 'sync_draft_to_pipeline':  resultText = await toolSyncDraftToPipeline(args, baseUrl, agentKey); break;
+      case 'read_price_chart':        resultText = await toolReadPriceChart(args); break;
       default:
         return jsonRpcError(id, -32601, `Unknown tool: ${toolName}`);
     }

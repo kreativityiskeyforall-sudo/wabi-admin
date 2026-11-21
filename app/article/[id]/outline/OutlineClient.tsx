@@ -35,17 +35,32 @@ export default function OutlineClient({ id, article }: { id: string; article: Sh
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const stored = localStorage.getItem(`outline-${id}`);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed.headings?.length) { setHeadings(parsed.headings); setGenerated(true); }
-        if (parsed.seoTitle) setSeoTitle(parsed.seoTitle);
-        if (parsed.metaDescription) setMetaDescription(parsed.metaDescription);
-        if (parsed.websiteCategory) setWebsiteCategory(parsed.websiteCategory);
-        if (parsed.uniqueAngle !== undefined) setUniqueAngle(parsed.uniqueAngle);
-      } catch {}
+    async function load() {
+      let stored = localStorage.getItem(`outline-${id}`);
+      if (!stored) {
+        try {
+          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+          if (res.ok) {
+            const cache = await res.json();
+            if (cache.outline) {
+              stored = JSON.stringify(cache.outline);
+              localStorage.setItem(`outline-${id}`, stored);
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.headings?.length) { setHeadings(parsed.headings); setGenerated(true); }
+          if (parsed.seoTitle) setSeoTitle(parsed.seoTitle);
+          if (parsed.metaDescription) setMetaDescription(parsed.metaDescription);
+          if (parsed.websiteCategory) setWebsiteCategory(parsed.websiteCategory);
+          if (parsed.uniqueAngle !== undefined) setUniqueAngle(parsed.uniqueAngle);
+        } catch {}
+      }
     }
+    load();
   }, [id]);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);

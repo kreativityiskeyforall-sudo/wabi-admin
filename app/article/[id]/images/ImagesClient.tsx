@@ -167,57 +167,75 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   // Always re-parse headings from the latest article so edits in Write stage are reflected here.
   // Saved prompts/URLs/enabled are merged back by heading text so existing work is preserved.
   useEffect(() => {
-    // Load any previously saved featured image + per-heading data
-    let savedFeatured: FeaturedImg | null = null;
-    let savedByHeading: Record<string, { prompt: string; url: string | null; enabled: boolean; altText?: string }> = {};
-    const savedRaw = localStorage.getItem(`images-${id}`);
-    if (savedRaw) {
-      try {
-        const store: ImageStore = JSON.parse(savedRaw);
-        savedFeatured = store.featured;
-        for (const s of store.sections) {
-          savedByHeading[s.headingText] = { prompt: s.prompt, url: s.url, enabled: s.enabled, altText: s.altText };
-        }
-      } catch { /* corrupt — ignore */ }
-    }
+    async function load() {
+      // Seed localStorage from server pipeline cache if any keys are missing
+      const hasSaved = !!localStorage.getItem(`images-${id}`);
+      const hasArticle = !!localStorage.getItem(`article-${id}`);
+      if (!hasSaved || !hasArticle) {
+        try {
+          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+          if (res.ok) {
+            const cache = await res.json();
+            if (!hasArticle && cache.article) localStorage.setItem(`article-${id}`, cache.article);
+            if (!localStorage.getItem(`outline-${id}`) && cache.outline) localStorage.setItem(`outline-${id}`, JSON.stringify(cache.outline));
+            if (!hasSaved && cache.images) localStorage.setItem(`images-${id}`, JSON.stringify(cache.images));
+          }
+        } catch { /* ignore */ }
+      }
 
-    if (savedFeatured) setFeatured(savedFeatured);
+      // Load any previously saved featured image + per-heading data
+      let savedFeatured: FeaturedImg | null = null;
+      let savedByHeading: Record<string, { prompt: string; url: string | null; enabled: boolean; altText?: string }> = {};
+      const savedRaw = localStorage.getItem(`images-${id}`);
+      if (savedRaw) {
+        try {
+          const store: ImageStore = JSON.parse(savedRaw);
+          savedFeatured = store.featured;
+          for (const s of store.sections) {
+            savedByHeading[s.headingText] = { prompt: s.prompt, url: s.url, enabled: s.enabled, altText: s.altText };
+          }
+        } catch { /* corrupt — ignore */ }
+      }
 
-    // Derive headings from the written article first, then fall back to outline
-    const articleRaw = localStorage.getItem(`article-${id}`);
-    if (articleRaw) {
-      try {
-        const parsed = parseArticleHeadings(articleRaw);
-        if (parsed.length > 0) {
-          setSections(parsed.map(h => ({
-            headingText: h.heading,
-            prompt: savedByHeading[h.heading]?.prompt ?? '',
-            enabled: savedByHeading[h.heading]?.enabled ?? true,
-            url: savedByHeading[h.heading]?.url ?? null,
-            altText: savedByHeading[h.heading]?.altText ?? '',
-            level: h.level,
+      if (savedFeatured) setFeatured(savedFeatured);
+
+      // Derive headings from the written article first, then fall back to outline
+      const articleRaw = localStorage.getItem(`article-${id}`);
+      if (articleRaw) {
+        try {
+          const parsed = parseArticleHeadings(articleRaw);
+          if (parsed.length > 0) {
+            setSections(parsed.map(h => ({
+              headingText: h.heading,
+              prompt: savedByHeading[h.heading]?.prompt ?? '',
+              enabled: savedByHeading[h.heading]?.enabled ?? true,
+              url: savedByHeading[h.heading]?.url ?? null,
+              altText: savedByHeading[h.heading]?.altText ?? '',
+              level: h.level,
+            })));
+            return;
+          }
+        } catch { /* fall through */ }
+      }
+
+      // Fall back to outline headings if article not written yet
+      const outlineRaw = localStorage.getItem(`outline-${id}`);
+      if (outlineRaw) {
+        try {
+          const outline: { headings: Heading[] } = JSON.parse(outlineRaw);
+          const allHeadings = outline.headings.filter(h => h.level === 'H2' || h.level === 'H3');
+          setSections(allHeadings.map(h => ({
+            headingText: h.text,
+            prompt: savedByHeading[h.text]?.prompt ?? '',
+            enabled: savedByHeading[h.text]?.enabled ?? true,
+            url: savedByHeading[h.text]?.url ?? null,
+            altText: savedByHeading[h.text]?.altText ?? '',
+            level: h.level as 'H2' | 'H3',
           })));
-          return;
-        }
-      } catch { /* fall through */ }
+        } catch { /* ignore */ }
+      }
     }
-
-    // Fall back to outline headings if article not written yet
-    const outlineRaw = localStorage.getItem(`outline-${id}`);
-    if (outlineRaw) {
-      try {
-        const outline: { headings: Heading[] } = JSON.parse(outlineRaw);
-        const allHeadings = outline.headings.filter(h => h.level === 'H2' || h.level === 'H3');
-        setSections(allHeadings.map(h => ({
-          headingText: h.text,
-          prompt: savedByHeading[h.text]?.prompt ?? '',
-          enabled: savedByHeading[h.text]?.enabled ?? true,
-          url: savedByHeading[h.text]?.url ?? null,
-          altText: savedByHeading[h.text]?.altText ?? '',
-          level: h.level as 'H2' | 'H3',
-        })));
-      } catch { /* ignore */ }
-    }
+    load();
   }, [id]);
 
   // Each function reads current localStorage first so sequential calls don't clobber each other.
