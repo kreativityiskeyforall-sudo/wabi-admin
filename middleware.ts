@@ -18,9 +18,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Upload slot PUT: auth is the HMAC-signed token in the query string, not Bearer/cookie.
-  // The route handler validates the token; middleware must not block it.
-  if (pathname === '/api/upload-slot' && request.method === 'PUT') {
+  // Upload slot: auth is the HMAC-signed token in the query string, not Bearer/cookie.
+  // OPTIONS (CORS preflight) and PUT must both pass through unauthenticated.
+  if (pathname === '/api/upload-slot' && (request.method === 'PUT' || request.method === 'OPTIONS')) {
     return NextResponse.next();
   }
 
