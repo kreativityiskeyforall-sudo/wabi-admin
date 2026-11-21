@@ -736,11 +736,8 @@ function ptToMd(body: unknown[]): string {
   const lines: string[] = [];
   for (const raw of body) {
     const block = raw as Record<string, unknown>;
-    if (block._type === 'image') {
-      const url = assetIdToUrl(String(block.assetRef ?? ''));
-      lines.push(url ? `![${block.alt ?? ''}](${url})` : '');
-      continue;
-    }
+    // Image blocks belong only in the Images stage — skip them here
+    if (block._type === 'image') continue;
     if (block._type !== 'block') continue;
     const style = String(block.style ?? 'normal');
     const children = (block.children as Array<{ text?: string }>) ?? [];
