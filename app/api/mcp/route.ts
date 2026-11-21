@@ -753,8 +753,18 @@ function ptToMd(body: unknown[]): string {
     if (block._type === 'image') continue;
     if (block._type !== 'block') continue;
     const style = String(block.style ?? 'normal');
-    const children = (block.children as Array<{ text?: string }>) ?? [];
-    const text = children.map(c => c.text ?? '').join('');
+    const markDefs = (block.markDefs as Array<{ _key: string; _type: string; href?: string }> | undefined) ?? [];
+    const linkHref: Record<string, string> = {};
+    for (const def of markDefs) {
+      if (def._type === 'link' && def.href) linkHref[def._key] = def.href;
+    }
+    const children = (block.children as Array<{ text?: string; marks?: string[] }>) ?? [];
+    const text = children.map(span => {
+      const t = span.text ?? '';
+      if (!t) return '';
+      const linkKey = (span.marks ?? []).find(m => linkHref[m]);
+      return linkKey ? `[${t}](${linkHref[linkKey]})` : t;
+    }).join('');
     if (!text.trim()) continue;
     if (style === 'h2') lines.push(`## ${text}`);
     else if (style === 'h3') lines.push(`### ${text}`);
