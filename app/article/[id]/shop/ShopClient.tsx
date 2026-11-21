@@ -81,27 +81,27 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
   const [loaded, setLoaded] = useState(false);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
+  // Skip-initial-load guard so the auto-save effect doesn't fire during first render
+  const isInitialLoadRef = useRef(true);
+  const serverSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     async function load() {
-      // Seed localStorage from server pipeline cache if any keys are missing
-      const hasArticle = !!localStorage.getItem(`article-${id}`);
-      const hasShop = !!localStorage.getItem(`shop-${id}`);
-      if (!hasArticle || !hasShop) {
-        try {
-          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const cache = await res.json();
-            if (!hasArticle && cache.article) localStorage.setItem(`article-${id}`, cache.article);
-            if (!hasShop && cache.shop) localStorage.setItem(`shop-${id}`, JSON.stringify(cache.shop));
-          }
-        } catch { /* ignore */ }
-      }
+      // Server is authoritative — always overwrite localStorage if the cache has data.
+      // This makes agent-added products (via set_shop_blocks MCP) appear immediately.
+      try {
+        const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const cache = await res.json();
+          if (cache.article) localStorage.setItem(`article-${id}`, cache.article);
+          if (cache.shop) localStorage.setItem(`shop-${id}`, JSON.stringify(cache.shop));
+        }
+      } catch { /* ignore — fall through to localStorage */ }
 
       const articleRaw = localStorage.getItem(`article-${id}`) ?? '';
       const parsed = parseHeadings(articleRaw);
       setHeadings(parsed);
 
-      // Restore saved shop data
       const saved = localStorage.getItem(`shop-${id}`);
       if (saved) {
         try {
@@ -121,6 +121,30 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
     load();
   }, [id]);
 
+  // Auto-save to localStorage + debounced server write on every state change.
+  // isInitialLoadRef skips the first fire (which is the data loaded from server/localStorage).
+  useEffect(() => {
+    if (!loaded) return;
+    if (isInitialLoadRef.current) { isInitialLoadRef.current = false; return; }
+    const blocksArr = Array.from(activeHeadings)
+      .filter(h => blocks[h])
+      .map(h => ({
+        afterHeading: h,
+        headingLevel: blocks[h].headingLevel,
+        products: blocks[h].products.map(p => { const { generating, ...rest } = p; return rest; }),
+      }));
+    safeSetItem(`shop-${id}`, JSON.stringify({ blocks: blocksArr }), id);
+    // 500ms debounce — fast enough that a hard-refresh always sees the latest
+    if (serverSaveTimerRef.current) clearTimeout(serverSaveTimerRef.current);
+    serverSaveTimerRef.current = setTimeout(() => {
+      fetch('/api/pipeline-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleId: id, shop: { blocks: blocksArr } }),
+      }).catch(() => {});
+    }, 500);
+  }, [blocks, activeHeadings, loaded, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const save = (nextBlocks: Record<string, ShopBlock>, nextActive: Set<string>) => {
     const blocksArr = Array.from(nextActive)
       .filter(h => nextBlocks[h])
@@ -133,12 +157,13 @@ export default function ShopClient({ id, article }: { id: string; article: Sheet
         }),
       }));
     safeSetItem(`shop-${id}`, JSON.stringify({ blocks: blocksArr }), id);
-    // Write-through: keep pipeline server cache in sync so "Publish Now" and other devices see the data
-    fetch(`/api/pipeline-cache`, {
+    // Immediate server write for explicit "Save & Compose" clicks
+    if (serverSaveTimerRef.current) clearTimeout(serverSaveTimerRef.current);
+    fetch('/api/pipeline-cache', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ articleId: id, shop: { blocks: blocksArr } }),
-    }).catch(() => { /* non-fatal */ });
+    }).catch(() => {});
   };
 
   const toggleHeading = (heading: string, level: 'H2' | 'H3') => {
