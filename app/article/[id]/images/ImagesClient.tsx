@@ -168,20 +168,41 @@ export default function ImagesClient({ id, article }: { id: string; article: She
   // Saved prompts/URLs/enabled are merged back by heading text so existing work is preserved.
   useEffect(() => {
     async function load() {
-      // Seed localStorage from server pipeline cache if any keys are missing
-      const hasSaved = !!localStorage.getItem(`images-${id}`);
-      const hasArticle = !!localStorage.getItem(`article-${id}`);
-      if (!hasSaved || !hasArticle) {
+      // Preserve any prompts the user has typed before fetching — they're the only
+      // field that lives only here (server stores url/altText from the draft, not prompts).
+      const existingPrompts: Record<string, { prompt: string; enabled: boolean }> = {};
+      const existingRaw = localStorage.getItem(`images-${id}`);
+      if (existingRaw) {
         try {
-          const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const cache = await res.json();
-            if (!hasArticle && cache.article) localStorage.setItem(`article-${id}`, cache.article);
-            if (!localStorage.getItem(`outline-${id}`) && cache.outline) localStorage.setItem(`outline-${id}`, JSON.stringify(cache.outline));
-            if (!hasSaved && cache.images) localStorage.setItem(`images-${id}`, JSON.stringify(cache.images));
+          const existing: ImageStore = JSON.parse(existingRaw);
+          for (const s of existing.sections ?? []) {
+            if (s.headingText) existingPrompts[s.headingText] = { prompt: s.prompt ?? '', enabled: s.enabled ?? true };
           }
         } catch { /* ignore */ }
       }
+
+      // Server is authoritative for agent-synced images (url, altText, featured).
+      // Always fetch and overwrite localStorage so sync_draft_to_pipeline is reflected immediately.
+      try {
+        const res = await fetch(`/api/pipeline-cache?id=${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const cache = await res.json();
+          if (cache.article) localStorage.setItem(`article-${id}`, cache.article);
+          if (cache.outline) localStorage.setItem(`outline-${id}`, JSON.stringify(cache.outline));
+          if (cache.images) {
+            // Merge: take url/altText/headingText/level from server; keep prompt/enabled from localStorage
+            const merged: ImageStore = {
+              featured: cache.images.featured,
+              sections: (cache.images.sections ?? []).map((s: SectionImg) => ({
+                ...s,
+                prompt: existingPrompts[s.headingText]?.prompt ?? s.prompt ?? '',
+                enabled: existingPrompts[s.headingText]?.enabled ?? s.enabled ?? true,
+              })),
+            };
+            localStorage.setItem(`images-${id}`, JSON.stringify(merged));
+          }
+        }
+      } catch { /* ignore — fall through to localStorage */ }
 
       // Load any previously saved featured image + per-heading data
       let savedFeatured: FeaturedImg | null = null;
