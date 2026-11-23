@@ -587,7 +587,13 @@ async function toolAttachImageToDraft(params: Record<string, unknown>, baseUrl: 
     alt: altText ?? headingText,
   };
 
-  body.splice(idx + 1, 0, imageBlock);
+  // Replace if body[idx+1] is already an image (avoids duplicates on re-attach).
+  // Insert if the next block is text/heading or there is no next block.
+  if (idx + 1 < body.length && (body[idx + 1] as Record<string, unknown>)._type === 'image') {
+    body[idx + 1] = imageBlock;
+  } else {
+    body.splice(idx + 1, 0, imageBlock);
+  }
   await sanity.patch(draftId).set({ body }).commit();
 
   // Also update pipeline images stage
@@ -864,7 +870,11 @@ async function toolSyncDraftToPipeline(params: Record<string, unknown>, baseUrl:
     }
     if (block._type === 'image') {
       const url = block.assetUrl ? String(block.assetUrl) : (block.assetRef ? assetIdToUrl(String(block.assetRef)) : null);
-      if (currentH2) sectionImgs.push({ headingText: currentH2, prompt: '', enabled: true, url, level: currentLevel, altText: String(block.alt ?? '') });
+      // First-wins: the first image after a heading is the most recently attached (splice inserts at idx+1).
+      // Skip subsequent images for the same heading to avoid duplicates in the pipeline cache.
+      if (currentH2 && !sectionImgs.some(s => s.headingText === currentH2)) {
+        sectionImgs.push({ headingText: currentH2, prompt: '', enabled: true, url, level: currentLevel, altText: String(block.alt ?? '') });
+      }
     }
   }
   const images = {

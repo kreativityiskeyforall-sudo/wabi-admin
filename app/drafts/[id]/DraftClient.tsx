@@ -332,17 +332,28 @@ export default function DraftClient({ draftId }: { draftId: string }) {
   }
 
   async function handleRemoveImage(key: string) {
-    const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { cache: 'no-store' });
-    const data = await res.json();
-    const updated = (data.draft.body as unknown[]).filter(
-      (b: unknown) => (b as Record<string, unknown>)._key !== key,
-    );
-    await fetch('/api/update-draft', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: draftId, body: updated }),
-    });
-    setImageBlocks(prev => prev.filter(img => img._key !== key));
-    setMsg('Image removed.');
+    setSaving(true); setMsg(''); setErr('');
+    try {
+      const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      // Filter out the image block by key and pass the raw portable text array
+      const updated = (data.draft.body as unknown[]).filter(
+        (b: unknown) => (b as Record<string, unknown>)._key !== key,
+      );
+      const patchRes = await fetch('/api/update-draft', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: draftId, body: updated }),
+      });
+      const patchData = await patchRes.json();
+      if (!patchRes.ok) throw new Error(patchData.error || 'Failed to remove image from Sanity');
+      setImageBlocks(prev => prev.filter(img => img._key !== key));
+      setMsg('Image removed and saved.');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Failed to remove image');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleRemoveShopBlock(idx: number) {

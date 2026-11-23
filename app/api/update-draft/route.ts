@@ -38,11 +38,16 @@ export async function POST(req: NextRequest) {
   if (type !== undefined) updates.type = mapContentType(type);
 
   if (body !== undefined) {
-    const portableBody = markdownToPortableText(cleanArticleText(body));
-    updates.body = portableBody;
-    updates.intro = extractIntro(body) || null;
-    updates.pullQuote = extractPullQuote(body) || null;
-    updates.kicker = buildKicker(category ?? '', body.split(/\s+/).length);
+    if (Array.isArray(body)) {
+      // Raw portable text array — used when removing body elements without re-converting from markdown
+      updates.body = body;
+    } else {
+      const portableBody = markdownToPortableText(cleanArticleText(body));
+      updates.body = portableBody;
+      updates.intro = extractIntro(body) || null;
+      updates.pullQuote = extractPullQuote(body) || null;
+      updates.kicker = buildKicker(category ?? '', body.split(/\s+/).length);
+    }
   }
 
   if (Array.isArray(shopBlocks)) {

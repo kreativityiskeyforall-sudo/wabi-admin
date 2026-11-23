@@ -298,6 +298,18 @@ export default function ImagesClient({ id, article }: { id: string; article: She
     finally { setUploadingFeatured(false); }
   };
 
+  const removeSectionImage = (idx: number) => {
+    const newSec = sections.map((s, j) => j === idx ? { ...s, url: null } : s);
+    setSections(newSec);
+    persistSections(newSec);
+    // Sync removal to pipeline server cache
+    fetch('/api/pipeline-cache', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articleId: id, images: { featured, sections: newSec } }),
+    }).catch(() => {});
+  };
+
   const uploadSectionImage = async (idx: number, file: File) => {
     setUploadingSectionIdx(idx); setError('');
     try {
@@ -539,6 +551,16 @@ export default function ImagesClient({ id, article }: { id: string; article: She
                       disabled={downloading === `section-${i + 1}`}
                     >
                       {downloading === `section-${i + 1}` ? '⟳' : '↓'} Download
+                    </button>
+                  )}
+                  {s.url && (
+                    <button
+                      className="dl-btn dl-btn--sm"
+                      style={{ color: '#DC2626', borderColor: '#DC2626' }}
+                      onClick={() => removeSectionImage(i)}
+                      title="Clear this section image"
+                    >
+                      ✕ Remove
                     </button>
                   )}
                 </div>
