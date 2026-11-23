@@ -22,6 +22,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 const CORS_ORIGINS = new Set(['https://chatgpt.com', 'https://flow.google.com']);

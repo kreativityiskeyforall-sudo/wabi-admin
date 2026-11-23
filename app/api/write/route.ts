@@ -11,6 +11,17 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
+});
+
+// CDN client for large read-only queries (published articles for internal linking)
+const sanityCdn = createClient({
+  projectId: process.env.SANITY_PROJECT_ID!,
+  dataset: process.env.SANITY_DATASET ?? 'production',
+  token: process.env.SANITY_TOKEN!,
+  apiVersion: '2024-01-01',
+  useCdn: true,
+  requestTagPrefix: 'admin-cdn',
 });
 
 // ── Universal writing rules ────────────────────────────────────────────────
@@ -404,7 +415,7 @@ Return ONLY the article in markdown. No preamble.`;
   let motherArticle: { title: string; slug: string; category: string } | null = null;
   let siblingArticles: Array<{ title: string; slug: string; category: string }> = [];
   try {
-    publishedArticles = await sanity.fetch(
+    publishedArticles = await sanityCdn.fetch(
       `*[_type == "article" && defined(slug.current) && slug.current != $slug] { title, "slug": slug.current, category, isMother, cluster }`,
       { slug: (title ?? '').toLowerCase().replace(/ /g, '-').replace(/[^a-z0-9-]/g, '') }
     );

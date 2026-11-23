@@ -16,6 +16,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 // GET /api/pipeline-cache?id=545
@@ -49,20 +50,30 @@ export async function POST(req: NextRequest) {
 
   const docId = `pipeline-${articleId}`;
 
-  // Read existing so we don't clobber stages that weren't updated
-  const existing = await sanity.fetch<Record<string, unknown> | null>('*[_id == $docId][0]', { docId });
+  // Build only the fields we actually want to update (don't clobber untouched stages)
+  const patch: Record<string, unknown> = { articleId };
+  if (draftId !== undefined) patch.draftId = draftId;
+  if (outline !== undefined) patch.outline = outline;
+  if (article !== undefined) patch.article = article;
+  if (images !== undefined) patch.images = images;
+  if (shop !== undefined) patch.shop = shop;
 
-  const updated: Record<string, unknown> = {
-    _id: docId,
-    _type: 'pipelineCache',
-    articleId,
-    draftId: draftId !== undefined ? draftId : (existing?.draftId ?? null),
-    outline: outline !== undefined ? outline : (existing?.outline ?? null),
-    article: article !== undefined ? article : (existing?.article ?? null),
-    images: images !== undefined ? images : (existing?.images ?? null),
-    shop: shop !== undefined ? shop : (existing?.shop ?? null),
-  };
+  // Single atomic call: create the doc with null defaults if it doesn't exist yet,
+  // then overwrite only the fields that were provided. Eliminates the read-before-write.
+  await sanity
+    .transaction()
+    .createIfNotExists({
+      _id: docId,
+      _type: 'pipelineCache',
+      articleId,
+      draftId: null,
+      outline: null,
+      article: null,
+      images: null,
+      shop: null,
+    })
+    .patch(docId, p => p.set(patch))
+    .commit();
 
-  await sanity.createOrReplace(updated as Parameters<typeof sanity.createOrReplace>[0]);
   return NextResponse.json({ ok: true, articleId });
 }

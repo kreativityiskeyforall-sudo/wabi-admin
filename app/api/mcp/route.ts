@@ -10,12 +10,25 @@ const PROTOCOL_VERSION = '2024-11-05';
 const SERVER_NAME = 'decoreixy-admin';
 const SERVER_VERSION = '1.0.0';
 
+// Live API — used for writes, draft reads, and anything that must be fresh immediately.
 const sanity = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
   dataset: process.env.SANITY_DATASET ?? 'production',
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'agent',
+});
+
+// CDN — used for read-only published-content queries that tolerate a few seconds of staleness.
+// CDN requests count against the separate (much larger) CDN quota, not the API request quota.
+const sanityCdn = createClient({
+  projectId: process.env.SANITY_PROJECT_ID!,
+  dataset: process.env.SANITY_DATASET ?? 'production',
+  token: process.env.SANITY_TOKEN!,
+  apiVersion: '2024-01-01',
+  useCdn: true,
+  requestTagPrefix: 'agent-cdn',
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -399,7 +412,7 @@ async function toolGetQueueItem(id: string, baseUrl: string, agentKey: string): 
 }
 
 async function toolValidateOutline(category: string, headings: Array<{ level?: string; text: string }>): Promise<string> {
-  const bible = await sanity.fetch<{ json: string } | null>('*[_id == "content-bible"][0]{ json }');
+  const bible = await sanityCdn.fetch<{ json: string } | null>('*[_id == "content-bible"][0]{ json }');
   if (!bible?.json) return 'Content bible not found — cannot validate.';
   const data = JSON.parse(bible.json);
 
@@ -1035,7 +1048,7 @@ Return ONLY this JSON (nothing else):
 }
 
 async function toolGetSiteArticles(): Promise<string> {
-  const articles = await sanity.fetch<Array<{
+  const articles = await sanityCdn.fetch<Array<{
     title: string; slug: string; category: string; body: Array<{ style?: string; children?: Array<{ text?: string }> }>;
   }>>(
     `*[_type == "article" && !(_id in path("drafts.**"))] | order(_createdAt desc) {

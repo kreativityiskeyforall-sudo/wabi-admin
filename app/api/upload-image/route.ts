@@ -7,6 +7,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 // Vercel serverless request body limit ~4.5 MB.

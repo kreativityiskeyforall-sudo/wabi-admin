@@ -9,6 +9,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {

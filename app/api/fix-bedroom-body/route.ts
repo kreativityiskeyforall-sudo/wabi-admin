@@ -12,6 +12,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 const DOC_ID = 'f9fd8bb0-f93a-45a7-9db4-2983c2da43aa';

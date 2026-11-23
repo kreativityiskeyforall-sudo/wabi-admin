@@ -9,7 +9,8 @@ const sanity = createClient({
   dataset: process.env.SANITY_DATASET ?? 'production',
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
-  useCdn: false,
+  useCdn: true,
+  requestTagPrefix: 'admin-cdn',
 });
 
 export async function GET() {

@@ -7,6 +7,7 @@ const sanity = createClient({
   token: process.env.SANITY_TOKEN!,
   apiVersion: '2024-01-01',
   useCdn: false,
+  requestTagPrefix: 'admin',
 });
 
 function key() { return Math.random().toString(36).slice(2, 10); }
