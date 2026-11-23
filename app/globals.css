@@ -75,6 +75,7 @@ body{
 .b-hacks{background:#FFF6E0;color:#8A6A10}.b-guide{background:var(--sbg);color:var(--sage)}
 .b-pillar{background:var(--t1);color:#FDFAF6}.b-product-review,.b-roundup{background:var(--abg);color:var(--amber)}
 .b-queued{background:#EEEAE4;color:#8A8278;font-size:9px}.b-published{background:var(--sbg);color:var(--sage);font-size:9px}
+.b-drafted{background:#FEF3C7;color:#92400E;font-size:9px}
 .b-outline-ready{background:#FFF6E0;color:#8A6A10;font-size:9px}.b-writing{background:#E8EEF7;color:#3A5A8A;font-size:9px}
 
 /* ── OVERVIEW ── */

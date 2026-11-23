@@ -10,8 +10,9 @@ const TYPE_COLORS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   queue: 'b-queued', queued: 'b-queued', 'outline-ready': 'b-outline-ready',
   writing: 'b-writing', published: 'b-published', images: 'b-outline-ready',
-  pinterest: 'b-writing',
+  pinterest: 'b-writing', drafted: 'b-drafted',
 };
+const STATUS_LABELS: Record<string, string> = { drafted: 'For review' };
 
 function getStageLink(art: SheetArticle) {
   if (art.status === 'published') return null;
@@ -119,7 +120,7 @@ export default async function OverviewPage() {
                     <td><div className="t-title">{art.title}</div></td>
                     <td><span className={`badge ${TYPE_COLORS[displayType.toLowerCase()] ?? 'b-ideas'}`}>{displayType}</span></td>
                     <td style={{ fontSize: 12, color: 'var(--t2)' }}>{art.category}</td>
-                    <td><span className={`badge ${STATUS_COLORS[art.status] ?? 'b-queued'}`}>{art.status}</span></td>
+                    <td><span className={`badge ${STATUS_COLORS[art.status] ?? 'b-queued'}`}>{STATUS_LABELS[art.status] ?? art.status}</span></td>
                     <td>
                       {href ? (
                         <Link href={href} className="btn btn-dark btn-sm">Open →</Link>

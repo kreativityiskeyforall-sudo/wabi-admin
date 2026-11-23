@@ -23,11 +23,15 @@ export async function GET() {
     _id: string; title: string; slug: string; category: string;
     type: string; cluster: string | null; _createdAt: string; _updatedAt: string;
     hasFeaturedImage: boolean;
+    publishedDoc: { _id: string; _updatedAt: string } | null;
   }>>(
     `*[_type == "article" && _id in path("drafts.**")] | order(_updatedAt desc) {
       _id, title, "slug": slug.current, category, type, cluster,
       _createdAt, _updatedAt,
-      "hasFeaturedImage": defined(featuredImage)
+      "hasFeaturedImage": defined(featuredImage),
+      "publishedDoc": *[_type == "article" && !(_id in path("drafts.**")) && slug.current == ^.slug.current][0]{
+        _id, _updatedAt
+      }
     }`,
     {},
     // perspective:'raw' ensures drafts are visible; cache:'no-store' bypasses

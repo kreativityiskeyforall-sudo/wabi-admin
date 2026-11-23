@@ -2,16 +2,43 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+interface PublishedDoc { _id: string; _updatedAt: string; }
+
 interface DraftSummary {
   _id: string; title: string; slug: string; category: string;
   type: string; cluster: string | null;
   _createdAt: string; _updatedAt: string; hasFeaturedImage: boolean;
+  publishedDoc: PublishedDoc | null;
+}
+
+type DraftStatus = 'for-review' | 'published' | 'published-edits-pending';
+type Filter = 'all' | 'for-review' | 'published';
+
+function getDraftStatus(d: DraftSummary): DraftStatus {
+  if (!d.publishedDoc) return 'for-review';
+  if (d._updatedAt > d.publishedDoc._updatedAt) return 'published-edits-pending';
+  return 'published';
+}
+
+function StatusBadge({ status }: { status: DraftStatus }) {
+  const cfg: Record<DraftStatus, { label: string; bg: string; color: string }> = {
+    'for-review':              { label: 'For review',              bg: '#FEF3C7', color: '#92400E' },
+    'published':               { label: 'Published',               bg: '#D1FAE5', color: '#065F46' },
+    'published-edits-pending': { label: 'Published, edits pending', bg: '#DBEAFE', color: '#1E40AF' },
+  };
+  const { label, bg, color } = cfg[status];
+  return (
+    <span style={{ fontSize: 11, fontWeight: 700, background: bg, color, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+      {label}
+    </span>
+  );
 }
 
 export default function DraftsPage() {
   const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
     fetch('/api/drafts', { cache: 'no-store' })
@@ -28,25 +55,61 @@ export default function DraftsPage() {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  const withStatus = drafts.map(d => ({ ...d, status: getDraftStatus(d) }));
+
+  const forReviewCount = withStatus.filter(d => d.status === 'for-review').length;
+  const publishedCount = withStatus.filter(d => d.status !== 'for-review').length;
+
+  const visible = withStatus.filter(d => {
+    if (filter === 'for-review') return d.status === 'for-review';
+    if (filter === 'published') return d.status !== 'for-review';
+    return true;
+  });
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    fontSize: 12, fontWeight: 700, padding: '5px 14px', borderRadius: 6, cursor: 'pointer',
+    border: 'none', fontFamily: 'inherit',
+    background: active ? 'var(--t1)' : 'transparent',
+    color: active ? '#fff' : 'var(--t2)',
+    transition: 'background 0.15s, color 0.15s',
+  });
+
   return (
     <div className="wsbody" style={{ padding: '32px 24px', maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--t1)' }}>
           Drafts for Review
         </h1>
         <span style={{ fontSize: 13, color: 'var(--t3)' }}>
-          {drafts.length} draft{drafts.length !== 1 ? 's' : ''}
+          {visible.length} of {drafts.length} draft{drafts.length !== 1 ? 's' : ''}
         </span>
       </div>
 
+      {/* Filter tabs */}
+      {!loading && drafts.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--bg)', borderRadius: 8, padding: 4, alignSelf: 'flex-start', width: 'fit-content', border: '1px solid var(--border)' }}>
+          <button style={tabStyle(filter === 'all')} onClick={() => setFilter('all')}>
+            All <span style={{ opacity: 0.6 }}>({drafts.length})</span>
+          </button>
+          <button style={tabStyle(filter === 'for-review')} onClick={() => setFilter('for-review')}>
+            For review <span style={{ opacity: 0.6 }}>({forReviewCount})</span>
+          </button>
+          <button style={tabStyle(filter === 'published')} onClick={() => setFilter('published')}>
+            Published <span style={{ opacity: 0.6 }}>({publishedCount})</span>
+          </button>
+        </div>
+      )}
+
       {loading && <p style={{ color: 'var(--t3)', fontSize: 14 }}>Loading…</p>}
       {error && <p style={{ color: '#DC2626', fontSize: 14 }}>{error}</p>}
-      {!loading && drafts.length === 0 && (
-        <p style={{ color: 'var(--t2)', fontSize: 14 }}>No drafts waiting for review.</p>
+      {!loading && visible.length === 0 && (
+        <p style={{ color: 'var(--t2)', fontSize: 14 }}>
+          {filter === 'all' ? 'No drafts waiting for review.' : `No ${filter === 'for-review' ? '"For review"' : '"Published"'} drafts.`}
+        </p>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {drafts.map(d => (
+        {visible.map(d => (
           <Link key={d._id} href={`/drafts/${encodeURIComponent(d._id)}`} style={{ textDecoration: 'none' }}>
             <div style={{
               background: '#fff', border: '1px solid var(--border)', borderRadius: 8,
@@ -67,6 +130,7 @@ export default function DraftsPage() {
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <StatusBadge status={d.status} />
                 {d.hasFeaturedImage && (
                   <span style={{ fontSize: 11, background: 'var(--sbg)', color: 'var(--sage)', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>
                     IMG

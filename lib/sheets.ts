@@ -113,6 +113,7 @@ function mapStatus(s: string): string {
   if (lower === 'images') return 'images';
   if (lower === 'pinterest') return 'pinterest';
   if (lower === 'published') return 'published';
+  if (lower === 'drafted') return 'drafted';
   if (lower === 'delete') return 'delete';
   return 'queue';
 }
